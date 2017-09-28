@@ -7,17 +7,8 @@ using System.Text.RegularExpressions;
 
 namespace fbchat_sharp.API
 {
-    public class ConcatJSONDecoder
+    public class GraphQL_JSON_Decoder
     {
-        // Shameless copy from https://stackoverflow.com/a/8730674
-        static readonly RegexOptions FLAGS = RegexOptions.Multiline;
-        static readonly Regex WHITESPACE = new Regex(@"[ \t\n\r]*", FLAGS);
-
-        public static object decode(string s, Regex _w = null)
-        {
-            throw new NotImplementedException();
-        }
-
         public static string graphql_color_to_enum(string color)
         {
             if (color == null)
@@ -62,7 +53,7 @@ rtn = {
              */
         }
 
-        public static Message graphql_to_message(JToken message)
+        public static FB_Message graphql_to_message(JToken message)
         {
             if (message["message_sender"] == null)
                 message["message_sender"] = new JObject(new JProperty("id", 0));
@@ -72,25 +63,25 @@ rtn = {
             if (message["unread"] != null)
                 is_read = !message["unread"].Value<bool>();
 
-            return new Message(
+            return new FB_Message(
                 uid: message["message_id"].Value<string>(),
                 author: message["message_sender"]["id"].Value<string>(),
                 timestamp: message["timestamp_precise"].Value<string>(),
                 is_read: is_read,
                 reactions: new List<string>(),
                 text: message["message"]["text"].Value<string>(),
-                mentions: new List<Mention>(),
+                mentions: new List<FB_Mention>(),
                 sticker: message["sticker"].Value<string>(),
                 attachments: new List<String>() { message["blob_attachments"].Value<string>() },
                 extensible_attachment: null);
         }
 
-        public static User graphql_to_user(JToken user)
+        public static FB_User graphql_to_user(JToken user)
         {
             if (user["profile_picture"] == null)
                 user["profile_picture"] = new JObject(new JProperty("uri", ""));
 
-            return new User(
+            return new FB_User(
                 uid: user["id"].Value<string>(),
                 url: user["url"].Value<string>(),
                 first_name: user["first_name"].Value<string>(),
@@ -107,12 +98,12 @@ rtn = {
                 message_count: user["messages_count"] != null ? user["messages_count"].Value<int>() : 0);
         }
 
-        public static FGroup graphql_to_group(JToken group)
+        public static FB_Group graphql_to_group(JToken group)
         {
             if (group["image"] == null)
                 group["image"] = new JObject(new JProperty("uri", ""));
 
-            return new FGroup(
+            return new FB_Group(
                 uid: group["thread_key"]["thread_fbid"].Value<string>(),
                 participants: new HashSet<string>(group["all_participants"]["nodes"].Select(node => node["messaging_actor"]["id"].Value<string>())),
                 nicknames: new Dictionary<string, string>(),
@@ -123,14 +114,14 @@ rtn = {
                 message_count: group["messages_count"].Value<int>());
         }
 
-        public static FPage graphql_to_page(JToken page)
+        public static FB_Page graphql_to_page(JToken page)
         {
             if (page["profile_picture"] == null)
                 page["profile_picture"] = new JObject(new JProperty("uri", ""));
             if (page["city"] == null)
                 page["city"] = new JObject(new JProperty("name", ""));
 
-            return new FPage(
+            return new FB_Page(
                 uid: page["id"].Value<string>(),
                 url: page["url"].Value<string>(),
                 city: page["city"]["name"].Value<string>(),

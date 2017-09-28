@@ -249,10 +249,10 @@ namespace fbchat_sharp.API
             var payload = new Dictionary<string, string>(){
                 { "method", "GET"},
                 { "response_format", "json"},
-                { "queries", ConcatJSONDecoder.graphql_queries_to_json(queries)}
+                { "queries", GraphQL_JSON_Decoder.graphql_queries_to_json(queries)}
             };
 
-            var j = ConcatJSONDecoder.graphql_response_to_json((string)await Utils.checkRequest(await this._post(ReqUrl.GRAPHQL, payload), do_json_check: false));
+            var j = GraphQL_JSON_Decoder.graphql_response_to_json((string)await Utils.checkRequest(await this._post(ReqUrl.GRAPHQL, payload), do_json_check: false));
 
             return j;
         }
@@ -586,7 +586,7 @@ namespace fbchat_sharp.API
          * FETCH METHODS
          */
 
-        public async Task<List<User>> fetchAllUsers()
+        public async Task<List<FB_User>> fetchAllUsers()
         {
             /*
              * Gets all users the client is currently chatting with
@@ -604,7 +604,7 @@ namespace fbchat_sharp.API
                 throw new Exception("Missing payload");
             }
 
-            var users = new List<User>();
+            var users = new List<FB_User>();
 
             foreach (var k in j["payload"].Value<JObject>().Properties())
             {
@@ -615,14 +615,14 @@ namespace fbchat_sharp.API
                         // Skip invalid users
                         continue;
                     }
-                    users.Add(new User(k["id"].Value<string>(), first_name: k["firstName"].Value<string>(), url: k["uri"].Value<string>(), photo: k["thumbSrc"].Value<string>(), name: k["name"].Value<string>(), is_friend: k["is_friend"].Value<bool>(), gender: GENDER.standard_GENDERS[k["gender"].Value<int>()]));
+                    users.Add(new FB_User(k["id"].Value<string>(), first_name: k["firstName"].Value<string>(), url: k["uri"].Value<string>(), photo: k["thumbSrc"].Value<string>(), name: k["name"].Value<string>(), is_friend: k["is_friend"].Value<bool>(), gender: GENDER.standard_GENDERS[k["gender"].Value<int>()]));
                 }
             }
 
             return users;
         }
 
-        public async Task<List<User>> searchForUsers(string name, int limit = 1)
+        public async Task<List<FB_User>> searchForUsers(string name, int limit = 1)
         {
             /*
              * Find and get user by his/ her name
@@ -637,10 +637,10 @@ namespace fbchat_sharp.API
                 { "search", name }, { "limit", limit.ToString() }
              }));
 
-            return j[name]["users"]["nodes"].Select(node => ConcatJSONDecoder.graphql_to_user(node)).ToList();
+            return j[name]["users"]["nodes"].Select(node => GraphQL_JSON_Decoder.graphql_to_user(node)).ToList();
         }
 
-        public async Task<List<FPage>> searchForPages(string name, int limit = 1)
+        public async Task<List<FB_Page>> searchForPages(string name, int limit = 1)
         {
             /*
              * Find and get page by its name
@@ -654,10 +654,10 @@ namespace fbchat_sharp.API
                 { "search", name }, { "limit", limit.ToString() }
             }));
 
-            return j[name]["pages"]["nodes"].Select(node => ConcatJSONDecoder.graphql_to_page(node)).ToList();
+            return j[name]["pages"]["nodes"].Select(node => GraphQL_JSON_Decoder.graphql_to_page(node)).ToList();
         }
 
-        public async Task<List<FGroup>> searchForGroups(string name, int limit = 1)
+        public async Task<List<FB_Group>> searchForGroups(string name, int limit = 1)
         {
             /*
              * Find and get group thread by its name
@@ -672,10 +672,10 @@ namespace fbchat_sharp.API
               { "search", name }, {"limit", limit.ToString() }
             }));
 
-            return j["viewer"]["groups"]["nodes"].Select(node => ConcatJSONDecoder.graphql_to_group(node)).ToList();
+            return j["viewer"]["groups"]["nodes"].Select(node => GraphQL_JSON_Decoder.graphql_to_group(node)).ToList();
         }
 
-        public async Task<List<Thread>> searchForThreads(string name, int limit = 1)
+        public async Task<List<FB_Thread>> searchForThreads(string name, int limit = 1)
         {
             /*
              * Find and get a thread by its name
@@ -690,22 +690,22 @@ namespace fbchat_sharp.API
                 { "search", name }, {"limit", limit.ToString() }
             }));
 
-            List<Thread> rtn = new List<Thread>();
+            List<FB_Thread> rtn = new List<FB_Thread>();
 
             foreach (var node in j[name]["threads"]["nodes"])
             {
                 if (node["__typename"].Value<string>().Equals("User"))
                 {
-                    rtn.Add(ConcatJSONDecoder.graphql_to_user(node));
+                    rtn.Add(GraphQL_JSON_Decoder.graphql_to_user(node));
                 }
                 else if (node["__typename"].Value<string>().Equals("MessageThread"))
                 {
                     // MessageThread => FGroup thread
-                    rtn.Add(ConcatJSONDecoder.graphql_to_group(node));
+                    rtn.Add(GraphQL_JSON_Decoder.graphql_to_group(node));
                 }
                 else if (node["__typename"].Value<string>().Equals("Page"))
                 {
-                    rtn.Add(ConcatJSONDecoder.graphql_to_page(node));
+                    rtn.Add(GraphQL_JSON_Decoder.graphql_to_page(node));
                 }
                 else if (node["__typename"].Value<string>().Equals("FGroup"))
                 {
@@ -770,7 +770,7 @@ namespace fbchat_sharp.API
             return entries;
         }
 
-        public async Task<Dictionary<string, User>> fetchUserInfo(string[] user_ids)
+        public async Task<Dictionary<string, FB_User>> fetchUserInfo(string[] user_ids)
         {
             /*
              * Get users" info from IDs, unordered
@@ -783,13 +783,13 @@ namespace fbchat_sharp.API
              */
 
             var threads = await this.fetchThreadInfo(user_ids);
-            var users = new Dictionary<string, User>();
+            var users = new Dictionary<string, FB_User>();
 
             foreach (var k in threads.Keys)
             {
                 if (threads[k].type == ThreadType.USER)
                 {
-                    users[k] = (User)threads[k];
+                    users[k] = (FB_User)threads[k];
                 }
                 else
                 {
@@ -800,7 +800,7 @@ namespace fbchat_sharp.API
             return users;
         }
 
-        public async Task<Dictionary<string, FPage>> fetchPageInfo(string[] page_ids)
+        public async Task<Dictionary<string, FB_Page>> fetchPageInfo(string[] page_ids)
         {
             /*
              * Get pages" info from IDs, unordered
@@ -813,13 +813,13 @@ namespace fbchat_sharp.API
              */
 
             var threads = await this.fetchThreadInfo(page_ids);
-            var pages = new Dictionary<string, FPage>();
+            var pages = new Dictionary<string, FB_Page>();
 
             foreach (var k in threads.Keys)
             {
                 if (threads[k].type == ThreadType.PAGE)
                 {
-                    pages[k] = (FPage)threads[k];
+                    pages[k] = (FB_Page)threads[k];
                 }
                 else
                 {
@@ -830,7 +830,7 @@ namespace fbchat_sharp.API
             return pages;
         }
 
-        public async Task<Dictionary<string, FGroup>> fetchFGroupInfo(string[] group_ids)
+        public async Task<Dictionary<string, FB_Group>> fetchFGroupInfo(string[] group_ids)
         {
             /*
              * Get groups" info from IDs, unordered
@@ -841,13 +841,13 @@ namespace fbchat_sharp.API
              */
 
             var threads = await this.fetchThreadInfo(group_ids);
-            var groups = new Dictionary<string, FGroup>();
+            var groups = new Dictionary<string, FB_Group>();
 
             foreach (var k in threads.Keys)
             {
                 if (threads[k].type == ThreadType.GROUP)
                 {
-                    groups[k] = (FGroup)threads[k];
+                    groups[k] = (FB_Group)threads[k];
                 }
                 else
                 {
@@ -858,7 +858,7 @@ namespace fbchat_sharp.API
             return groups;
         }
 
-        public async Task<Dictionary<string, Thread>> fetchThreadInfo(string[] thread_ids)
+        public async Task<Dictionary<string, FB_Thread>> fetchThreadInfo(string[] thread_ids)
         {
             /*
              * Get threads" info from IDs, unordered
@@ -904,14 +904,14 @@ namespace fbchat_sharp.API
                 pages_and_users = await this._fetchInfo(pages_and_user_ids.ToArray());
             }
 
-            var rtn = new Dictionary<string, Thread>();
+            var rtn = new Dictionary<string, FB_Thread>();
             foreach (var obj in j.Select((x, index) => new { entry = x, i = index }))
             {
                 var entry = obj.entry["message_thread"];
                 if (entry["thread_type"].Value<string>().Equals("GROUP"))
                 {
                     var _id = entry["thread_key"]["thread_fbid"].Value<string>();
-                    rtn[_id] = ConcatJSONDecoder.graphql_to_group(entry);
+                    rtn[_id] = GraphQL_JSON_Decoder.graphql_to_group(entry);
                 }
                 else if (entry["thread_type"].Value<string>().Equals("ONE_TO_ONE"))
                 {
@@ -926,11 +926,11 @@ namespace fbchat_sharp.API
                     }
                     if (entry["type"].Value<int>() == (int)ThreadType.USER)
                     {
-                        rtn[_id] = ConcatJSONDecoder.graphql_to_user(entry);
+                        rtn[_id] = GraphQL_JSON_Decoder.graphql_to_user(entry);
                     }
                     else
                     {
-                        rtn[_id] = ConcatJSONDecoder.graphql_to_page(entry);
+                        rtn[_id] = GraphQL_JSON_Decoder.graphql_to_page(entry);
                     }
                 }
                 else
@@ -942,7 +942,7 @@ namespace fbchat_sharp.API
             return rtn;
         }
 
-        public async Task<List<Message>> fetchThreadMessages(string thread_id = null, int limit = 20, string before = null)
+        public async Task<List<FB_Message>> fetchThreadMessages(string thread_id = null, int limit = 20, string before = null)
         {
             /*
              * Get the last messages in a thread
@@ -972,10 +972,10 @@ namespace fbchat_sharp.API
                 throw new Exception(string.Format("Could not fetch thread {0}", thread_id));
             }
 
-            return j["message_thread"]["messages"]["nodes"].Select(message => ConcatJSONDecoder.graphql_to_message(message)).Reverse().ToList();
+            return j["message_thread"]["messages"]["nodes"].Select(message => GraphQL_JSON_Decoder.graphql_to_message(message)).Reverse().ToList();
         }
 
-        public async Task<List<Thread>> fetchThreadList(int offset = 0, int limit = 20)
+        public async Task<List<FB_Thread>> fetchThreadList(int offset = 0, int limit = 20)
         {
             /*
              * Get thread list of your facebook account
@@ -1005,16 +1005,16 @@ namespace fbchat_sharp.API
                 throw new Exception(string.Format("Missing payload: {0}, with data: {1}", j, data));
             }
 
-            var participants = new Dictionary<string, Thread>();
+            var participants = new Dictionary<string, FB_Thread>();
             foreach (var p in j["payload"]["participants"])
             {
                 if (p["type"].Value<string>() == "page")
                 {
-                    participants[p["fbid"].Value<string>()] = new FPage(p["fbid"].Value<string>(), url: p["href"].Value<string>(), photo: p["image_src"].Value<string>(), name: p["name"].Value<string>());
+                    participants[p["fbid"].Value<string>()] = new FB_Page(p["fbid"].Value<string>(), url: p["href"].Value<string>(), photo: p["image_src"].Value<string>(), name: p["name"].Value<string>());
                 }
                 else if (p["type"].Value<string>() == "user")
                 {
-                    participants[p["fbid"].Value<string>()] = new User(p["fbid"].Value<string>(), url: p["href"].Value<string>(), first_name: p["short_name"].Value<string>(), is_friend: p["is_friend"].Value<bool>(), gender: GENDER.standard_GENDERS[p["gender"].Value<int>()], photo: p["image_src"].Value<string>(), name: p["name"].Value<string>());
+                    participants[p["fbid"].Value<string>()] = new FB_User(p["fbid"].Value<string>(), url: p["href"].Value<string>(), first_name: p["short_name"].Value<string>(), is_friend: p["is_friend"].Value<bool>(), gender: GENDER.standard_GENDERS[p["gender"].Value<int>()], photo: p["image_src"].Value<string>(), name: p["name"].Value<string>());
                 }
                 else
                 {
@@ -1022,7 +1022,7 @@ namespace fbchat_sharp.API
                 }
             }
 
-            var entries = new List<Thread>();
+            var entries = new List<FB_Thread>();
             foreach (var k in j["payload"]["threads"])
             {
                 if (k["thread_type"].Value<int>() == 1)
@@ -1037,7 +1037,7 @@ namespace fbchat_sharp.API
                 else if (k["thread_type"].Value<int>() == 2)
                 {
                     var part = new HashSet<string>(k["participants"].Select(p => p.Value<string>().Replace("fbid:", "")));
-                    entries.Add(new FGroup(k["thread_fbid"].Value<string>(), participants: part, photo: k["image_src"].Value<string>(), name: k["name"].Value<string>(), message_count: k["message_count"].Value<int>()));
+                    entries.Add(new FB_Group(k["thread_fbid"].Value<string>(), participants: part, photo: k["image_src"].Value<string>(), name: k["name"].Value<string>(), message_count: k["message_count"].Value<int>()));
                 }
                 else
                 {
@@ -1487,11 +1487,12 @@ namespace fbchat_sharp.API
                 catch (Exception e)
                 {
                     this.onListenError(exception: e);
+                    return false;
                 }
             }
             catch (Exception)
             {
-
+                return false;
             }
 
             return true;
@@ -1572,7 +1573,7 @@ namespace fbchat_sharp.API
             :param msg: A full set of the data recieved
             :type thread_type: models.ThreadType
             */
-            UpdateEvent(this, new UpdateEventArgs(UpdateStatus.NEW_MESSAGE, new Message(mid, author_id, ts, false, null, message)));
+            UpdateEvent(this, new UpdateEventArgs(UpdateStatus.NEW_MESSAGE, new FB_Message(mid, author_id, ts, false, null, message)));
             Debug.WriteLine(string.Format("Message from {0} in {1} ({2}): {3}", author_id, thread_id, thread_type.ToString(), message));
         }
 

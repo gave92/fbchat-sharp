@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace fbchat_sharp.API
 {
-    public class Thread
+    public class FB_Thread
     {
         // The unique identifier of the thread. Can be used a `thread_id`. See :ref:`intro_threads` for more info
         public string uid { get; set; }
@@ -19,7 +19,7 @@ namespace fbchat_sharp.API
         // Number of messages in the thread
         public int message_count { get; set; }        
 
-        public Thread(ThreadType _type, string uid, string photo = null, string name = null, string last_message_timestamp = null, int message_count = 0)
+        public FB_Thread(ThreadType _type, string uid, string photo = null, string name = null, string last_message_timestamp = null, int message_count = 0)
         {
             // Represents a Facebook thread
             this.uid = uid.ToString();
@@ -41,7 +41,7 @@ namespace fbchat_sharp.API
         }
     }
 
-    public class User : Thread
+    public class FB_User : FB_Thread
     {
         // The profile url
         public string url { get; set; }
@@ -64,7 +64,7 @@ namespace fbchat_sharp.API
         // The default emoji
         public string emoji = "";
 
-        public User(string uid, string photo = null, string name = null, int message_count = 0, string url = null, string first_name = null, string last_name = null, bool is_friend = false, string gender = null, float affinity = 0, string nickname = null, string own_nickname = null, string color = null, string emoji = null) :
+        public FB_User(string uid, string photo = null, string name = null, int message_count = 0, string url = null, string first_name = null, string last_name = null, bool is_friend = false, string gender = null, float affinity = 0, string nickname = null, string own_nickname = null, string color = null, string emoji = null) :
             base(ThreadType.USER, uid, photo, name, message_count: message_count)
         {
             // Represents a Facebook user. Inherits `Thread`
@@ -82,7 +82,7 @@ namespace fbchat_sharp.API
         }
     }
 
-    public class FGroup : Thread
+    public class FB_Group : FB_Thread
     {
         // Unique list (set) of the group thread"s participant user IDs
         HashSet<string> participants = new HashSet<string>();
@@ -93,7 +93,7 @@ namespace fbchat_sharp.API
         // The groups"s default emoji
         string emoji = "";
 
-        public FGroup(string uid, string photo = null, string name = null, int message_count = 0, HashSet <string> participants = null, Dictionary<string, string> nicknames = null, string color = null, string emoji = null) :
+        public FB_Group(string uid, string photo = null, string name = null, int message_count = 0, HashSet <string> participants = null, Dictionary<string, string> nicknames = null, string color = null, string emoji = null) :
             base(ThreadType.GROUP, uid, photo, name, message_count: message_count)
         {
             // Represents a Facebook group. Inherits `Thread`        
@@ -104,7 +104,7 @@ namespace fbchat_sharp.API
         }
     }
 
-    public class FPage : Thread
+    public class FB_Page : FB_Thread
     {
         // The page"s custom url
         string url = "";
@@ -117,7 +117,7 @@ namespace fbchat_sharp.API
         // The page"s category
         string category = "";
 
-        public FPage(string uid, string photo = null, string name = null, int message_count = 0, string url = null, string city = null, int likes = 0, string sub_title = null, string category = null) :
+        public FB_Page(string uid, string photo = null, string name = null, int message_count = 0, string url = null, string city = null, int likes = 0, string sub_title = null, string category = null) :
             base(ThreadType.PAGE, uid, photo, name, message_count: message_count)
         {
             // Represents a Facebook page. Inherits `Thread`
@@ -129,7 +129,7 @@ namespace fbchat_sharp.API
         }
     }
 
-    public class Message
+    public class FB_Message
     {
         // The message ID
         public string uid = "";
@@ -144,7 +144,7 @@ namespace fbchat_sharp.API
         // The actual message
         public string text { get; set; }
         // A list of :class:`Mention` objects
-        public List<Mention> mentions = new List<Mention>();
+        public List<FB_Mention> mentions = new List<FB_Mention>();
         // An ID of a sent sticker
         public string sticker = "";
         // A list of attachments
@@ -154,7 +154,7 @@ namespace fbchat_sharp.API
         // The message was sent from me
         public bool is_from_me { get; set; }
 
-        public Message(string uid, string author = null, string timestamp = null, bool is_read = false, List<string> reactions = null, string text = null, List<Mention> mentions = null, string sticker = null, List<string> attachments = null, Dictionary<string, JToken> extensible_attachment = null)
+        public FB_Message(string uid, string author = null, string timestamp = null, bool is_read = false, List<string> reactions = null, string text = null, List<FB_Mention> mentions = null, string sticker = null, List<string> attachments = null, Dictionary<string, JToken> extensible_attachment = null)
         {
             this.uid = uid;
             this.author = author;
@@ -169,7 +169,7 @@ namespace fbchat_sharp.API
         }
     }
 
-    public class Mention
+    public class FB_Mention
     {
         // The user ID the mention is pointing at
         string user_id = "";
@@ -178,7 +178,7 @@ namespace fbchat_sharp.API
         // The length of the mention
         int length = 0;
 
-        public Mention(string user_id, int offset = 0, int length = 10)
+        public FB_Mention(string user_id, int offset = 0, int length = 10)
         {
             // Represents a @mention
             this.user_id = user_id;

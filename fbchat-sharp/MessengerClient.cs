@@ -88,29 +88,29 @@ namespace fbchat_sharp.API
             await this.WriteCookiesToDiskAsync(session_cookies);
         }
 
-        public async Task<List<Message>> FetchThreadMessages(string thread_id = null, int limit = 20, string before = null)
+        public async Task<List<FB_Message>> FetchThreadMessages(string thread_id = null, int limit = 20, string before = null)
         {
-            return await this.SafeWrapper<List<Message>>(async () => await base.fetchThreadMessages(thread_id, limit, before));
+            return await this.SafeWrapper<List<FB_Message>>(async () => await base.fetchThreadMessages(thread_id, limit, before));
         }
 
-        public async Task<User> FetchProfile()
+        public async Task<FB_User> FetchProfile()
         {
-            return await this.SafeWrapper<User>(async () => (await base.fetchUserInfo(new[] { base.GetUserUid() })).Single().Value);
+            return await this.SafeWrapper<FB_User>(async () => (await base.fetchUserInfo(new[] { base.GetUserUid() })).Single().Value);
         }
 
-        public async Task<List<User>> FetchAllUsers()
+        public async Task<List<FB_User>> FetchAllUsers()
         {
-            return await this.SafeWrapper<List<User>>(async () => await base.fetchAllUsers());
+            return await this.SafeWrapper<List<FB_User>>(async () => await base.fetchAllUsers());
         }
 
-        public async Task<List<User>> SearchUsers(string name, int limit = 1)
+        public async Task<List<FB_User>> SearchUsers(string name, int limit = 1)
         {
-            return await this.SafeWrapper<List<User>>(async () => await base.searchForUsers(name, limit));
+            return await this.SafeWrapper<List<FB_User>>(async () => await base.searchForUsers(name, limit));
         }
 
-        public async Task<List<Thread>> FetchThreadList(int offset = 0, int limit = 20)
+        public async Task<List<FB_Thread>> FetchThreadList(int offset = 0, int limit = 20)
         {
-            return await this.SafeWrapper<List<Thread>>(async () => await base.fetchThreadList(offset, limit));
+            return await this.SafeWrapper<List<FB_Thread>>(async () => await base.fetchThreadList(offset, limit));
         }
 
         public async Task<string> SendMessage(string message, string thread_id = null, ThreadType thread_type = ThreadType.USER)
