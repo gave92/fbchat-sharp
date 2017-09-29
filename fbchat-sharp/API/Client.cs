@@ -6,8 +6,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
+[assembly: InternalsVisibleTo("FMessenger.Windows")]
+[assembly: InternalsVisibleTo("FMessenger.WindowsPhone")]
 namespace fbchat_sharp.API
 {
     public enum LoginStatus
@@ -721,7 +724,7 @@ namespace fbchat_sharp.API
             return rtn;
         }
 
-        private async Task<Dictionary<string, Dictionary<string, object>>> _fetchInfo(string[] ids)
+        protected async Task<JObject> fetchInfo(string[] ids)
         {
             var data = new Dictionary<string, string>();
             foreach (var obj in ids.Select((x, index) => new { _id = x, i = index }))
@@ -734,31 +737,31 @@ namespace fbchat_sharp.API
                 throw new Exception("No users/pages returned");
             }
 
-            var entries = new Dictionary<string, Dictionary<string, object>>();
+            var entries = new JObject();
 
             foreach (var k in j["payload"]["profiles"].Value<JObject>().Properties())
             {
                 if (new[] { "user", "friend" }.Contains(k.Value["type"].Value<string>()))
                 {
-                    entries[k.Name] = new Dictionary<string, object>() {
+                    entries[k.Name] = new JObject() {
                         { "id", k.Name },
-                        {"type", ThreadType.USER.ToString() },
-                        {"url", k["uri"].Value<string>() },
-                        {"first_name", k["firstName"].Value<string>() },
-                        {"is_viewer_friend", k["is_friend"].Value<bool>() },
-                        {"gender", k["gender"].Value<string>() },
-                        {"profile_picture", new Dictionary<string,string>() { { "uri", k["thumbSrc"].Value<string>() } } },
-                        { "name", k["name"].Value<string>() }
+                        {"type", (int)ThreadType.USER },
+                        {"url", k.Value["uri"].Value<string>() },
+                        {"first_name", k.Value["firstName"].Value<string>() },
+                        {"is_viewer_friend", k.Value["is_friend"].Value<bool>() },
+                        {"gender", k.Value["gender"].Value<string>() },
+                        {"profile_picture", new JObject() { { "uri", k.Value["thumbSrc"].Value<string>() } } },
+                        { "name", k.Value["name"].Value<string>() }
                     };
                 }
                 else if (k.Value["type"].Value<string>().Equals("page"))
                 {
-                    entries[k.Name] = new Dictionary<string, object>() {
+                    entries[k.Name] = new JObject() {
                         { "id", k.Name},
-                        { "type", ThreadType.PAGE.ToString()},
-                        {"url", k["uri"].Value<string>()},
-                        {"profile_picture", new Dictionary<string,string>(){ { "uri", k["thumbSrc"].Value<string>() } } },
-                        { "name", k["name"].Value<string>() }
+                        { "type", (int)ThreadType.PAGE},
+                        {"url", k.Value["uri"].Value<string>()},
+                        {"profile_picture", new JObject() { { "uri", k.Value["thumbSrc"].Value<string>() } } },
+                        { "name", k.Value["name"].Value<string>() }
                     };
                 }
                 else
@@ -830,7 +833,7 @@ namespace fbchat_sharp.API
             return pages;
         }
 
-        public async Task<Dictionary<string, FB_Group>> fetchFGroupInfo(string[] group_ids)
+        public async Task<Dictionary<string, FB_Group>> fetchGroupInfo(string[] group_ids)
         {
             /*
              * Get groups" info from IDs, unordered
@@ -885,7 +888,7 @@ namespace fbchat_sharp.API
 
             foreach (var obj in j.Select((x, index) => new { entry = x, i = index }))
             {
-                if (obj.entry["message_thread"] == null)
+                if (obj.entry["message_thread"] == null || obj.entry["message_thread"].Type == JTokenType.Null)
                 {
                     // If you don"t have an existing thread with this person, attempt to retrieve user data anyways
                     j[obj.i]["message_thread"] = new JObject(
@@ -898,10 +901,10 @@ namespace fbchat_sharp.API
 
             var pages_and_user_ids = j.Where(k => k["message_thread"]["thread_type"].Value<string>().Equals("ONE_TO_ONE"))
                 .Select(k => k["message_thread"]["thread_key"]["other_user_id"].Value<string>());
-            var pages_and_users = new Dictionary<string, Dictionary<string, object>>();
+            JObject pages_and_users = null;
             if (pages_and_user_ids.Count() != 0)
             {
-                pages_and_users = await this._fetchInfo(pages_and_user_ids.ToArray());
+                pages_and_users = await this.fetchInfo(pages_and_user_ids.ToArray());
             }
 
             var rtn = new Dictionary<string, FB_Thread>();
@@ -916,13 +919,13 @@ namespace fbchat_sharp.API
                 else if (entry["thread_type"].Value<string>().Equals("ONE_TO_ONE"))
                 {
                     var _id = entry["thread_key"]["other_user_id"].Value<string>();
-                    if (pages_and_users["_id"] == null)
+                    if (pages_and_users[_id] == null)
                     {
                         throw new Exception(string.Format("Could not fetch thread {0}", _id));
                     }
                     foreach (var elem in pages_and_users[_id])
                     {
-                        // entry[elem.Key] = elem.Value;
+                        ((JObject)entry).Add(elem);
                     }
                     if (entry["type"].Value<int>() == (int)ThreadType.USER)
                     {

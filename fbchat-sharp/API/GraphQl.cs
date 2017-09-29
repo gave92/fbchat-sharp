@@ -3,7 +3,6 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace fbchat_sharp.API
 {
@@ -64,15 +63,15 @@ rtn = {
                 is_read = !message["unread"].Value<bool>();
 
             return new FB_Message(
-                uid: message["message_id"].Value<string>(),
-                author: message["message_sender"]["id"].Value<string>(),
-                timestamp: message["timestamp_precise"].Value<string>(),
+                uid: message["message_id"]?.Value<string>(),
+                author: message["message_sender"]["id"]?.Value<string>(),
+                timestamp: message["timestamp_precise"]?.Value<string>(),
                 is_read: is_read,
                 reactions: new List<string>(),
-                text: message["message"]["text"].Value<string>(),
+                text: message["message"]["text"]?.Value<string>(),
                 mentions: new List<FB_Mention>(),
-                sticker: message["sticker"].Value<string>(),
-                attachments: new List<String>() { message["blob_attachments"].Value<string>() },
+                sticker: message["sticker"]?.Value<JObject>(),
+                attachments: message["blob_attachments"]?.Value<JArray>(),
                 extensible_attachment: null);
         }
 
@@ -82,20 +81,20 @@ rtn = {
                 user["profile_picture"] = new JObject(new JProperty("uri", ""));
 
             return new FB_User(
-                uid: user["id"].Value<string>(),
-                url: user["url"].Value<string>(),
-                first_name: user["first_name"].Value<string>(),
-                last_name: user["last_name"].Value<string>(),
-                is_friend: user["is_viewer_friend"].Value<bool>(),
-                gender: user["gender"].Value<string>(),
-                affinity: user["viewer_affinity"].Value<float>(),
+                uid: user["id"]?.Value<string>(),
+                url: user["url"]?.Value<string>(),
+                first_name: user["first_name"]?.Value<string>(),
+                last_name: user["last_name"]?.Value<string>(),
+                is_friend: user["is_viewer_friend"]?.Value<bool>() ?? false,
+                gender: user["gender"]?.Value<string>(),
+                affinity: user["viewer_affinity"]?.Value<float>() ?? 0,
                 nickname: "",
                 color: ThreadColor.MESSENGER_BLUE,
                 emoji: "",
                 own_nickname: "",
-                photo: user["profile_picture"]["uri"].Value<string>(),
-                name: user["name"].Value<string>(),
-                message_count: user["messages_count"] != null ? user["messages_count"].Value<int>() : 0);
+                photo: user["profile_picture"]["uri"]?.Value<string>(),
+                name: user["name"]?.Value<string>(),
+                message_count: user["messages_count"]?.Value<int>() ?? 0);
         }
 
         public static FB_Group graphql_to_group(JToken group)

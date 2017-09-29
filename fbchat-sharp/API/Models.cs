@@ -146,15 +146,15 @@ namespace fbchat_sharp.API
         // A list of :class:`Mention` objects
         public List<FB_Mention> mentions = new List<FB_Mention>();
         // An ID of a sent sticker
-        public string sticker = "";
+        public JObject sticker = new JObject();
         // A list of attachments
-        public List<string> attachments = new List<string>();
+        public JArray attachments = new JArray();
         // An extensible attachment, e.g. share object
         public Dictionary<string, JToken> extensible_attachment = new Dictionary<string, JToken>();
         // The message was sent from me
         public bool is_from_me { get; set; }
 
-        public FB_Message(string uid, string author = null, string timestamp = null, bool is_read = false, List<string> reactions = null, string text = null, List<FB_Mention> mentions = null, string sticker = null, List<string> attachments = null, Dictionary<string, JToken> extensible_attachment = null)
+        public FB_Message(string uid, string author = null, string timestamp = null, bool is_read = false, List<string> reactions = null, string text = null, List<FB_Mention> mentions = null, JObject sticker = null, JArray attachments = null, Dictionary<string, JToken> extensible_attachment = null)
         {
             this.uid = uid;
             this.author = author;

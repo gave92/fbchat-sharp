@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
@@ -96,6 +95,7 @@ namespace fbchat_sharp.API
         public async Task<FB_User> FetchProfile()
         {
             return await this.SafeWrapper<FB_User>(async () => (await base.fetchUserInfo(new[] { base.GetUserUid() })).Single().Value);
+            // return await this.SafeWrapper<Dictionary<string, object>>(async () => (await base.fetchInfo(new[] { base.uid })).Single().Value);
         }
 
         public async Task<List<FB_User>> FetchAllUsers()
