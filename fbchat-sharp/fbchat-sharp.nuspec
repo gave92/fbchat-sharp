@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>0.1</version>
+    <title>fbchat-sharp</title>
+    <authors>Marco Gavelli</authors>
+    <owners>Marco Gavelli</owners>
+    <licenseUrl>https://github.com/gave92/fbchat-sharp/blob/master/LICENSE.txt</licenseUrl>
+    <projectUrl>https://github.com/gave92/fbchat-sharp</projectUrl>
+    <iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description></description>
+    <releaseNotes>Initial release.</releaseNotes>
+    <copyright>Copyright 2017 Marco Gavelli</copyright>
+    <tags>facebook messenger chat</tags>
+  </metadata>
+</package>
