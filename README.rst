@@ -15,7 +15,7 @@ Installation
 
 .. code-block:: console
 
-    $ Install-Package fbchat-sharp
+    $ Install-Package Gave.Libs.Fbchat
 
 Supported platforms
 -------------------
