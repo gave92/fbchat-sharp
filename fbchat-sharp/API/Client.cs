@@ -13,46 +13,92 @@ using System.Threading.Tasks;
 [assembly: InternalsVisibleTo("FMessenger.WindowsPhone")]
 namespace fbchat_sharp.API
 {
+    /// <summary>
+    /// Enum for login events
+    /// </summary>
     public enum LoginStatus
     {
+        /// <summary>
+        /// Client is logging out
+        /// </summary>
         LOGGING_OUT,
+        /// <summary>
+        /// Client has successfully logged out
+        /// </summary>
         LOGGED_OUT,
+        /// <summary>
+        /// Client logout failed
+        /// </summary>
         LOGOUT_FAILED,
+        /// <summary>
+        /// Client is logging in
+        /// </summary>
         LOGGING_IN,
+        /// <summary>
+        /// Client has successfully logged in
+        /// </summary>
         LOGGED_IN,
+        /// <summary>
+        /// Client login failed
+        /// </summary>
         LOGIN_FAILED
     }
 
+    /// <summary>
+    /// Enum for messenger update events
+    /// </summary>
     public enum UpdateStatus
     {
+        /// <summary>
+        /// A new message was received
+        /// </summary>
         NEW_MESSAGE
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
     public class LoginEventArgs : EventArgs
     {
         private LoginStatus login_status;
+
+        /// <param name="_login_status">LoginStatus enum associated with this event</param>
         public LoginEventArgs(LoginStatus _login_status)
         {
             this.login_status = _login_status;
         }
 
+        /// <returns>Returns the LoginStatus enum associated with this event</returns>
         public LoginStatus Data { get { return login_status; } }
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
     public class UpdateEventArgs : EventArgs
     {
         private UpdateStatus update_event;
         private object update;
 
+        /// <param name="_update_event">UpdateStatus enum associated with this event</param>
+        /// <param name="_data">object associated with this event, e.g. a FB_Message</param>
         public UpdateEventArgs(UpdateStatus _update_event, object _data)
         {
             this.update_event = _update_event;
             this.update = _data;
         }
 
+        /// <returns>
+        /// Returns the info associated with this event in a dynamic object
+        /// event.Data.Type: UpdateStatus enum associated with this event
+        /// event.Data.Update: object associated with this event, e.g. a FB_Message 
+        /// </returns>
         public dynamic Data { get { return new { Type = update_event, Update = update }; } }
     }
 
+    /// <summary>
+    /// Messenger chat client implementation
+    /// </summary>
     public class Client
     {
         /*
@@ -60,17 +106,17 @@ namespace fbchat_sharp.API
          * See https://fbchat.readthedocs.io for complete documentation of the API.
         */
 
-        private bool listening = false;
+        // private bool listening = false;
         // Whether the client is listening. Used when creating an external event loop to determine when to stop listening/*
 
-        /*
-         * The ID of the client.
-         * Can be used as `thread_id`. See :ref:`intro_threads` for more info.
-        * Note: Modifying this results in undefined behaviour
-        */
-        private string uid = null;
+        /// <summary>
+        /// The ID of the client.
+        /// Can be used as `thread_id`.
+        /// Note: Modifying this results in undefined behaviour
+        /// </summary>
+        protected string uid = null;
 
-        // private variables
+        // Private variables
         private Dictionary<string, string> _header;
         private Dictionary<string, string> payloadDefault;
         private Dictionary<string, string> form;
@@ -104,13 +150,14 @@ namespace fbchat_sharp.API
         private string pool;
         private string client;
 
+        /// <param name="user_agent">Optional custom user agent string</param>
         public Client(string user_agent = null)
         {
             /*
              * Initializes and logs in the client
              * :param email: Facebook `email`, `id` or `phone number`
              * :param password: Facebook account password
-             * : param user_agent: Custom user agent to use when sending requests. If `null`, user agent will be chosen from a premade list(see: any:`utils.USER_AGENTS`)
+             * :param user_agent: Custom user agent to use when sending requests. If `null`, user agent will be chosen from a premade list(see: any:`utils.USER_AGENTS`)
              * :param max_tries: Maximum number of times to try logging in
              * :param session_cookies: Cookies from a previous session(Will default to login if these are invalid)
              * :type session_cookies: dict
@@ -139,16 +186,15 @@ namespace fbchat_sharp.API
                 { "User-Agent", user_agent },
                 // { "Connection", "keep-alive" },
             };
-        }
+        }        
 
-        public string GetUserUid()
-        {
-            return this.uid;
-        }
-
+        /// <summary>
+        /// Tries to login using a list of provided cookies
+        /// </summary>
+        /// <param name="session_cookies">List of cookies</param>
         public async Task tryLogin(IEnumerable<Cookie> session_cookies = null)
         {
-            // If session cookies aren"t set, not properly loaded or gives us an invalid session, then do the login
+            // If session cookies aren't set, not properly loaded or gives us an invalid session, then do the login
             if (session_cookies == null || !await this.setSession(session_cookies) /*|| !await this.isLoggedIn()*/)
             {
                 OnLoginEvent(new LoginEventArgs(LoginStatus.LOGIN_FAILED));
@@ -159,9 +205,15 @@ namespace fbchat_sharp.API
             }
         }
 
+        /// <summary>
+        /// Tries to login using provided email and password
+        /// </summary>
+        /// <param name="email">User email address</param>
+        /// <param name="password">User password</param>
+        /// <param name="max_tries">Optional maximum number of retries</param>
         public async Task doLogin(string email, string password, int max_tries = 5)
         {
-            // If session cookies aren"t set, not properly loaded or gives us an invalid session, then do the login
+            // If session cookies aren't set, not properly loaded or gives us an invalid session, then do the login
             await this.login(email, password, max_tries);
         }
 
@@ -236,7 +288,7 @@ namespace fbchat_sharp.API
 
         private async Task<HttpResponseMessage> _postFile(string url, object files = null, Dictionary<string, string> query = null, int timeout = 30)
         {
-            throw new NotImplementedException();
+            return await Task.FromResult<HttpResponseMessage>(new HttpResponseMessage(HttpStatusCode.BadRequest));
             // var payload = this._generatePayload(query);
             // Removes "Content-Type" from the header
             // var headers = new Dictionary<string, string>((i, this._header[i]) for i in this._header if i != "Content-Type") ;
@@ -386,9 +438,13 @@ namespace fbchat_sharp.API
 
         private async Task<HttpResponseMessage> _2FA(HttpResponseMessage r)
         {
-            throw new NotImplementedException();
+            return await Task.FromResult<HttpResponseMessage>(new HttpResponseMessage(HttpStatusCode.BadRequest));
         }
 
+        /// <summary>
+        /// Sends a request to Facebook to check the login status
+        /// </summary>
+        /// <returns>Returns true if the client is still logged in</returns>
         public async Task<bool> isLoggedIn()
         {
             /*
@@ -401,6 +457,11 @@ namespace fbchat_sharp.API
             return (r.RequestMessage.RequestUri.ToString().Contains("home"));
         }
 
+        /// <summary>
+        /// Retrieves session cookies
+        /// </summary>
+        /// <param name="url">Specify the url for which retrieve the cookies (optional)</param>
+        /// <returns>Returns a list containing client session cookies</returns>
         public IEnumerable<Cookie> getSession(string url = null)
         {
             /*
@@ -411,6 +472,11 @@ namespace fbchat_sharp.API
             return this._session.GetCookies(new Uri(url != null ? url : ReqUrl.BASE)).Cast<Cookie>();
         }
 
+        /// <summary>
+        /// Sets client's session cookies
+        /// </summary>
+        /// <param name="session_cookies">A list of cookies</param>
+        /// <returns>Returns false if `session_cookies` does not contain proper cookies</returns>
         public async Task<bool> setSession(IEnumerable<Cookie> session_cookies = null)
         {
             /*
@@ -500,6 +566,9 @@ namespace fbchat_sharp.API
             throw new Exception(string.Format("Login failed. Check email/password. (Failed on url: {0})", tuple_login.Item2));
         }
 
+        /// <summary>
+        /// Logs out and resets the client
+        /// </summary>
         public async Task doLogout()
         {
             OnLoginEvent(new LoginEventArgs(LoginStatus.LOGGING_OUT));
@@ -589,6 +658,9 @@ namespace fbchat_sharp.API
          * FETCH METHODS
          */
 
+        /// <summary>
+        /// Gets all users the client is currently chatting with
+        /// </summary>
         public async Task<List<FB_User>> fetchAllUsers()
         {
             /*
@@ -625,6 +697,11 @@ namespace fbchat_sharp.API
             return users;
         }
 
+        /// <summary>
+        /// Find and get user by his/her name
+        /// </summary>
+        /// <param name="name">Name of the user</param>
+        /// <param name="limit">The max. amount of users to fetch</param>
         public async Task<List<FB_User>> searchForUsers(string name, int limit = 1)
         {
             /*
@@ -643,6 +720,11 @@ namespace fbchat_sharp.API
             return j[name]["users"]["nodes"].Select(node => GraphQL_JSON_Decoder.graphql_to_user(node)).ToList();
         }
 
+        /// <summary>
+        /// Find and get page by its name
+        /// </summary>
+        /// <param name="name">Name of the page</param>
+        /// <param name="limit">The max. amount of pages to fetch</param>
         public async Task<List<FB_Page>> searchForPages(string name, int limit = 1)
         {
             /*
@@ -660,6 +742,11 @@ namespace fbchat_sharp.API
             return j[name]["pages"]["nodes"].Select(node => GraphQL_JSON_Decoder.graphql_to_page(node)).ToList();
         }
 
+        /// <summary>
+        /// Find and get group thread by its name
+        /// </summary>
+        /// <param name="name">Name of the group</param>
+        /// <param name="limit">The max. amount of groups to fetch</param>
         public async Task<List<FB_Group>> searchForGroups(string name, int limit = 1)
         {
             /*
@@ -678,6 +765,11 @@ namespace fbchat_sharp.API
             return j["viewer"]["groups"]["nodes"].Select(node => GraphQL_JSON_Decoder.graphql_to_group(node)).ToList();
         }
 
+        /// <summary>
+        /// Find and get a thread by its name
+        /// </summary>
+        /// <param name="name">Name of the thread</param>
+        /// <param name="limit">The max. amount of threads to fetch</param>
         public async Task<List<FB_Thread>> searchForThreads(string name, int limit = 1)
         {
             /*
@@ -724,7 +816,7 @@ namespace fbchat_sharp.API
             return rtn;
         }
 
-        protected async Task<JObject> fetchInfo(string[] ids)
+        private async Task<JObject> _fetchInfo(string[] ids)
         {
             var data = new Dictionary<string, string>();
             foreach (var obj in ids.Select((x, index) => new { _id = x, i = index }))
@@ -773,10 +865,15 @@ namespace fbchat_sharp.API
             return entries;
         }
 
+        /// <summary>
+        /// Get users' info from IDs, unordered
+        /// </summary>
+        /// <param name="user_ids">One or more user ID(s) to query</param>
+        /// <returns>A dictionary of FB_User objects, labeled by their ID</returns>
         public async Task<Dictionary<string, FB_User>> fetchUserInfo(string[] user_ids)
         {
             /*
-             * Get users" info from IDs, unordered
+             * Get users' info from IDs, unordered
              * ..warning::
              * Sends two requests, to fetch all available info!
              * :param user_ids: One or more user ID(s) to query
@@ -803,6 +900,11 @@ namespace fbchat_sharp.API
             return users;
         }
 
+        /// <summary>
+        /// Get pages' info from IDs, unordered
+        /// </summary>
+        /// <param name="page_ids">One or more page ID(s) to query</param>
+        /// <returns>A dictionary of FB_Page objects, labeled by their ID</returns>
         public async Task<Dictionary<string, FB_Page>> fetchPageInfo(string[] page_ids)
         {
             /*
@@ -833,6 +935,11 @@ namespace fbchat_sharp.API
             return pages;
         }
 
+        /// <summary>
+        /// Get groups' info from IDs, unordered
+        /// </summary>
+        /// <param name="group_ids">One or more group ID(s) to query</param>
+        /// <returns>A dictionary of FB_Group objects, labeled by their ID</returns>
         public async Task<Dictionary<string, FB_Group>> fetchGroupInfo(string[] group_ids)
         {
             /*
@@ -861,6 +968,11 @@ namespace fbchat_sharp.API
             return groups;
         }
 
+        /// <summary>
+        /// Get threads' info from IDs, unordered
+        /// </summary>
+        /// <param name="thread_ids">One or more thread ID(s) to query</param>
+        /// <returns>A dictionary of FB_Thread objects, labeled by their ID</returns>
         public async Task<Dictionary<string, FB_Thread>> fetchThreadInfo(string[] thread_ids)
         {
             /*
@@ -904,7 +1016,7 @@ namespace fbchat_sharp.API
             JObject pages_and_users = null;
             if (pages_and_user_ids.Count() != 0)
             {
-                pages_and_users = await this.fetchInfo(pages_and_user_ids.ToArray());
+                pages_and_users = await this._fetchInfo(pages_and_user_ids.ToArray());
             }
 
             var rtn = new Dictionary<string, FB_Thread>();
@@ -945,11 +1057,18 @@ namespace fbchat_sharp.API
             return rtn;
         }
 
+        /// <summary>
+        /// Get the last messages in a thread
+        /// </summary>
+        /// <param name="thread_id">User / Group ID from which to retrieve the messages</param>
+        /// <param name="limit">Max.number of messages to retrieve</param>
+        /// <param name="before">A unix timestamp, indicating from which point to retrieve messages</param>
+        /// <returns></returns>
         public async Task<List<FB_Message>> fetchThreadMessages(string thread_id = null, int limit = 20, string before = null)
         {
             /*
              * Get the last messages in a thread
-             * :param thread_id: User / FGroup ID to default to.See :ref:`intro_threads`
+             * :param thread_id: User / Group ID to default to.See :ref:`intro_threads`
              * :param limit: Max.number of messages to retrieve
              * : param before: A timestamp, indicating from which point to retrieve messages
              * :type limit: int
@@ -978,6 +1097,11 @@ namespace fbchat_sharp.API
             return j["message_thread"]["messages"]["nodes"].Select(message => GraphQL_JSON_Decoder.graphql_to_message(message)).Reverse().ToList();
         }
 
+        /// <summary>
+        /// Get thread list of your facebook account
+        /// </summary>
+        /// <param name="offset">The offset, from where in the list to recieve threads from</param>
+        /// <param name="limit">Max.number of threads to retrieve. Capped at 20</param>
         public async Task<List<FB_Thread>> fetchThreadList(int offset = 0, int limit = 20)
         {
             /*
@@ -1051,6 +1175,10 @@ namespace fbchat_sharp.API
             return entries;
         }
 
+        /// <summary>
+        /// Get unread user messages
+        /// </summary>
+        /// <returns>Returns unread message ids and count</returns>
         public async Task<Dictionary<string, object>> fetchUnread()
         {
             /*
@@ -1062,8 +1190,8 @@ namespace fbchat_sharp.API
             var form = new Dictionary<string, string>() {
                 { "client", "mercury_sync"},
                 { "folders[0]", "inbox"},
-                { "last_action_timestamp", (Utils.now() - 60 * 1000).ToString()}
-                // "last_action_timestamp": 0
+                { "last_action_timestamp", (Utils.now() - 60 * 1000).ToString()},
+                { "last_action_timestamp", 0.ToString()}
             };
 
             var j = (JToken)await Utils.checkRequest(await this._post(ReqUrl.THREAD_SYNC, form));
@@ -1166,12 +1294,19 @@ namespace fbchat_sharp.API
             return message_id;
         }
 
+        /// <summary>
+        /// Sends a message to a thread
+        /// </summary>
+        /// <param name="message">Message to send</param>
+        /// <param name="thread_id">User / Group ID to send to</param>
+        /// <param name="thread_type">ThreadType enum</param>
+        /// <returns>Message ID of the sent message</returns>
         public async Task<string> sendMessage(string message, string thread_id = null, ThreadType thread_type = ThreadType.USER)
         {
             /*
              * Sends a message to a thread
              * :param message: Message to send
-             * : param thread_id: User / FGroup ID to send to. See:ref:`intro_threads`
+             * : param thread_id: User / Group ID to send to. See:ref:`intro_threads`
              * :param thread_type: See:ref:`intro_threads`
              * :type thread_type: models.ThreadType
              * :return: :ref:`Message ID < intro_message_ids >` of the sent message
@@ -1452,18 +1587,27 @@ namespace fbchat_sharp.API
             }
         }
 
+        /// <summary>
+        /// Start listening from an external event loop
+        /// </summary>
         public async Task startListening()
         {
             /*
              * Start listening from an external event loop
              * :raises: Exception if request failed
              */
-            this.listening = true;
+            // this.listening = true;
             var sticky_pool = await this._fetchSticky();
             this.sticky = sticky_pool.Item1;
             this.pool = sticky_pool.Item2;
         }
 
+        /// <summary>
+        /// Does one cycle of the listening loop.
+        /// This method is useful if you want to control fbchat from an external event loop
+        /// </summary>
+        /// <param name="markAlive">Whether this should ping the Facebook server before running</param>
+        /// <returns>Whether the loop should keep running</returns>
         public async Task<bool> doOneListen(bool markAlive = true)
         {
             /*
@@ -1501,10 +1645,13 @@ namespace fbchat_sharp.API
             return true;
         }
 
+        /// <summary>
+        /// Cleans up the variables from startListening
+        /// </summary>
         public void stopListening()
         {
             /*Cleans up the variables from startListening*/
-            this.listening = false;
+            // this.listening = false;
             this.sticky = null;
             this.pool = null;
         }
@@ -1519,25 +1666,45 @@ namespace fbchat_sharp.API
 
         // An event that clients can use to be notified whenever the
         // elements of the list change.
+        /// <summary>
+        /// Subscribe to this event to get login status updates
+        /// </summary>
         public event EventHandler<LoginEventArgs> LoginEvent;
+        /// <summary>
+        /// Subscribe to this event to get chat updates (e.g. a new message)
+        /// </summary>
         public event EventHandler<UpdateEventArgs> UpdateEvent;
 
+        /// <summary>
+        /// Calls LoginEvent event handler
+        /// </summary>
         protected void OnLoginEvent(LoginEventArgs e)
         {
             LoginEvent?.Invoke(this, e);
         }
 
+        /// <summary>
+        /// Calls UpdateEvent event handler
+        /// </summary>
         protected void OnUpdateEvent(UpdateEventArgs e)
         {
             UpdateEvent?.Invoke(this, e);
         }
 
+        /// <summary>
+        /// Called when the client is listening
+        /// </summary>
         protected void onListening()
         {
             /*Called when the client is listening*/
             Debug.WriteLine("Listening...");
         }
 
+
+        /// <summary>
+        /// Called when an error was encountered while listening
+        /// </summary>
+        /// <param name="exception">The exception that was encountered</param>
         protected void onListenError(Exception exception = null)
         {
             /*
@@ -1547,12 +1714,17 @@ namespace fbchat_sharp.API
             Debug.WriteLine(string.Format("Got exception while listening: {0}", exception));
         }
 
+        /// <summary>
+        /// Called when the client receives chat online presence update
+        /// </summary>
+        /// <param name="buddylist">A list of dicts with friend id and last seen timestamp</param>
+        /// <param name="msg">A full set of the data received</param>
         protected void onChatTimestamp(Dictionary<string, string> buddylist = null, JToken msg = null)
         {
             /*
              * Called when the client receives chat online presence update
              * :param buddylist: A list of dicts with friend id and last seen timestamp
-             * :param msg: A full set of the data recieved
+             * :param msg: A full set of the data received
              */
             Debug.WriteLine(string.Format("Chat Timestamps received: {0}", buddylist));
         }
@@ -1562,6 +1734,17 @@ namespace fbchat_sharp.API
             Debug.WriteLine(string.Format("Inbox event: {0}, {1}, {2}", unseen, unread, recent_unread));
         }
 
+        /// <summary>
+        /// Called when the client is listening, and somebody sends a message
+        /// </summary>
+        /// <param name="mid">The message ID</param>
+        /// <param name="author_id">The ID of the author</param>
+        /// <param name="message">The message content</param>
+        /// <param name="thread_id">Thread ID that the message was sent to</param>
+        /// <param name="thread_type">Type of thread that the message was sent to</param>
+        /// <param name="ts">The timestamp of the message</param>
+        /// <param name="metadata">Extra metadata about the message</param>
+        /// <param name="msg">A full set of the data received</param>
         protected void onMessage(string mid = null, string author_id = null, string message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER, string ts = null, JToken metadata = null, JToken msg = null)
         {
             /*
@@ -1573,28 +1756,37 @@ namespace fbchat_sharp.API
             :param thread_type: Type of thread that the message was sent to.See :ref:`intro_threads`
             :param ts: The timestamp of the message
             :param metadata: Extra metadata about the message
-            :param msg: A full set of the data recieved
+            :param msg: A full set of the data received
             :type thread_type: models.ThreadType
             */
             UpdateEvent(this, new UpdateEventArgs(UpdateStatus.NEW_MESSAGE, new FB_Message(mid, author_id, ts, false, null, message)));
             Debug.WriteLine(string.Format("Message from {0} in {1} ({2}): {3}", author_id, thread_id, thread_type.ToString(), message));
         }
 
+        /// <summary>
+        /// Called when the client is listening, and some unknown data was received
+        /// </summary>
+        /// <param name="msg">A full set of the data received</param>
         protected void onUnknownMesssageType(JToken msg = null)
         {
             /*
-             * Called when the client is listening, and some unknown data was recieved
-             * :param msg: A full set of the data recieved
+             * Called when the client is listening, and some unknown data was received
+             * :param msg: A full set of the data received
              */
             Debug.WriteLine(string.Format("Unknown message received: {}", msg));
         }
 
+        /// <summary>
+        /// Called when an error was encountered while parsing received data
+        /// </summary>
+        /// <param name="exception">The exception that was encountered</param>
+        /// <param name="msg">A full set of the data received</param>
         protected void onMessageError(Exception exception = null, JToken msg = null)
         {
             /*
-             * Called when an error was encountered while parsing recieved data
+             * Called when an error was encountered while parsing received data
              * :param exception: The exception that was encountered
-             * :param msg: A full set of the data recieved
+             * :param msg: A full set of the data received
              */
             Debug.WriteLine(string.Format("Exception in parsing of {0}", msg));
         }
@@ -1603,6 +1795,10 @@ namespace fbchat_sharp.API
          * END EVENTS
          */
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns>Returns true is the request was successfull</returns>
         public async Task<bool> markAsDelivered(string userID, string threadID)
         {
             /*
@@ -1618,6 +1814,10 @@ namespace fbchat_sharp.API
             return r.IsSuccessStatusCode;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns>Returns true is the request was successfull</returns>
         public async Task<bool> markAsRead(string userID)
         {
             /*
@@ -1634,6 +1834,10 @@ namespace fbchat_sharp.API
             return r.IsSuccessStatusCode;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns>Returns true is the request was successfull</returns>
         public async Task<bool> markAsSeen()
         {
             /*
@@ -1649,6 +1853,10 @@ namespace fbchat_sharp.API
             return r.IsSuccessStatusCode;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns>Returns true is the request was successfull</returns>
         public async Task<bool> friendConnect(string friend_id)
         {
             /*

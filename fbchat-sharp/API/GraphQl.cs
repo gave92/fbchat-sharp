@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace fbchat_sharp.API
 {
-    public class GraphQL_JSON_Decoder
+    internal class GraphQL_JSON_Decoder
     {
         public static string graphql_color_to_enum(string color)
         {
@@ -169,7 +169,7 @@ rtn = {
         }
     }
 
-    public class GraphQL
+    internal class GraphQL
     {
         public Dictionary<string, object> value;
 

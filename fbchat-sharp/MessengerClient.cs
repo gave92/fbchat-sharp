@@ -9,11 +9,18 @@ using System.Threading.Tasks;
 
 namespace fbchat_sharp.API
 {
+    /// <summary>
+    /// Facebook Client wrapper class. Library users should use this class
+    /// </summary>
     public abstract class MessengerClient : Client
     {
         /*
          * METHODS
          */
+        /// <summary>
+        /// Loads sessions cookies calling ReadCookiesFromDiskAsync and tries to login.
+        /// Generates a LoginEvent with the login results
+        /// </summary>
         public async void TryLogin()
         {
             try
@@ -28,6 +35,13 @@ namespace fbchat_sharp.API
             }
         }
 
+        /// <summary>
+        /// Tries to login using provided email and password.
+        /// Generates a LoginEvent with the login results
+        /// </summary>
+        /// <param name="email">User facebook email</param>
+        /// <param name="password">User facebook password</param>
+        /// <param name="max_tries">Max. number of retries</param>
         public async void DoLogin(string email, string password, int max_tries = 5)
         {
             try
@@ -41,6 +55,9 @@ namespace fbchat_sharp.API
             }
         }
 
+        /// <summary>
+        /// Deletes session cookies calling DeleteCookiesAsync and logs out the client
+        /// </summary>
         public async void DoLogout()
         {
             try
@@ -55,6 +72,15 @@ namespace fbchat_sharp.API
             }
         }
 
+        /// <returns>Returns the user id or null if not logged in</returns>
+        public string GetUserUid()
+        {
+            return base.uid;
+        }
+
+        /// <summary>
+        /// Starts listening for messenger updates (e.g. a new message) on a background thread
+        /// </summary>
         public async void StartListening()
         {
             await base.startListening();
@@ -65,7 +91,7 @@ namespace fbchat_sharp.API
             new Task(async () => await Listen(_cancellationTokenSource.Token), _cancellationTokenSource.Token, TaskCreationOptions.LongRunning).Start();
         }
 
-        protected async Task Listen(CancellationToken token)
+        private async Task Listen(CancellationToken token)
         {
             while (!token.IsCancellationRequested)
             {
@@ -76,58 +102,107 @@ namespace fbchat_sharp.API
             base.stopListening();
         }
 
+        /// <summary>
+        /// Stops listening thread
+        /// </summary>
         public void StopListening()
         {
             this._cancellationTokenSource.Cancel();
         }
 
-        public async Task WriteCookies()
+        /// <summary>
+        /// Gets the client's session cookies and saves them to disk calling WriteCookiesToDiskAsync
+        /// </summary>
+        public async Task WriteCookiesAsync()
         {
             var session_cookies = this.getSession(ReqUrl.BASE).ToList();
             await this.WriteCookiesToDiskAsync(session_cookies);
         }
 
+        /// <summary>
+        /// Get the last messages in a thread
+        /// </summary>
+        /// <param name="thread_id">User / Group ID from which to retrieve the messages</param>
+        /// <param name="limit">Max.number of messages to retrieve</param>
+        /// <param name="before">A unix timestamp, indicating from which point to retrieve messages</param>
         public async Task<List<FB_Message>> FetchThreadMessages(string thread_id = null, int limit = 20, string before = null)
         {
             return await this.SafeWrapper<List<FB_Message>>(async () => await base.fetchThreadMessages(thread_id, limit, before));
         }
 
+        /// <summary>
+        /// Get logged user's info
+        /// </summary>
         public async Task<FB_User> FetchProfile()
         {
-            return await this.SafeWrapper<FB_User>(async () => (await base.fetchUserInfo(new[] { base.GetUserUid() })).Single().Value);
-            // return await this.SafeWrapper<Dictionary<string, object>>(async () => (await base.fetchInfo(new[] { base.uid })).Single().Value);
+            return await this.SafeWrapper<FB_User>(async () => (await base.fetchUserInfo(new[] { base.uid })).Single().Value);
         }
 
+        /// <summary>
+        /// Gets all users the client is currently chatting with
+        /// </summary>
         public async Task<List<FB_User>> FetchAllUsers()
         {
             return await this.SafeWrapper<List<FB_User>>(async () => await base.fetchAllUsers());
         }
 
+        /// <summary>
+        /// Find and get user by his/her name
+        /// </summary>
+        /// <param name="name">Name of the user</param>
+        /// <param name="limit">The max. amount of users to fetch</param>
         public async Task<List<FB_User>> SearchUsers(string name, int limit = 1)
         {
             return await this.SafeWrapper<List<FB_User>>(async () => await base.searchForUsers(name, limit));
         }
 
+        /// <summary>
+        /// Get thread list of your facebook account
+        /// </summary>
+        /// <param name="offset">The offset, from where in the list to recieve threads from</param>
+        /// <param name="limit">Max.number of threads to retrieve. Capped at 20</param>
         public async Task<List<FB_Thread>> FetchThreadList(int offset = 0, int limit = 20)
         {
             return await this.SafeWrapper<List<FB_Thread>>(async () => await base.fetchThreadList(offset, limit));
         }
 
+        /// <summary>
+        /// Sends a message to a thread
+        /// </summary>
+        /// <param name="message">Message to send</param>
+        /// <param name="thread_id">User / Group ID to send to</param>
+        /// <param name="thread_type">ThreadType enum</param>
+        /// <returns>Message ID of the sent message</returns>
         public async Task<string> SendMessage(string message, string thread_id = null, ThreadType thread_type = ThreadType.USER)
         {
             return await this.SafeWrapper<string>(async () => await base.sendMessage(message, thread_id, thread_type));
         }
 
+        /// <summary>
+        /// Logs a message to console
+        /// </summary>
+        /// <param name="message">Message to log</param>
+        /// <param name="method">Name of the caller method</param>
         protected void Log(string message, [CallerMemberName] string method = null)
         {
             Debug.WriteLine(string.Format("{0}: {1}", message, method));
         }
 
-        public abstract Task DeleteCookiesAsync();
+        /// <summary>
+        /// How to delete saved cookies from disk
+        /// </summary>
+        protected abstract Task DeleteCookiesAsync();
 
-        public abstract Task WriteCookiesToDiskAsync(List<Cookie> cookieJar);
+        /// <summary>
+        /// How to save a list of cookies to disk
+        /// </summary>
+        /// <param name="cookieJar">List of session cookies</param>
+        protected abstract Task WriteCookiesToDiskAsync(List<Cookie> cookieJar);
 
-        public abstract Task<List<Cookie>> ReadCookiesFromDiskAsync();
+        /// <summary>
+        /// How to load a list of saved cookies
+        /// </summary>
+        protected abstract Task<List<Cookie>> ReadCookiesFromDiskAsync();
 
         #region PRIVATE
         private CancellationTokenSource _cancellationTokenSource;

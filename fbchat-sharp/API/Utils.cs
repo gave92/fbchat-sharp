@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace fbchat_sharp.API
 {
-    public class Utils
+    internal class Utils
     {
         // Default list of user agents
         public static readonly string[] USER_AGENTS = {
@@ -130,7 +130,7 @@ namespace fbchat_sharp.API
         }
     }
 
-    public class GENDER
+    internal class GENDER
     {
         public static Dictionary<int, string> standard_GENDERS = new Dictionary<int, string>() {
             {0, "unknown"},
@@ -155,6 +155,9 @@ namespace fbchat_sharp.API
         };
     }
 
+    /// <summary>
+    /// A class containing all urls used by `fbchat-sharp`
+    /// </summary>
     public class ReqUrl
     {
         // A class containing all urls used by `fbchat`

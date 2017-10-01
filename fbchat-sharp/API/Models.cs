@@ -4,32 +4,44 @@ using System.Collections.Generic;
 
 namespace fbchat_sharp.API
 {
+    /// <summary>
+    /// Facebook messenger thread class
+    /// </summary>
     public class FB_Thread
     {
-        // The unique identifier of the thread. Can be used a `thread_id`. See :ref:`intro_threads` for more info
+        /// The unique identifier of the thread. Can be used a `thread_id`. See :ref:`intro_threads` for more info
         public string uid { get; set; }
-        // Specifies the type of thread. Can be used a `thread_type`. See :ref:`intro_threads` for more info
+        /// Specifies the type of thread. Can be used a `thread_type`. See :ref:`intro_threads` for more info
         public ThreadType type = ThreadType.USER;
-        // The thread"s picture
+        /// The thread"s picture
         public string photo { get; set; }
-        // The name of the thread
+        /// The name of the thread
         public string name { get; set; }
-        // Timestamp of last message
+        /// Timestamp of last message
         public string last_message_timestamp { get; set; }
-        // Number of messages in the thread
-        public int message_count { get; set; }        
+        /// Number of messages in the thread
+        public int message_count { get; set; }
 
-        public FB_Thread(ThreadType _type, string uid, string photo = null, string name = null, string last_message_timestamp = null, int message_count = 0)
+        /// <summary>
+        /// Represents a Facebook thread
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="uid"></param>
+        /// <param name="photo"></param>
+        /// <param name="name"></param>
+        /// <param name="last_message_timestamp"></param>
+        /// <param name="message_count"></param>
+        public FB_Thread(ThreadType type, string uid, string photo = null, string name = null, string last_message_timestamp = null, int message_count = 0)
         {
-            // Represents a Facebook thread
             this.uid = uid.ToString();
-            this.type = _type;
+            this.type = type;
             this.photo = photo;
             this.name = name;
             this.last_message_timestamp = last_message_timestamp;
             this.message_count = message_count;
         }
 
+        /// <returns>Pretty string representation of the thread</returns>
         public override string ToString()
         {
             return this.__unicode__();
@@ -41,34 +53,52 @@ namespace fbchat_sharp.API
         }
     }
 
+    /// <summary>
+    /// Facebook messenger user class
+    /// </summary>
     public class FB_User : FB_Thread
     {
-        // The profile url
+        /// The profile url
         public string url { get; set; }
-        // The users first name
+        /// The users first name
         public string first_name { get; set; }
-        // The users last name
+        /// The users last name
         public string last_name { get; set; }
-        // Whether the user and the client are friends
+        /// Whether the user and the client are friends
         public bool is_friend = false;
-        // The user"s gender
+        /// The user"s gender
         public string gender = "";
-        // From 0 to 1. How close the client is to the user
+        /// From 0 to 1. How close the client is to the user
         public float affinity = 0;
-        // The user"s nickname
+        /// The user"s nickname
         public string nickname { get; set; }
-        // The clients nickname, as seen by the user
+        /// The clients nickname, as seen by the user
         public string own_nickname = "";
-        // A :class:`ThreadColor`. The message color
+        /// A :class:`ThreadColor`. The message color
         public string color = null;
-        // The default emoji
+        /// The default emoji
         public string emoji = "";
 
+        /// <summary>
+        /// Represents a Facebook user. Inherits `Thread`
+        /// </summary>
+        /// <param name="uid"></param>
+        /// <param name="photo"></param>
+        /// <param name="name"></param>
+        /// <param name="message_count"></param>
+        /// <param name="url"></param>
+        /// <param name="first_name"></param>
+        /// <param name="last_name"></param>
+        /// <param name="is_friend"></param>
+        /// <param name="gender"></param>
+        /// <param name="affinity"></param>
+        /// <param name="nickname"></param>
+        /// <param name="own_nickname"></param>
+        /// <param name="color"></param>
+        /// <param name="emoji"></param>
         public FB_User(string uid, string photo = null, string name = null, int message_count = 0, string url = null, string first_name = null, string last_name = null, bool is_friend = false, string gender = null, float affinity = 0, string nickname = null, string own_nickname = null, string color = null, string emoji = null) :
             base(ThreadType.USER, uid, photo, name, message_count: message_count)
-        {
-            // Represents a Facebook user. Inherits `Thread`
-
+        {            
             this.url = url;
             this.first_name = first_name;
             this.last_name = last_name;
@@ -82,21 +112,34 @@ namespace fbchat_sharp.API
         }
     }
 
+    /// <summary>
+    /// Facebook messenger group class
+    /// </summary>
     public class FB_Group : FB_Thread
     {
-        // Unique list (set) of the group thread"s participant user IDs
-        HashSet<string> participants = new HashSet<string>();
-        // Dict, containing user nicknames mapped to their IDs
-        Dictionary<string, string> nicknames = new Dictionary<string, string>();
-        // A :class:`ThreadColor`. The groups"s message color
-        string color = null;
-        // The groups"s default emoji
-        string emoji = "";
+        /// Unique list (set) of the group thread"s participant user IDs
+        public HashSet<string> participants = new HashSet<string>();
+        /// Dict, containing user nicknames mapped to their IDs
+        public Dictionary<string, string> nicknames = new Dictionary<string, string>();
+        /// A `ThreadColor`. The groups"s message color
+        public string color = null;
+        /// The groups"s default emoji
+        public string emoji = "";
 
+        /// <summary>
+        /// Represents a Facebook group. Inherits `Thread`
+        /// </summary>
+        /// <param name="uid"></param>
+        /// <param name="photo"></param>
+        /// <param name="name"></param>
+        /// <param name="message_count"></param>
+        /// <param name="participants"></param>
+        /// <param name="nicknames"></param>
+        /// <param name="color"></param>
+        /// <param name="emoji"></param>
         public FB_Group(string uid, string photo = null, string name = null, int message_count = 0, HashSet <string> participants = null, Dictionary<string, string> nicknames = null, string color = null, string emoji = null) :
             base(ThreadType.GROUP, uid, photo, name, message_count: message_count)
-        {
-            // Represents a Facebook group. Inherits `Thread`        
+        {            
             this.participants = participants;
             this.nicknames = nicknames;
             this.color = color;
@@ -104,19 +147,34 @@ namespace fbchat_sharp.API
         }
     }
 
+    /// <summary>
+    /// Facebook messenger page class
+    /// </summary>
     public class FB_Page : FB_Thread
     {
-        // The page"s custom url
-        string url = "";
-        // The name of the page"s location city
-        string city = "";
-        // Amount of likes the page has
-        int likes = 0;
-        // Some extra information about the page
-        string sub_title = "";
-        // The page"s category
-        string category = "";
+        /// The page's custom url
+        public string url = "";
+        /// The name of the page"s location city
+        public string city = "";
+        /// Amount of likes the page has
+        public int likes = 0;
+        /// Some extra information about the page
+        public string sub_title = "";
+        /// The page's category
+        public string category = "";
 
+        /// <summary>
+        /// Represents a Facebook page. Inherits `Thread`
+        /// </summary>
+        /// <param name="uid"></param>
+        /// <param name="photo"></param>
+        /// <param name="name"></param>
+        /// <param name="message_count"></param>
+        /// <param name="url"></param>
+        /// <param name="city"></param>
+        /// <param name="likes"></param>
+        /// <param name="sub_title"></param>
+        /// <param name="category"></param>
         public FB_Page(string uid, string photo = null, string name = null, int message_count = 0, string url = null, string city = null, int likes = 0, string sub_title = null, string category = null) :
             base(ThreadType.PAGE, uid, photo, name, message_count: message_count)
         {
@@ -129,31 +187,47 @@ namespace fbchat_sharp.API
         }
     }
 
+    /// <summary>
+    /// Facebook messenger message class
+    /// </summary>
     public class FB_Message
     {
-        // The message ID
+        /// The message ID
         public string uid = "";
-        // ID of the sender
+        /// ID of the sender
         public string author = "";
-        // Timestamp of when the message was sent
+        /// Timestamp of when the message was sent
         public string timestamp = "";
-        // Whether the message is read
+        /// Whether the message is read
         public bool is_read = false;
-        // A list of message reactions
+        /// A list of message reactions
         public List<string> reactions = new List<string>();
-        // The actual message
+        /// The actual message
         public string text { get; set; }
-        // A list of :class:`Mention` objects
+        /// A list of :class:`Mention` objects
         public List<FB_Mention> mentions = new List<FB_Mention>();
-        // An ID of a sent sticker
+        /// An ID of a sent sticker
         public JObject sticker = new JObject();
-        // A list of attachments
+        /// A list of attachments
         public JArray attachments = new JArray();
-        // An extensible attachment, e.g. share object
+        /// An extensible attachment, e.g. share object
         public Dictionary<string, JToken> extensible_attachment = new Dictionary<string, JToken>();
-        // The message was sent from me
+        /// The message was sent from me (not filled)
         public bool is_from_me { get; set; }
 
+        /// <summary>
+        /// Represents a Facebook message
+        /// </summary>
+        /// <param name="uid"></param>
+        /// <param name="author"></param>
+        /// <param name="timestamp"></param>
+        /// <param name="is_read"></param>
+        /// <param name="reactions"></param>
+        /// <param name="text"></param>
+        /// <param name="mentions"></param>
+        /// <param name="sticker"></param>
+        /// <param name="attachments"></param>
+        /// <param name="extensible_attachment"></param>
         public FB_Message(string uid, string author = null, string timestamp = null, bool is_read = false, List<string> reactions = null, string text = null, List<FB_Mention> mentions = null, JObject sticker = null, JArray attachments = null, Dictionary<string, JToken> extensible_attachment = null)
         {
             this.uid = uid;
@@ -169,50 +243,69 @@ namespace fbchat_sharp.API
         }
     }
 
+    /// <summary>
+    /// Facebook messenger mention class
+    /// </summary>
     public class FB_Mention
     {
-        // The user ID the mention is pointing at
-        string user_id = "";
-        // The character where the mention starts
-        int offset = 0;
-        // The length of the mention
-        int length = 0;
+        /// The user ID the mention is pointing at
+        public string user_id = "";
+        /// The character where the mention starts
+        public int offset = 0;
+        /// The length of the mention
+        public int length = 0;
 
+        /// <summary>
+        /// Represents a @mention
+        /// </summary>
+        /// <param name="user_id"></param>
+        /// <param name="offset"></param>
+        /// <param name="length"></param>
         public FB_Mention(string user_id, int offset = 0, int length = 10)
         {
-            // Represents a @mention
             this.user_id = user_id;
             this.offset = offset;
             this.length = length;
         }
     }
 
+    /// <summary>
+    /// Used to specify what type of Facebook thread is being used
+    /// </summary>
     public enum ThreadType
     {
-        // Used to specify what type of Facebook thread is being used. See :ref:`intro_threads` for more info
         USER = 1,
         GROUP = 2,
         PAGE = 3,
     }
 
+    /// <summary>
+    /// Used to specify whether the user is typing or has stopped typing
+    /// </summary>
     public enum TypingStatus
     {
-        // Used to specify whether the user is typing or has stopped typing
         STOPPED = 0,
         TYPING = 1,
     }
 
+    /// <summary>
+    /// Used to specify the size of a sent emoji
+    /// </summary>
     public class EmojiSize
     {
-        // Used to specify the size of a sent emoji
         public static readonly string LARGE = "369239383222810";
         public static readonly string MEDIUM = "369239343222814";
         public static readonly string SMALL = "369239263222822";
     }
 
+    /// <summary>
+    /// Used to specify a thread colors
+    /// </summary>
     public class ThreadColor
     {
-        // Used to specify a thread colors
+        /// <summary>
+        /// Default color
+        /// </summary>
         public static readonly string MESSENGER_BLUE = "";
         public static readonly string VIKING = "#44bec7";
         public static readonly string GOLDEN_POPPY = "#ffc300";
@@ -230,9 +323,11 @@ namespace fbchat_sharp.API
         public static readonly string BILOBA_FLOWER = "#a695c7";
     }
 
+    /// <summary>
+    /// Used to specify a message reaction
+    /// </summary>
     public class MessageReaction
     {
-        // Used to specify a message reaction
         public static readonly string LOVE = "😍";
         public static readonly string SMILE = "😆";
         public static readonly string WOW = "😮";
@@ -242,6 +337,9 @@ namespace fbchat_sharp.API
         public static readonly string NO = "👎";
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
     public class Constants
     {
         public static readonly Dictionary<string, string> LIKES = new Dictionary<string, string>() {
