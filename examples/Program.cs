@@ -17,7 +17,7 @@ namespace examples
             var password = Console.ReadLine();
 
             // Run example
-            new Basic_Usage().Run(email, password);
+            Basic_Usage.Run(email, password).GetAwaiter().GetResult();
 
             // Wait for keypress
             Console.ReadKey();
