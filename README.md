@@ -53,7 +53,7 @@ public class FBClient : MessengerClient
 using fbchat_sharp.API;
 ...
 // Instantiate FBClient
-FBClient_Simple client = new FBClient_Simple();
+FBClient client = new FBClient();
 // Login with username and password
 var logged_in = await client.DoLogin(email, password);
 
