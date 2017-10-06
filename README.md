@@ -50,31 +50,35 @@ public class FBClient : MessengerClient
 #### 2. Instantiate FBClient class and login user
 
 ```cs
+using fbchat_sharp.API;
 ...
 // Instantiate FBClient
 FBClient client = new FBClient();
-// Register event handlers
-client.LoginEvent += Client_LoginEvent;
 // Login with username and password
-client.DoLogin(email, password);
-...
+var logged_in = await client.DoLogin(email, password);
 
-// Define login event handler
-private void Client_LoginEvent(object sender, LoginEventArgs e)
+// Check login was successful
+if (logged_in)
 {
-    switch (e.Data)
+    // Send a message to myself
+    var msg_uid = await client.SendMessage("Hi me!", thread_id: client.GetUserUid());
+                
+    if (msg_uid != null)
     {
-        case LoginStatus.LOGGED_IN:
-            Debug.WriteLine("User successfully logged in");
-            break;
-        case LoginStatus.LOGIN_FAILED:
-            Debug.WriteLine("User login failed");
-            break;
+        Console.WriteLine("Message sent: {0}", msg_uid);
     }
+
+    // Do logout
+    await client.DoLogout();
+}
+else
+{
+    Console.WriteLine("Error logging in");
 }
 ```
 
-#### 3. After the "LoginStatus.LOGGED_IN" event has been received, you can get user's thread list and messages.
+#### 3. After login, you can get user's thread list and messages.
+
 ```cs
 // Get user's last 10 threads
 List<FB_Thread> threads = await client.FetchThreadList(limit: 10);
