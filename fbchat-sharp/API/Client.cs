@@ -14,37 +14,6 @@ using System.Threading.Tasks;
 namespace fbchat_sharp.API
 {
     /// <summary>
-    /// Enum for login events
-    /// </summary>
-    public enum LoginStatus
-    {
-        /// <summary>
-        /// Client is logging out
-        /// </summary>
-        LOGGING_OUT,
-        /// <summary>
-        /// Client has successfully logged out
-        /// </summary>
-        LOGGED_OUT,
-        /// <summary>
-        /// Client logout failed
-        /// </summary>
-        LOGOUT_FAILED,
-        /// <summary>
-        /// Client is logging in
-        /// </summary>
-        LOGGING_IN,
-        /// <summary>
-        /// Client has successfully logged in
-        /// </summary>
-        LOGGED_IN,
-        /// <summary>
-        /// Client login failed
-        /// </summary>
-        LOGIN_FAILED
-    }
-
-    /// <summary>
     /// Enum for messenger update events
     /// </summary>
     public enum UpdateStatus
@@ -53,23 +22,6 @@ namespace fbchat_sharp.API
         /// A new message was received
         /// </summary>
         NEW_MESSAGE
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    public class LoginEventArgs : EventArgs
-    {
-        private LoginStatus login_status;
-
-        /// <param name="_login_status">LoginStatus enum associated with this event</param>
-        public LoginEventArgs(LoginStatus _login_status)
-        {
-            this.login_status = _login_status;
-        }
-
-        /// <returns>Returns the LoginStatus enum associated with this event</returns>
-        public LoginStatus Data { get { return login_status; } }
     }
 
     /// <summary>
@@ -197,24 +149,12 @@ namespace fbchat_sharp.API
             // If session cookies aren't set, not properly loaded or gives us an invalid session, then do the login
             if (session_cookies == null || !await this.setSession(session_cookies) /*|| !await this.isLoggedIn()*/)
             {
-                OnLoginEvent(new LoginEventArgs(LoginStatus.LOGIN_FAILED));
+                throw new Exception("Login failed");
             }
             else
             {
-                OnLoginEvent(new LoginEventArgs(LoginStatus.LOGGED_IN));
+                return;
             }
-        }
-
-        /// <summary>
-        /// Tries to login using provided email and password
-        /// </summary>
-        /// <param name="email">User email address</param>
-        /// <param name="password">User password</param>
-        /// <param name="max_tries">Optional maximum number of retries</param>
-        public async Task doLogin(string email, string password, int max_tries = 5)
-        {
-            // If session cookies aren't set, not properly loaded or gives us an invalid session, then do the login
-            await this.login(email, password, max_tries);
         }
 
         /*
@@ -519,7 +459,13 @@ namespace fbchat_sharp.API
             return true;
         }
 
-        private async Task login(string email, string password, int max_tries = 5)
+        /// <summary>
+        /// Tries to login using provided email and password
+        /// </summary>
+        /// <param name="email">User email address</param>
+        /// <param name="password">User password</param>
+        /// <param name="max_tries">Optional maximum number of retries</param>
+        public async Task doLogin(string email, string password, int max_tries = 5)
         {
             /*
              * Uses `email` and `password` to login the user (If the user is already logged in, this will do a re-login)
@@ -529,8 +475,6 @@ namespace fbchat_sharp.API
              * :type max_tries: int
              * :raises: Exception on failed login
              */
-            OnLoginEvent(new LoginEventArgs(LoginStatus.LOGGING_IN));
-
             if (max_tries < 1)
             {
                 throw new Exception("Cannot login: max_tries should be at least one");
@@ -558,7 +502,6 @@ namespace fbchat_sharp.API
                 }
                 else
                 {
-                    OnLoginEvent(new LoginEventArgs(LoginStatus.LOGGED_IN));
                     return;
                 }
             }
@@ -571,8 +514,6 @@ namespace fbchat_sharp.API
         /// </summary>
         public async Task doLogout()
         {
-            OnLoginEvent(new LoginEventArgs(LoginStatus.LOGGING_OUT));
-
             /*
              * Safely logs out the client
              * :param timeout: See `requests timeout < http://docs.python-requests.org/en/master/user/advanced/#timeouts>`_
@@ -590,7 +531,7 @@ namespace fbchat_sharp.API
 
             if (r.IsSuccessStatusCode)
             {
-                OnLoginEvent(new LoginEventArgs(LoginStatus.LOGGED_OUT));
+                return;
             }
             else
             {
@@ -1664,24 +1605,10 @@ namespace fbchat_sharp.API
          * EVENTS
          */
 
-        // An event that clients can use to be notified whenever the
-        // elements of the list change.
-        /// <summary>
-        /// Subscribe to this event to get login status updates
-        /// </summary>
-        public event EventHandler<LoginEventArgs> LoginEvent;
         /// <summary>
         /// Subscribe to this event to get chat updates (e.g. a new message)
         /// </summary>
         public event EventHandler<UpdateEventArgs> UpdateEvent;
-
-        /// <summary>
-        /// Calls LoginEvent event handler
-        /// </summary>
-        protected void OnLoginEvent(LoginEventArgs e)
-        {
-            LoginEvent?.Invoke(this, e);
-        }
 
         /// <summary>
         /// Calls UpdateEvent event handler
@@ -1798,7 +1725,7 @@ namespace fbchat_sharp.API
         /// <summary>
         /// 
         /// </summary>
-        /// <returns>Returns true is the request was successfull</returns>
+        /// <returns>Returns true is the request was successful</returns>
         public async Task<bool> markAsDelivered(string userID, string threadID)
         {
             /*
@@ -1817,7 +1744,7 @@ namespace fbchat_sharp.API
         /// <summary>
         /// 
         /// </summary>
-        /// <returns>Returns true is the request was successfull</returns>
+        /// <returns>Returns true is the request was successful</returns>
         public async Task<bool> markAsRead(string userID)
         {
             /*
@@ -1837,7 +1764,7 @@ namespace fbchat_sharp.API
         /// <summary>
         /// 
         /// </summary>
-        /// <returns>Returns true is the request was successfull</returns>
+        /// <returns>Returns true is the request was successful</returns>
         public async Task<bool> markAsSeen()
         {
             /*
@@ -1856,7 +1783,7 @@ namespace fbchat_sharp.API
         /// <summary>
         /// 
         /// </summary>
-        /// <returns>Returns true is the request was successfull</returns>
+        /// <returns>Returns true is the request was successful</returns>
         public async Task<bool> friendConnect(string friend_id)
         {
             /*

@@ -19,56 +19,60 @@ namespace fbchat_sharp.API
          */
         /// <summary>
         /// Loads sessions cookies calling ReadCookiesFromDiskAsync and tries to login.
-        /// Generates a LoginEvent with the login results
         /// </summary>
-        public async void TryLogin()
+        /// <returns>Returns true if login was successful</returns>
+        public async Task<bool> TryLogin()
         {
             try
             {
                 var session_cookies = await this.ReadCookiesFromDiskAsync();
                 await base.tryLogin(session_cookies);
+                return true;
             }
             catch (Exception ex)
             {
                 this.Log(ex.ToString());
-                base.OnLoginEvent(new LoginEventArgs(LoginStatus.LOGIN_FAILED));
+                return false;
             }
         }
 
         /// <summary>
         /// Tries to login using provided email and password.
-        /// Generates a LoginEvent with the login results
         /// </summary>
         /// <param name="email">User facebook email</param>
         /// <param name="password">User facebook password</param>
         /// <param name="max_tries">Max. number of retries</param>
-        public async void DoLogin(string email, string password, int max_tries = 5)
+        /// <returns>Returns true if login was successful</returns>
+        public async Task<bool> DoLogin(string email, string password, int max_tries = 5)
         {
             try
             {
                 await this.doLogin(email, password, max_tries);
+                return true;
             }
             catch (Exception ex)
             {
                 this.Log(ex.ToString());
-                base.OnLoginEvent(new LoginEventArgs(LoginStatus.LOGIN_FAILED));
+                return false;
             }
         }
 
         /// <summary>
         /// Deletes session cookies calling DeleteCookiesAsync and logs out the client
         /// </summary>
-        public async void DoLogout()
+        /// <returns>Returns true if logout was successful</returns>
+        public async Task<bool> DoLogout()
         {
             try
             {
                 await this.DeleteCookiesAsync();
                 await base.doLogout();
+                return true;
             }
             catch (Exception ex)
             {
                 this.Log(ex.ToString());
-                base.OnLoginEvent(new LoginEventArgs(LoginStatus.LOGOUT_FAILED));
+                return false;
             }
         }
 
