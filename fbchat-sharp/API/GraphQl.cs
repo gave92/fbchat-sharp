@@ -52,7 +52,7 @@ rtn = {
              */
         }
 
-        public static FB_Message graphql_to_message(JToken message)
+        public static FB_Message graphql_to_message(string thread_id, JToken message)
         {
             if (message["message_sender"] == null)
                 message["message_sender"] = new JObject(new JProperty("id", 0));
@@ -65,6 +65,7 @@ rtn = {
             return new FB_Message(
                 uid: message["message_id"]?.Value<string>(),
                 author: message["message_sender"]["id"]?.Value<string>(),
+                thread_id: thread_id,
                 timestamp: message["timestamp_precise"]?.Value<string>(),
                 is_read: is_read,
                 reactions: new List<string>(),

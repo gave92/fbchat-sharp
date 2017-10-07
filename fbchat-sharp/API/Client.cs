@@ -978,7 +978,7 @@ namespace fbchat_sharp.API
                     }
                     foreach (var elem in pages_and_users[_id])
                     {
-                        ((JObject)entry).Add(elem);
+                        entry[((JProperty)elem).Name] = ((JProperty)elem).Value;
                     }
                     if (entry["type"].Value<int>() == (int)ThreadType.USER)
                     {
@@ -1035,7 +1035,7 @@ namespace fbchat_sharp.API
                 throw new Exception(string.Format("Could not fetch thread {0}", thread_id));
             }
 
-            return j["message_thread"]["messages"]["nodes"].Select(message => GraphQL_JSON_Decoder.graphql_to_message(message)).Reverse().ToList();
+            return j["message_thread"]["messages"]["nodes"].Select(message => GraphQL_JSON_Decoder.graphql_to_message(thread_id, message)).Reverse().ToList();
         }
 
         /// <summary>
@@ -1686,7 +1686,7 @@ namespace fbchat_sharp.API
             :param msg: A full set of the data received
             :type thread_type: models.ThreadType
             */
-            UpdateEvent(this, new UpdateEventArgs(UpdateStatus.NEW_MESSAGE, new FB_Message(mid, author_id, ts, false, null, message)));
+            UpdateEvent(this, new UpdateEventArgs(UpdateStatus.NEW_MESSAGE, new FB_Message(mid, author_id, thread_id, ts, false, null, message)));
             Debug.WriteLine(string.Format("Message from {0} in {1} ({2}): {3}", author_id, thread_id, thread_type.ToString(), message));
         }
 

@@ -196,6 +196,8 @@ namespace fbchat_sharp.API
         public string uid = "";
         /// ID of the sender
         public string author = "";
+        /// ID of the thread the message was sent to
+        public string thread_id = "";
         /// Timestamp of when the message was sent
         public string timestamp = "";
         /// Whether the message is read
@@ -220,6 +222,7 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="uid"></param>
         /// <param name="author"></param>
+        /// <param name="thread_id"></param>
         /// <param name="timestamp"></param>
         /// <param name="is_read"></param>
         /// <param name="reactions"></param>
@@ -228,10 +231,11 @@ namespace fbchat_sharp.API
         /// <param name="sticker"></param>
         /// <param name="attachments"></param>
         /// <param name="extensible_attachment"></param>
-        public FB_Message(string uid, string author = null, string timestamp = null, bool is_read = false, List<string> reactions = null, string text = null, List<FB_Mention> mentions = null, JObject sticker = null, JArray attachments = null, Dictionary<string, JToken> extensible_attachment = null)
+        public FB_Message(string uid, string author = null, string thread_id = null, string timestamp = null, bool is_read = false, List<string> reactions = null, string text = null, List<FB_Mention> mentions = null, JObject sticker = null, JArray attachments = null, Dictionary<string, JToken> extensible_attachment = null)
         {
             this.uid = uid;
             this.author = author;
+            this.thread_id = thread_id;
             this.timestamp = timestamp;
             this.is_read = is_read;
             this.reactions = reactions;
