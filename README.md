@@ -1,6 +1,6 @@
 <img src="https://github.com/gave92/fbchat-sharp/blob/master/fbchat-icon.png?raw=true" width="150" />
 
-# fbchat-sharp:  Facebook Messenger client library for C#
+# fbchat-sharp: Facebook Messenger client library for C#
 
 ![logo](https://img.shields.io/badge/license-BSD-blue.svg)
 
