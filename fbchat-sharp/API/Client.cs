@@ -8,6 +8,7 @@ using System.Net;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using System.IO;
 
 // [assembly: InternalsVisibleTo("FMessenger.Windows")]
 // [assembly: InternalsVisibleTo("FMessenger.WindowsPhone")]
@@ -58,8 +59,8 @@ namespace fbchat_sharp.API
          * See https://fbchat.readthedocs.io for complete documentation of the API.
         */
 
-        // private bool listening = false;
-        // Whether the client is listening. Used when creating an external event loop to determine when to stop listening/*
+        /// Whether the client is listening.Used when creating an external event loop to determine when to stop listening
+        private bool listening = false;
 
         /// <summary>
         /// The ID of the client.
@@ -138,7 +139,7 @@ namespace fbchat_sharp.API
                 { "User-Agent", user_agent },
                 // { "Connection", "keep-alive" },
             };
-        }        
+        }
 
         /// <summary>
         /// Tries to login using a list of provided cookies
@@ -180,7 +181,23 @@ namespace fbchat_sharp.API
             return payload;
         }
 
-        private async Task<HttpResponseMessage> _get(string url, Dictionary<string, string> query = null, int timeout = 30)
+        /// <summary>
+        /// This fixes "Please try closing and re-opening your browser window" errors(1357004)
+        /// This error usually happens after 1 - 2 days of inactivity
+        /// It may be a bad idea to do this in an exception handler, if you have a better method, please suggest it!
+        /// </summary>
+        private async Task<bool> _fix_fb_errors(string error_code)
+        {
+            if (error_code == "1357004")
+            {
+                Debug.WriteLine("Got error #1357004. Doing a _postLogin, and resending request");
+                await this._postLogin();
+                return true;
+            }
+            return false;
+        }
+
+        private async Task<object> _get(string url, Dictionary<string, string> query = null, int timeout = 30, bool fix_request = false, bool as_json = false, int error_retries = 3)
         {
             var payload = this._generatePayload(query);
             var content = new FormUrlEncodedContent(payload);
@@ -189,16 +206,33 @@ namespace fbchat_sharp.API
             var request = new HttpRequestMessage(HttpMethod.Get, builder.ToString());
             foreach (var header in this._header) request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             // this.client.Timeout = TimeSpan.FromSeconds(timeout);
-            var response = await http_client.SendAsync(request);
+            var r = await http_client.SendAsync(request);
             // return this._session.get(url, headers: this._header, param: payload, timeout: timeout);
 
-            if ((int)response.StatusCode < 300 || (int)response.StatusCode > 399)
-                return response;
+            if ((int)r.StatusCode < 300 || (int)r.StatusCode > 399)
+            {
+                if (!fix_request)
+                    return r;
+                try
+                {
+                    return await Utils.checkRequest(r, as_json: as_json);
+                }
+                catch (FBchatFacebookError e)
+                {
+                    if (error_retries > 0 && await this._fix_fb_errors(e.fb_error_code))
+                    {
+                        return this._get(url, query: query, timeout: timeout, fix_request: fix_request, as_json: as_json, error_retries: error_retries - 1);
+                    }
+                    throw e;
+                }
+            }
             else
-                return await _get(response.Headers.Location.ToString(), query, timeout);
+            {
+                return await _get(r.Headers.Location.ToString(), query: query, timeout: timeout, fix_request: fix_request, as_json: as_json, error_retries: error_retries);
+            }
         }
 
-        private async Task<HttpResponseMessage> _post(string url, Dictionary<string, string> query = null, int timeout = 30)
+        private async Task<object> _post(string url, Dictionary<string, string> query = null, int timeout = 30, bool fix_request = false, bool as_json = false, int error_retries = 3)
         {
             var payload = this._generatePayload(query);
             var content = new FormUrlEncodedContent(payload);
@@ -206,16 +240,48 @@ namespace fbchat_sharp.API
             foreach (var header in this._header) request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             request.Content = content;
             // this.client.Timeout = TimeSpan.FromSeconds(timeout);
-            var response = await http_client.SendAsync(request);
+            var r = await http_client.SendAsync(request);
             // return this._session.post(url, headers: this._header, data: payload, timeout: timeout);
 
-            if ((int)response.StatusCode < 300 || (int)response.StatusCode > 399)
-                return response;
+            if ((int)r.StatusCode < 300 || (int)r.StatusCode > 399)
+            {
+                if (!fix_request)
+                    return r;
+                try
+                {
+                    return await Utils.checkRequest(r, as_json: as_json);
+                }
+                catch (FBchatFacebookError e)
+                {
+                    if (error_retries > 0 && await this._fix_fb_errors(e.fb_error_code))
+                    {
+                        return this._post(url, query: query, timeout: timeout, fix_request: fix_request, as_json: as_json, error_retries: error_retries - 1);
+                    }
+                    throw e;
+                }
+            }
             else
-                return await _post(response.Headers.Location.ToString(), query, timeout);
+            {
+                return await _post(r.Headers.Location.ToString(), query: query, timeout: timeout, fix_request: fix_request, as_json: as_json, error_retries: error_retries);
+            }
         }
 
-        private async Task<HttpResponseMessage> _cleanGet(string url, int timeout = 30)
+        private async Task<List<JToken>> _graphql(Dictionary<string, string> payload, int error_retries = 3)
+        {
+            try
+            {
+                var content = await this._post(ReqUrl.GRAPHQL, payload, fix_request: true, as_json: false);
+                return GraphQL_JSON_Decoder.graphql_response_to_json((string)content);
+            }
+            catch (FBchatFacebookError e)
+            {
+                if (error_retries > 0 && await this._fix_fb_errors(e.fb_error_code))
+                    return await this._graphql(payload, error_retries = error_retries - 1);
+                throw e;
+            }
+        }
+
+        private async Task<object> _cleanGet(string url, int timeout = 30)
         {
             var request = new HttpRequestMessage(HttpMethod.Get, url);
             foreach (var header in this._header) request.Headers.TryAddWithoutValidation(header.Key, header.Value);
@@ -229,7 +295,7 @@ namespace fbchat_sharp.API
                 return await _cleanGet(response.Headers.Location.ToString(), timeout);
         }
 
-        private async Task<HttpResponseMessage> _cleanPost(string url, Dictionary<string, string> query = null, int timeout = 30)
+        private async Task<object> _cleanPost(string url, Dictionary<string, string> query = null, int timeout = 30)
         {
             this.req_counter += 1;
             var content = new FormUrlEncodedContent(query);
@@ -246,14 +312,53 @@ namespace fbchat_sharp.API
                 return await _cleanPost(response.Headers.Location.ToString(), query, timeout);
         }
 
-        private async Task<HttpResponseMessage> _postFile(string url, object files = null, Dictionary<string, string> query = null, int timeout = 30)
+        private async Task<object> _postFile(string url, Stream[] files = null, Dictionary<string, string> query = null, int timeout = 30, bool fix_request = false, bool as_json = false, int error_retries = 3)
         {
-            return await Task.FromResult<HttpResponseMessage>(new HttpResponseMessage(HttpStatusCode.BadRequest));
-            // var payload = this._generatePayload(query);
-            // Removes "Content-Type" from the header
-            // var headers = new Dictionary<string, string>((i, this._header[i]) for i in this._header if i != "Content-Type") ;
-            // var response = await client.PostAsync(uri, content);
-            // return this._session.post(url, headers: headers, data: payload, timeout: timeout, files: files);
+            // return await Task.FromResult<HttpResponseMessage>(new HttpResponseMessage(HttpStatusCode.BadRequest));            
+            var content = new MultipartFormDataContent();
+            if (query != null)
+            {
+                var payload = this._generatePayload(query);
+                content.Add(new FormUrlEncodedContent(payload));
+            }
+            if (files != null)
+            {
+                foreach (var file in files)
+                {
+                    content.Add(new StreamContent(file));
+                }
+            }
+            var request = new HttpRequestMessage(HttpMethod.Post, url);
+            // Removes 'Content-Type' from the header
+            var headers = this._header.Where(h => h.Key != "Content-Type");
+
+            foreach (var header in headers) request.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            request.Content = content;
+            // this.client.Timeout = TimeSpan.FromSeconds(timeout);
+            var r = await http_client.SendAsync(request);
+            // var r = this._session.post(url, headers = headers, data = payload, timeout = timeout, files = files)
+
+            if ((int)r.StatusCode < 300 || (int)r.StatusCode > 399)
+            {
+                if (!fix_request)
+                    return r;
+                try
+                {
+                    return await Utils.checkRequest(r, as_json: as_json);
+                }
+                catch (FBchatFacebookError e)
+                {
+                    if (error_retries > 0 && await this._fix_fb_errors(e.fb_error_code))
+                    {
+                        return this._postFile(url, files: files, query: query, timeout: timeout, fix_request: fix_request, as_json: as_json, error_retries: error_retries - 1);
+                    }
+                    throw e;
+                }
+            }
+            else
+            {
+                return await _postFile(r.Headers.Location.ToString(), files, query: query, timeout: timeout, fix_request: fix_request, as_json: as_json, error_retries: error_retries);
+            }
         }
 
         private async Task<List<JToken>> graphql_requests(List<GraphQL> queries)
@@ -267,7 +372,7 @@ namespace fbchat_sharp.API
                 { "queries", GraphQL_JSON_Decoder.graphql_queries_to_json(queries)}
             };
 
-            var j = GraphQL_JSON_Decoder.graphql_response_to_json((string)await Utils.checkRequest(await this._post(ReqUrl.GRAPHQL, payload), as_json: false));
+            var j = await this._graphql(payload);
 
             return j;
         }
@@ -316,7 +421,7 @@ namespace fbchat_sharp.API
             this.user_channel = "p_" + this.uid;
             this.ttstamp = "";
 
-            var r = await this._get(ReqUrl.BASE);
+            var r = (HttpResponseMessage)(await this._get(ReqUrl.BASE));
             string soup = (string)await Utils.checkRequest(r, false);
             var parser = new HtmlParser();
             var document = parser.Parse(soup);
@@ -358,7 +463,7 @@ namespace fbchat_sharp.API
                 throw new Exception("Email and password not found.");
             }
 
-            var r = await this._get(ReqUrl.MOBILE);
+            var r = (HttpResponseMessage)(await this._get(ReqUrl.MOBILE));
             string soup = (string)await Utils.checkRequest(r, false);
             var parser = new HtmlParser();
             var document = parser.Parse(soup);
@@ -370,7 +475,7 @@ namespace fbchat_sharp.API
             data["pass"] = this.password;
             data["login"] = "Log In";
 
-            r = await this._cleanPost(ReqUrl.LOGIN, data);
+            r = (HttpResponseMessage)(await this._cleanPost(ReqUrl.LOGIN, data));
             soup = (string)await Utils.checkRequest(r, false);
 
             if (r.RequestMessage.RequestUri.ToString().Contains("checkpoint") &&
@@ -382,17 +487,17 @@ namespace fbchat_sharp.API
             // Sometimes Facebook tries to show the user a "Save Device" dialog
             if (r.RequestMessage.RequestUri.ToString().Contains("save-device"))
             {
-                r = await this._cleanGet(ReqUrl.SAVE_DEVICE);
+                r = (HttpResponseMessage)(await this._cleanGet(ReqUrl.SAVE_DEVICE));
             }
 
             if (r.RequestMessage.RequestUri.ToString().Contains("home"))
             {
                 await this._postLogin();
-                return new Tuple<bool, string>(true, r.RequestMessage.RequestUri.ToString());
+                return Tuple.Create(true, r.RequestMessage.RequestUri.ToString());
             }
             else
             {
-                return new Tuple<bool, string>(false, r.RequestMessage.RequestUri.ToString());
+                return Tuple.Create(false, r.RequestMessage.RequestUri.ToString());
             }
         }
 
@@ -413,7 +518,7 @@ namespace fbchat_sharp.API
              * :rtype: bool
              */
             // Send a request to the login url, to see if we"re directed to the home page
-            var r = await this._cleanGet(ReqUrl.LOGIN);
+            var r = (HttpResponseMessage)(await this._cleanGet(ReqUrl.LOGIN));
             return (r.RequestMessage.RequestUri.ToString().Contains("home"));
         }
 
@@ -429,7 +534,7 @@ namespace fbchat_sharp.API
              * :return: A list containing session cookies
              * : rtype: IEnumerable
              */
-            return this._session.GetCookies(new Uri(url != null ? url : ReqUrl.BASE)).Cast<Cookie>();
+            return this._session.GetCookies(new Uri(url ?? ReqUrl.BASE)).Cast<Cookie>();
         }
 
         /// <summary>
@@ -545,7 +650,7 @@ namespace fbchat_sharp.API
                 { "h", this.fb_h }
             };
 
-            var r = await this._get(ReqUrl.LOGOUT, data);
+            var r = (HttpResponseMessage)(await this._get(ReqUrl.LOGOUT, data));
 
             this._resetValues();
 
@@ -567,7 +672,7 @@ namespace fbchat_sharp.API
          * DEFAULT THREAD METHODS
          */
 
-        private Tuple<string, ThreadType?> _getThread(string given_thread_id = null, ThreadType given_thread_type = ThreadType.USER)
+        private Tuple<string, ThreadType?> _getThread(string given_thread_id = null, ThreadType? given_thread_type = ThreadType.USER)
         {
             /*
              * Checks if thread ID is given, checks if default is set and returns correct values
@@ -580,7 +685,7 @@ namespace fbchat_sharp.API
             {
                 if (this.default_thread_id != null)
                 {
-                    return new Tuple<string, ThreadType?>(this.default_thread_id, this.default_thread_type);
+                    return Tuple.Create(this.default_thread_id, this.default_thread_type);
                 }
                 else
                 {
@@ -589,7 +694,7 @@ namespace fbchat_sharp.API
             }
             else
             {
-                return new Tuple<string, ThreadType?>(given_thread_id, given_thread_type);
+                return Tuple.Create(given_thread_id, given_thread_type);
             }
         }
 
@@ -634,7 +739,7 @@ namespace fbchat_sharp.API
             var data = new Dictionary<string, string>() {
                 { "viewer", this.uid },
             };
-            var j = (JToken)await Utils.checkRequest(await this._post(ReqUrl.ALL_USERS, query: data));
+            var j = (JToken)(await this._post(ReqUrl.ALL_USERS, query: data, fix_request: true, as_json: true));
             if (j["payload"] == null)
             {
                 throw new Exception("Missing payload");
@@ -763,11 +868,12 @@ namespace fbchat_sharp.API
                 {
                     rtn.Add(GraphQL_JSON_Decoder.graphql_to_page(node));
                 }
-                else if (node["__typename"].Value<string>().Equals("FGroup"))
+                else if (node["__typename"].Value<string>().Equals("Group"))
                 {
-                    // We don"t handle Facebook "FGroups"
+                    // We don"t handle Facebook "Groups"
                     continue;
                 }
+                // TODO Add Rooms
                 else
                 {
                     Debug.WriteLine(string.Format("Unknown __typename: {0} in {1}", node["__typename"].Value<string>(), node));
@@ -783,11 +889,11 @@ namespace fbchat_sharp.API
             foreach (var obj in ids.Select((x, index) => new { _id = x, i = index }))
                 data.Add(string.Format("ids[{0}]", obj.i), obj._id);
 
-            var j = (JToken)await Utils.checkRequest(await this._post(ReqUrl.INFO, data));
+            var j = (JToken)(await this._post(ReqUrl.INFO, data, fix_request: true, as_json: true));
 
             if (j["payload"]["profiles"] == null)
             {
-                throw new Exception("No users/pages returned");
+                throw new FBchatException("No users/pages returned");
             }
 
             var entries = new JObject();
@@ -819,7 +925,7 @@ namespace fbchat_sharp.API
                 }
                 else
                 {
-                    throw new Exception(string.Format("{0} had an unknown thread type: {1}", k.Name, k.Value));
+                    throw new FBchatException(string.Format("{0} had an unknown thread type: {1}", k.Name, k.Value));
                 }
             }
 
@@ -854,7 +960,7 @@ namespace fbchat_sharp.API
                 }
                 else
                 {
-                    throw new Exception(string.Format("Thread {0} was not a user", threads[k]));
+                    throw new FBchatUserError(string.Format("Thread {0} was not a user", threads[k]));
                 }
             }
 
@@ -889,7 +995,7 @@ namespace fbchat_sharp.API
                 }
                 else
                 {
-                    throw new Exception(string.Format("Thread {0} was not a page", threads[k]));
+                    throw new FBchatUserError(string.Format("Thread {0} was not a page", threads[k]));
                 }
             }
 
@@ -922,7 +1028,7 @@ namespace fbchat_sharp.API
                 }
                 else
                 {
-                    throw new Exception(string.Format("Thread {0} was not a group", threads[k]));
+                    throw new FBchatUserError(string.Format("Thread {0} was not a group", threads[k]));
                 }
             }
 
@@ -951,9 +1057,10 @@ namespace fbchat_sharp.API
             {
                 queries.Add(new GraphQL(doc_id: "1386147188135407", param: new Dictionary<string, string>() {
                     { "id", thread_id },
-                    {"message_limit", 0.ToString() },
-                    {"load_messages", false.ToString() },
-                    {"load_read_receipts", false.ToString() }
+                    { "message_limit", 0.ToString() },
+                    { "load_messages", false.ToString() },
+                    { "load_read_receipts", false.ToString() },
+                    { "before", null }
                 }));
             }
 
@@ -989,12 +1096,17 @@ namespace fbchat_sharp.API
                     var _id = entry["thread_key"]["thread_fbid"].Value<string>();
                     rtn[_id] = GraphQL_JSON_Decoder.graphql_to_group(entry);
                 }
+                else if (entry["thread_type"].Value<string>().Equals("ROOM"))
+                {
+                    var _id = entry["thread_key"]["thread_fbid"].Value<string>();
+                    rtn[_id] = GraphQL_JSON_Decoder.graphql_to_room(entry);
+                }
                 else if (entry["thread_type"].Value<string>().Equals("ONE_TO_ONE"))
                 {
                     var _id = entry["thread_key"]["other_user_id"].Value<string>();
                     if (pages_and_users[_id] == null)
                     {
-                        throw new Exception(string.Format("Could not fetch thread {0}", _id));
+                        throw new FBchatException(string.Format("Could not fetch thread {0}", _id));
                     }
                     foreach (var elem in pages_and_users[_id])
                     {
@@ -1011,7 +1123,7 @@ namespace fbchat_sharp.API
                 }
                 else
                 {
-                    throw new Exception(string.Format("{0} had an unknown thread type: {1}", thread_ids[obj.i], entry));
+                    throw new FBchatException(string.Format("{0} had an unknown thread type: {1}", thread_ids[obj.i], entry));
                 }
             }
 
@@ -1039,20 +1151,22 @@ namespace fbchat_sharp.API
              * :raises: Exception if request failed
              */
 
+            var thread = this._getThread(thread_id, null);
+            thread_id = thread.Item1;
+
             var dict = new Dictionary<string, string>() {
                 { "id", thread_id},
                 { "message_limit", limit.ToString()},
                 { "load_messages", true.ToString()},
                 { "load_read_receipts", false.ToString()},
+                { "before", before }
             };
-            if (before != null)
-                dict.Add("before", before);
 
             var j = await this.graphql_request(new GraphQL(doc_id: "1386147188135407", param: dict));
 
             if (j["message_thread"] == null || j["message_thread"].Type == JTokenType.Null)
             {
-                throw new Exception(string.Format("Could not fetch thread {0}", thread_id));
+                throw new FBchatException(string.Format("Could not fetch thread {0}", thread_id));
             }
 
             return j["message_thread"]["messages"]["nodes"].Select(message => GraphQL_JSON_Decoder.graphql_to_message(thread_id, message)).Reverse().ToList();
@@ -1063,7 +1177,8 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="offset">The offset, from where in the list to recieve threads from</param>
         /// <param name="limit">Max.number of threads to retrieve. Capped at 20</param>
-        public async Task<List<FB_Thread>> fetchThreadList(int offset = 0, int limit = 20)
+        /// <param name="thread_location">models.ThreadLocation: INBOX, PENDING, ARCHIVED or OTHER</param>
+        public async Task<List<FB_Thread>> fetchThreadList(int offset = 0, int limit = 20, string thread_location = ThreadLocation.INBOX)
         {
             /*
              * Get thread list of your facebook account
@@ -1078,58 +1193,79 @@ namespace fbchat_sharp.API
 
             if (limit > 20 || limit < 1)
             {
-                throw new Exception("`limit` should be between 1 and 20");
+                throw new FBchatUserError("`limit` should be between 1 and 20");
             }
 
             var data = new Dictionary<string, string>() {
                 { "client", this.client},
-                { "inbox[offset]", offset.ToString()},
-                { "inbox[limit]", limit.ToString()},
+                { $"{thread_location}[offset]", offset.ToString()},
+                { $"{thread_location}[limit]", limit.ToString()},
             };
 
-            var j = (JToken)await Utils.checkRequest(await this._post(ReqUrl.THREADS, data));
+            var j = (JToken)(await this._post(ReqUrl.THREADS, data, fix_request: true, as_json: true));
             if (j["payload"] == null)
             {
-                throw new Exception(string.Format("Missing payload: {0}, with data: {1}", j, data));
+                throw new FBchatException(string.Format("Missing payload: {0}, with data: {1}", j, data));
             }
 
             var participants = new Dictionary<string, FB_Thread>();
-            foreach (var p in j["payload"]["participants"])
+            if (j["payload"]["participants"] != null)
             {
-                if (p["type"].Value<string>() == "page")
+                foreach (var p in j["payload"]["participants"])
                 {
-                    participants[p["fbid"].Value<string>()] = new FB_Page(p["fbid"].Value<string>(), url: p["href"].Value<string>(), photo: p["image_src"].Value<string>(), name: p["name"].Value<string>());
-                }
-                else if (p["type"].Value<string>() == "user")
-                {
-                    participants[p["fbid"].Value<string>()] = new FB_User(p["fbid"].Value<string>(), url: p["href"].Value<string>(), first_name: p["short_name"].Value<string>(), is_friend: p["is_friend"].Value<bool>(), gender: GENDER.standard_GENDERS[p["gender"].Value<int>()], photo: p["image_src"].Value<string>(), name: p["name"].Value<string>());
-                }
-                else
-                {
-                    throw new Exception(string.Format("A participant had an unknown type {0}: {1}", p["type"].Value<string>(), p));
+                    if (p["type"].Value<string>() == "page")
+                    {
+                        participants[p["fbid"].Value<string>()] = new FB_Page(p["fbid"].Value<string>(), url: p["href"].Value<string>(), photo: p["image_src"].Value<string>(), name: p["name"].Value<string>());
+                    }
+                    else if (p["type"].Value<string>() == "user")
+                    {
+                        participants[p["fbid"].Value<string>()] = new FB_User(p["fbid"].Value<string>(), url: p["href"].Value<string>(), first_name: p["short_name"].Value<string>(), is_friend: p["is_friend"].Value<bool>(), gender: GENDER.standard_GENDERS[p["gender"].Value<int>()], photo: p["image_src"].Value<string>(), name: p["name"].Value<string>());
+                    }
+                    else
+                    {
+                        throw new FBchatException(string.Format("A participant had an unknown type {0}: {1}", p["type"].Value<string>(), p));
+                    }
                 }
             }
 
             var entries = new List<FB_Thread>();
-            foreach (var k in j["payload"]["threads"])
+            if (j["payload"]["threads"] != null)
             {
-                if (k["thread_type"].Value<int>() == 1)
+                foreach (var k in j["payload"]["threads"])
                 {
-                    if (!participants.ContainsKey(k["other_user_fbid"].Value<string>()))
+                    if (k["thread_type"].Value<int>() == 1)
                     {
-                        throw new Exception(string.Format("A thread was not in participants: {0}", j["payload"]));
+                        if (!participants.ContainsKey(k["other_user_fbid"].Value<string>()))
+                        {
+                            throw new FBchatException(string.Format("A thread was not in participants: {0}", j["payload"]));
+                        }
+                        participants[k["other_user_fbid"].Value<string>()].message_count = k["message_count"].Value<int>();
+                        entries.Add(participants[k["other_user_fbid"].Value<string>()]);
                     }
-                    participants[k["other_user_fbid"].Value<string>()].message_count = k["message_count"].Value<int>();
-                    entries.Add(participants[k["other_user_fbid"].Value<string>()]);
-                }
-                else if (k["thread_type"].Value<int>() == 2)
-                {
-                    var part = new HashSet<string>(k["participants"].Select(p => p.Value<string>().Replace("fbid:", "")));
-                    entries.Add(new FB_Group(k["thread_fbid"].Value<string>(), participants: part, photo: k["image_src"].Value<string>(), name: k["name"].Value<string>(), message_count: k["message_count"].Value<int>()));
-                }
-                else
-                {
-                    throw new Exception(string.Format("A thread had an unknown thread type: {0}", k));
+                    else if (k["thread_type"].Value<int>() == 2)
+                    {
+                        var part = new HashSet<string>(k["participants"].Select(p => p.Value<string>().Replace("fbid:", "")));
+                        entries.Add(new FB_Group(k["thread_fbid"].Value<string>(), participants: part, photo: k["image_src"].Value<string>(), name: k["name"].Value<string>(), message_count: k["message_count"].Value<int>()));
+                    }
+                    else if (k["thread_type"].Value<int>() == 3)
+                    {
+                        var part = new HashSet<string>(k["participants"].Select(p => p.Value<string>().Replace("fbid:", "")));
+                        var adm = new HashSet<string>(k["admin_ids"].Select(p => p.Value<string>().Replace("fbid:", "")));
+                        var req = new HashSet<string>(k["approval_queue_ids"].Select(p => p.Value<string>().Replace("fbid:", "")));
+                        entries.Add(new FB_Room(k["thread_fbid"].Value<string>(),
+                            participants: part,
+                            photo: k["image_src"].Value<string>(),
+                            name: k["name"].Value<string>(),
+                            message_count: k["message_count"].Value<int>(),
+                            admins: adm,
+                            approval_mode: k["approval_mode"].Value<bool>(),
+                            approval_requests: req,
+                            join_link: k["joinable_mode"]["link"].Value<string>()));
+                    }
+                    else
+                    {
+                        throw new FBchatException(string.Format("A thread had an unknown thread type: {0}", k));
+                    }
                 }
             }
 
@@ -1155,12 +1291,39 @@ namespace fbchat_sharp.API
                 { "last_action_timestamp", 0.ToString()}
             };
 
-            var j = (JToken)await Utils.checkRequest(await this._post(ReqUrl.THREAD_SYNC, form));
+            var j = (JToken)(await this._post(ReqUrl.THREAD_SYNC, form, fix_request: true, as_json: true));
 
             return new Dictionary<string, object>() {
                 { "message_counts", j["payload"]["message_counts"].Value<int>() },
                 { "unseen_threads", j["payload"]["unseen_thread_ids"] }
             };
+        }
+
+        /// <summary>
+        /// Fetches the url to the original image from an image attachment ID
+        /// </summary>
+        /// <returns>An url where you can download the original image</returns>
+        public async Task<string> fetchImageUrl(string image_id)
+        {
+            /*
+             * Fetches the url to the original image from an image attachment ID
+             * :param image_id: The image you want to fethc
+             * :type image_id: str
+             * : return: An url where you can download the original image
+             * : rtype: str
+             * : raises: FBChatException if request failed
+             */
+
+            var form = new Dictionary<string, string>() {
+                { "photo_id", image_id},
+            };
+
+            var j = (JToken)await Utils.checkRequest((HttpResponseMessage)(await this._post(ReqUrl.ATTACHMENT_PHOTO, form)));
+
+            var url = Utils.get_jsmods_require(j, 3);
+            if (url == null)
+                throw new FBchatException(string.Format("Could not fetch image url from: {0}", j));
+            return url.Value<string>();
         }
 
         /*
@@ -1171,7 +1334,12 @@ namespace fbchat_sharp.API
          * SEND METHODS
          */
 
-        private Dictionary<string, string> _getSendData(string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        private FB_Message _oldMessage(object message)
+        {
+            return message is FB_Message ? (FB_Message)message : new FB_Message((string)message);
+        }
+
+        private Dictionary<string, string> _getSendData(FB_Message message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
         {
             /*Returns the data needed to send a request to `SendURL`*/
             string messageAndOTID = Utils.generateOfflineThreadingID();
@@ -1181,29 +1349,11 @@ namespace fbchat_sharp.API
                 { "client", this.client },
                 { "author" , "fbid:" + this.uid },
                 { "timestamp" , timestamp.ToString() },
-                { "timestamp_absolute" , "Today" },
-                { "timestamp_relative" , date.Hour + ":" + date.Minute.ToString().PadLeft(2,'0') },
-                { "timestamp_time_passed" , "0" },
-                { "is_unread" , false.ToString() },
-                { "is_cleared" , false.ToString() },
-                { "is_forward" , false.ToString() },
-                { "is_filtered_content" , false.ToString() },
-                { "is_filtered_content_bh", false.ToString() },
-                { "is_filtered_content_account", false.ToString() },
-                { "is_filtered_content_quasar", false.ToString() },
-                { "is_filtered_content_invalid_app", false.ToString() },
-                { "is_spoof_warning" , false.ToString() },
                 { "source" , "source:chat:web" },
-                { "source_tags[0]" , "source:chat" },
-                { "html_body" , false.ToString() },
-                { "ui_push_phase" , "V3" },
-                { "status" , "0" },
                 { "offline_threading_id", messageAndOTID },
                 { "message_id" , messageAndOTID },
                 { "threading_id", Utils.generateMessageID(this.client_id) },
                 { "ephemeral_ttl_mode:", "0" },
-                { "manual_retry_cnt" , "0" },
-                { "signatureID" , Utils.getSignatureID() },
             };
 
             // Set recipient
@@ -1216,13 +1366,43 @@ namespace fbchat_sharp.API
                 data["thread_fbid"] = thread_id;
             }
 
+            if (message == null)
+                message = new FB_Message();
+
+            if (message.text != null || message.sticker != null || message.emoji_size != null)
+                data["action_type"] = "ma-type:user-generated-message";
+
+            if (message.text != null)
+                data["body"] = message.text;
+
+            foreach (var item in message.mentions.Select((mention, i) => new { i, mention }))
+            {
+                data[string.Format("profile_xmd[{0}][id]", item.i)] = item.mention.thread_id;
+                data[string.Format("profile_xmd[{0}][offset]", item.i)] = item.mention.offset.ToString();
+                data[string.Format("profile_xmd[{0}][length]", item.i)] = item.mention.length.ToString();
+                data[string.Format("profile_xmd[{0}][type]", item.i)] = "p";
+            }
+
+            if (message.emoji_size != null)
+            {
+                if (message.text != null)
+                    data["tags[0]"] = "hot_emoji_size:" + Enum.GetName(typeof(EmojiSize), message.emoji_size).ToLower();
+                else
+                    data["sticker_id"] = message.emoji_size?.GetEnumDescriptionAttribute();
+            }
+
+            if (message.sticker != null)
+            {
+                data["sticker_id"] = message.sticker.uid;
+            }
+
             return data;
         }
 
         private async Task<string> _doSendRequest(Dictionary<string, string> data)
         {
             /*Sends the data to `SendURL`, and returns the message ID or null on failure*/
-            var j = (JToken)await Utils.checkRequest(await this._post(ReqUrl.SEND, data));
+            var j = (JToken)(await this._post(ReqUrl.SEND, data, fix_request: true, as_json: true));
             string message_id = null;
 
             try
@@ -1236,21 +1416,12 @@ namespace fbchat_sharp.API
             }
             catch
             {
-                throw new Exception(string.Format("Error when sending message: No message IDs could be found: {0}", j));
+                throw new FBchatException(string.Format("Error when sending message: No message IDs could be found: {0}", j));
             }
 
-            // update JS token if receive from response
-            if (j["jsmods"] != null && j["jsmods"]["require"] != null)
-            {
-                try
-                {
-                    this.payloadDefault["fb_dtsg"] = j["jsmods"]["require"][0][3][0].Value<string>();
-                }
-                catch
-                {
-                    Debug.WriteLine("Error when update fb_dtsg. Facebook might have changed protocol.");
-                }
-            }
+            fb_dtsg = Utils.get_jsmods_require(j, 2).Value<string>();
+            if (fb_dtsg != null)
+                this.payloadDefault["fb_dtsg"] = fb_dtsg;
 
             return message_id;
         }
@@ -1262,28 +1433,140 @@ namespace fbchat_sharp.API
         /// <param name="thread_id">User / Group ID to send to</param>
         /// <param name="thread_type">ThreadType enum</param>
         /// <returns>Message ID of the sent message</returns>
-        public async Task<string> sendMessage(string message, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        public async Task<string> send(FB_Message message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
         {
             /*
              * Sends a message to a thread
              * :param message: Message to send
-             * : param thread_id: User / Group ID to send to. See:ref:`intro_threads`
-             * :param thread_type: See:ref:`intro_threads`
+             * :param thread_id: User/Group ID to send to. See :ref:`intro_threads`
+             * :param thread_type: See :ref:`intro_threads`
+             * :type message: models.Message
              * :type thread_type: models.ThreadType
-             * :return: :ref:`Message ID < intro_message_ids >` of the sent message
-             * :raises: Exception if request failed
+             * :return: :ref:`Message ID <intro_message_ids>` of the sent message
+             * :raises: FBchatException if request failed
              */
-            var thread = this._getThread(thread_id, thread_type);
-            var data = this._getSendData(thread_id, thread_type);
 
-            data["action_type"] = "ma-type:user-generated-message";
-            data["body"] = string.IsNullOrWhiteSpace(message) ? "" : message;
-            data["has_attachment"] = false.ToString();
-            data["specific_to_list[0]"] = "fbid:" + thread_id;
-            data["specific_to_list[1]"] = "fbid:" + this.uid;
+            var thread = this._getThread(thread_id, thread_type);
+            var data = this._getSendData(message: message, thread_id: thread_id, thread_type: thread_type);
 
             return await this._doSendRequest(data);
         }
+
+        /// <summary>
+        /// Sends a message to a thread
+        /// </summary>
+        [Obsolete("Deprecated. Use :func:`fbchat.Client.send` instead")]
+        public async Task<string> sendMessage(string message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        {
+            return await this.send(new FB_Message(text: message), thread_id: thread_id, thread_type: thread_type);
+        }
+
+        /// <summary>
+        /// Sends a message to a thread
+        /// </summary>
+        [Obsolete("Deprecated. Use :func:`fbchat.Client.send` instead")]
+        public async Task<string> sendMessage(string emoji = null, EmojiSize size = EmojiSize.SMALL, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        {
+            return await this.send(new FB_Message(text: emoji), thread_id: thread_id, thread_type: thread_type);
+        }
+
+        /// <summary>
+        /// Upload an image and get the image_id for sending in a message
+        /// </summary>
+        /// <param name="image_path"></param>
+        /// <param name="data"></param>
+        /// <param name="mimetype"></param>
+        /// <returns></returns>
+        public async Task<string> _uploadImage(string image_path = null, Stream data = null, string mimetype = null)
+        {
+            var j = (JToken)await this._postFile(ReqUrl.UPLOAD, new Stream[] { data }, fix_request: true, as_json: true);
+            // Return the image_id
+            if (mimetype != "image/gif")
+                return j["payload"]["metadata"][0]["image_id"].Value<string>();
+            else
+                return j["payload"]["metadata"][0]["gif_id"].Value<string>();
+        }
+
+        /// <summary>
+        /// Sends an image to a thread
+        /// </summary>
+        [Obsolete("Deprecated.Use :func:`fbchat.Client.send` instead")]
+        public async Task<string> sendImage(string image_id = null, object message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER, bool is_gif = false)
+        {
+            var thread = this._getThread(thread_id, thread_type);
+            var data = this._getSendData(message: this._oldMessage(message), thread_id: thread.Item1, thread_type: (ThreadType)thread.Item2);
+
+            data["action_type"] = "ma-type:user-generated-message";
+            data["has_attachment"] = true.ToString();
+
+            if (!is_gif)
+                data["image_ids[0]"] = image_id;
+            else
+                data["gif_ids[0]"] = image_id;
+
+            return await this._doSendRequest(data);
+        }
+
+        /// <summary>
+        /// Sends an image from a URL to a thread
+        /// </summary>
+        /// <param name="image_url"></param>
+        /// <param name="message"></param>
+        /// <param name="thread_id"></param>
+        /// <param name="thread_type"></param>
+        /// <returns></returns>
+        public async Task<string> sendRemoteImage(string image_url = null, object message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        {
+            /*
+             * Sends an image from a URL to a thread
+             * : param image_url: URL of an image to upload and send
+             * :param message: Additional message
+             * :param thread_id: User / Group ID to send to.See: ref:`intro_threads`
+             * :param thread_type: See: ref:`intro_threads`
+             * :type thread_type: models.ThreadType
+             * :return: :ref:`Message ID<intro_message_ids>` of the sent image
+             * :raises: FBchatException if request failed
+             */
+
+            var thread = this._getThread(thread_id, thread_type);
+            var r = (HttpResponseMessage)(await this._cleanGet(image_url));
+            var mimetype = r.Content.Headers.ContentType.MediaType;
+            bool is_gif = (mimetype == "image/gif");
+            var image_id = await this._uploadImage(image_url, await r.Content.ReadAsStreamAsync(), mimetype);
+            return await this.sendImage(image_id: image_id, message: message, thread_id: thread_id, thread_type: thread_type, is_gif: is_gif);
+        }
+
+        /// <summary>
+        /// Sends a local image to a thread
+        /// </summary>
+        /// <param name="image_path"></param>
+        /// <param name="data"></param>
+        /// <param name="message"></param>
+        /// <param name="thread_id"></param>
+        /// <param name="thread_type"></param>
+        /// <returns></returns>
+        public async Task<string> sendLocalImage(string image_path = null, Stream data = null, object message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        {
+            /*
+             * Sends a local image to a thread
+             * : param image_path: Path of an image to upload and send
+             * :param message: Additional message
+             * :param thread_id: User / Group ID to send to. See: ref:`intro_threads`
+             * :param thread_type: See: ref:`intro_threads`
+             * :type thread_type: models.ThreadType
+             * :return: :ref:`Message ID<intro_message_ids>` of the sent image
+             * :raises: FBchatException if request failed
+             */
+
+            var thread = this._getThread(thread_id, thread_type);
+            // var mimetype = guess_type(image_path)[0];
+            var mimetype = "image/png";
+            var is_gif = (mimetype == "image/gif");
+            var image_id = await this._uploadImage(image_path, data, mimetype);
+            return await this.sendImage(image_id: image_id, message: message, thread_id: thread_id, thread_type: thread_type, is_gif: is_gif);
+        }
+
+        /* MISSING METHODS! */
 
         /*
          * END SEND METHODS
@@ -1306,7 +1589,7 @@ namespace fbchat_sharp.API
                 {"viewer_uid", this.uid },
                 {"state", "active" }
             };
-            await Utils.checkRequest(await this._get(ReqUrl.PING, data), as_json: false);
+            await this._get(ReqUrl.PING, data, fix_request: true, as_json: false);
         }
 
         private async Task<Tuple<string, string>> _fetchSticky()
@@ -1318,14 +1601,14 @@ namespace fbchat_sharp.API
                 {"clientid", this.client_id }
             };
 
-            var j = (JToken)await Utils.checkRequest(await this._get(ReqUrl.STICKY, data));
+            var j = (JToken)(await this._get(ReqUrl.STICKY, data, fix_request: true, as_json: true));
 
             if (j["lb_info"] == null)
             {
-                throw new Exception("Missing lb_info");
+                throw new FBchatException("Missing lb_info");
             }
 
-            return new Tuple<string, string>(j["lb_info"]["sticky"].Value<string>(), j["lb_info"]["pool"].Value<string>());
+            return Tuple.Create(j["lb_info"]["sticky"].Value<string>(), j["lb_info"]["pool"].Value<string>());
         }
 
         private async Task<JToken> _pullMessage(string sticky, string pool)
@@ -1338,7 +1621,7 @@ namespace fbchat_sharp.API
                 {"clientid", this.client_id },
             };
 
-            var j = (JToken)await Utils.checkRequest(await this._get(ReqUrl.STICKY, data));
+            var j = (JToken)(await this._get(ReqUrl.STICKY, data, fix_request: true, as_json: true));
 
             this.seq = j["seq"] != null ? j["seq"].Value<string>() : "0";
             return j;
@@ -1359,7 +1642,7 @@ namespace fbchat_sharp.API
                 id_thread = (msg_metadata["threadKey"]["otherUserFbId"].Value<string>());
                 type_thread = ThreadType.USER;
             }
-            return new Tuple<string, ThreadType>(id_thread, type_thread);
+            return Tuple.Create(id_thread, type_thread);
         }
 
         private void _parseMessage(JToken content)
@@ -1472,16 +1755,85 @@ namespace fbchat_sharp.API
                         // New message
                         else if (delta["class"].Value<string>() == "NewMessage")
                         {
-                            var message = delta["body"] != null ? delta["body"].Value<string>() : "";
-                            var id_type = getThreadIdAndThreadType(metadata);
-                            this.onMessage(mid: mid, author_id: author_id, message: message,
-                                thread_id: id_type.Item1, thread_type: id_type.Item2, ts: ts, metadata: metadata, msg: m);
-                        }
+                            var mentions = new List<FB_Mention>();
+                            if (delta["data"] != null && delta["data"]["prng"] != null)
+                            {
+                                try
+                                {
+                                    foreach (var mention in delta["data"]["prng"].Value<JArray>().Children())
+                                    {
+                                        mentions.Add(new FB_Mention(mention["i"].Value<string>(), offset: mention["o"].Value<int>(), length: mention["l"].Value<int>()));
+                                    }
+                                }
+                                catch (Exception)
+                                {
+                                    Debug.WriteLine("An exception occured while reading attachments");
+                                }
 
-                        // Unknown message type
-                        else
-                        {
-                            this.onUnknownMesssageType(msg: m);
+                                FB_Sticker sticker = null;
+                                var attachments = new List<FB_Attachment>();
+
+                                if (delta["attachments"] != null)
+                                {
+                                    try
+                                    {
+                                        foreach (var a in delta["attachments"])
+                                        {
+                                            var mercury = a["mercury"];
+                                            if (mercury["blob_attachment"] != null)
+                                            {
+                                                var image_metadata = a["imageMetadata"];
+                                                var attach_type = mercury["blob_attachment"]["__typename"];
+                                                var attachment = GraphQL_JSON_Decoder.graphql_to_attachment(mercury["blob_attachment"]);
+
+                                                if (new string[] { "MessageFile", "MessageVideo", "MessageAudio" }.Contains(attach_type.Value<string>()))
+                                                {
+                                                    // TODO: Add more data here for audio files
+                                                    // attachment.size = a["fileSize"].Value<int>();
+                                                    attachments.Add(attachment);
+                                                }
+                                                else if (mercury["sticker_attachment"] != null)
+                                                {
+                                                    sticker = GraphQL_JSON_Decoder.graphql_to_sticker(a["mercury"]["sticker_attachment"]);
+                                                }
+                                                else if (mercury["extensible_attachment"] != null)
+                                                {
+                                                    // TODO: Add more data here for shared stuff (URLs, events and so on)
+                                                    continue;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    catch (Exception)
+                                    {
+                                        Debug.WriteLine(string.Format("An exception occured while reading attachments: {0}", delta["attachments"]));
+                                    }
+
+                                    EmojiSize? emoji_size = null;
+                                    if (metadata != null && metadata["tags"] != null)
+                                        emoji_size = Utils.get_emojisize_from_tags(metadata["tags"]);
+
+                                    var message = new FB_Message(text: delta["body"]?.Value<string>(),
+                                        mentions: mentions,
+                                        emoji_size: emoji_size,
+                                        sticker: sticker,
+                                        attachments: attachments);
+
+                                    message.uid = mid;
+                                    message.author = author_id;
+                                    message.timestamp = ts;
+                                    // message.reactions = {};
+
+                                    var id_type = getThreadIdAndThreadType(metadata);
+                                    this.onMessage(mid: mid, author_id: author_id, message: delta["body"]?.Value<string>(), message_object: message,
+                                        thread_id: id_type.Item1, thread_type: id_type.Item2, ts: ts, metadata: metadata, msg: m);
+                                }
+                                // Unknown message type
+                                else
+                                {
+                                    this.onUnknownMesssageType(msg: m);
+                                }
+                            }
                         }
                     }
 
@@ -1502,7 +1854,7 @@ namespace fbchat_sharp.API
                     // Seen
                     // elif mtype == "m_read_receipt":
 
-                    //     this.onSeen(m.get('realtime_viewer_fbid'), m.get('reader'), m.get('time'))
+                    //     this.onSeen(m["realtime_viewer_fbid'), m["reader'), m["time'))
 
                     // elif mtype in ['jewel_requests_add']:
                     //         from_id = m['from']
@@ -1533,14 +1885,12 @@ namespace fbchat_sharp.API
                             this.onChatTimestamp(buddylist: buddylist, msg: m);
                         }
                     }
-
                     // Unknown message type
                     else
                     {
                         this.onUnknownMesssageType(msg: m);
                     }
                 }
-
                 catch (Exception e)
                 {
                     this.onMessageError(exception: e, msg: m);
@@ -1557,7 +1907,7 @@ namespace fbchat_sharp.API
              * Start listening from an external event loop
              * :raises: Exception if request failed
              */
-            // this.listening = true;
+            this.listening = true;
             var sticky_pool = await this._fetchSticky();
             this.sticky = sticky_pool.Item1;
             this.pool = sticky_pool.Item2;
@@ -1612,7 +1962,7 @@ namespace fbchat_sharp.API
         public void stopListening()
         {
             /*Cleans up the variables from startListening*/
-            // this.listening = false;
+            this.listening = false;
             this.sticky = null;
             this.pool = null;
         }
@@ -1687,18 +2037,20 @@ namespace fbchat_sharp.API
         /// <param name="mid">The message ID</param>
         /// <param name="author_id">The ID of the author</param>
         /// <param name="message">The message content</param>
+        /// <param name="message_object">The message object</param>
         /// <param name="thread_id">Thread ID that the message was sent to</param>
         /// <param name="thread_type">Type of thread that the message was sent to</param>
         /// <param name="ts">The timestamp of the message</param>
         /// <param name="metadata">Extra metadata about the message</param>
         /// <param name="msg">A full set of the data received</param>
-        protected void onMessage(string mid = null, string author_id = null, string message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER, string ts = null, JToken metadata = null, JToken msg = null)
+        protected void onMessage(string mid = null, string author_id = null, string message = null, FB_Message message_object = null, string thread_id = null, ThreadType thread_type = ThreadType.USER, string ts = null, JToken metadata = null, JToken msg = null)
         {
             /*
             Called when the client is listening, and somebody sends a message
             :param mid: The message ID
             :param author_id: The ID of the author
-            :param message: The message
+            :param message: (deprecated. Use `message_object.text` instead)
+            :param message_object: The message (As a `Message` object)
             :param thread_id: Thread ID that the message was sent to.See :ref:`intro_threads`
             :param thread_type: Type of thread that the message was sent to.See :ref:`intro_threads`
             :param ts: The timestamp of the message
@@ -1706,7 +2058,7 @@ namespace fbchat_sharp.API
             :param msg: A full set of the data received
             :type thread_type: models.ThreadType
             */
-            // UpdateEvent(this, new UpdateEventArgs(UpdateStatus.NEW_MESSAGE, new FB_Message(mid, author_id, thread_id, ts, false, null, message)));
+            UpdateEvent(this, new UpdateEventArgs(UpdateStatus.NEW_MESSAGE, message_object));
             Debug.WriteLine(string.Format("Message from {0} in {1} ({2}): {3}", author_id, thread_id, thread_type.ToString(), message));
         }
 
@@ -1720,7 +2072,7 @@ namespace fbchat_sharp.API
              * Called when the client is listening, and some unknown data was received
              * :param msg: A full set of the data received
              */
-            Debug.WriteLine(string.Format("Unknown message received: {}", msg));
+            Debug.WriteLine(string.Format("Unknown message received: {0}", msg));
         }
 
         /// <summary>
@@ -1757,7 +2109,7 @@ namespace fbchat_sharp.API
                 { string.Format("thread_ids[{0}][0]", userID), threadID}
             };
 
-            var r = await this._post(ReqUrl.DELIVERED, data);
+            var r = (HttpResponseMessage)(await this._post(ReqUrl.DELIVERED, data));
             return r.IsSuccessStatusCode;
         }
 
@@ -1777,7 +2129,7 @@ namespace fbchat_sharp.API
                 { string.Format("ids[{0}]", userID), true.ToString()}
             };
 
-            var r = await this._post(ReqUrl.READ_STATUS, data);
+            var r = (HttpResponseMessage)(await this._post(ReqUrl.READ_STATUS, data));
             return r.IsSuccessStatusCode;
         }
 
@@ -1796,7 +2148,7 @@ namespace fbchat_sharp.API
                 { "seen_timestamp", 0.ToString()}
             };
 
-            var r = await this._post(ReqUrl.MARK_SEEN, data);
+            var r = (HttpResponseMessage)(await this._post(ReqUrl.MARK_SEEN, data));
             return r.IsSuccessStatusCode;
         }
 
@@ -1816,7 +2168,7 @@ namespace fbchat_sharp.API
                 {"action", "confirm" }
             };
 
-            var r = await this._post(ReqUrl.CONNECT, data);
+            var r = (HttpResponseMessage)(await this._post(ReqUrl.CONNECT, data));
             return r.IsSuccessStatusCode;
         }
     }

@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 
 namespace fbchat_sharp.API
 {
@@ -274,7 +275,7 @@ namespace fbchat_sharp.API
         /// A list of :class:`Mention` objects
         public List<FB_Mention> mentions = new List<FB_Mention>();
         /// A :class:`EmojiSize`. Size of a sent emoji
-        public EmojiSize emoji_size = null;
+        public EmojiSize? emoji_size = null;
         /// The message ID
         public string uid = null;
         /// ID of the sender
@@ -302,7 +303,7 @@ namespace fbchat_sharp.API
         /// <param name="sticker"></param>
         /// <param name="emoji_size"></param>
         /// <param name="attachments"></param>
-        public FB_Message(string text = null, List<FB_Mention> mentions = null, FB_Sticker sticker = null, EmojiSize emoji_size = null, List<FB_Attachment> attachments = null)
+        public FB_Message(string text = null, List<FB_Mention> mentions = null, FB_Sticker sticker = null, EmojiSize? emoji_size = null, List<FB_Attachment> attachments = null)
         {
             // this.uid = uid;
             // this.author = author;
@@ -610,10 +611,10 @@ namespace fbchat_sharp.API
     /// </summary>
     public class ThreadLocation
     {
-        public static readonly string INBOX = "inbox";
-        public static readonly string PENDING = "pending";
-        public static readonly string ARCHIVED = "action:archived";
-        public static readonly string OTHER = "other";
+        public const string INBOX = "inbox";
+        public const string PENDING = "pending";
+        public const string ARCHIVED = "action:archived";
+        public const string OTHER = "other";
     }
 
     /// <summary>
@@ -628,11 +629,14 @@ namespace fbchat_sharp.API
     /// <summary>
     /// Used to specify the size of a sent emoji
     /// </summary>
-    public class EmojiSize
+    public enum EmojiSize
     {
-        public static readonly string LARGE = "369239383222810";
-        public static readonly string MEDIUM = "369239343222814";
-        public static readonly string SMALL = "369239263222822";
+        [Description("369239383222810")]
+        LARGE,
+        [Description("369239343222814")]
+        MEDIUM,
+        [Description("369239263222822")]
+        SMALL
     }
 
     /// <summary>

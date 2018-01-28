@@ -131,7 +131,7 @@ namespace fbchat_sharp.API
                     check_json(j);
                     return j;
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     throw new FBchatFacebookError(string.Format("Error while parsing JSON: {0}", content));
                 }
@@ -159,7 +159,7 @@ namespace fbchat_sharp.API
             return null;
         }
 
-        public static JToken get_emojisize_from_tags(JToken tags)
+        public static EmojiSize? get_emojisize_from_tags(JToken tags)
         {
             if (tags == null)
                 return null;
@@ -185,12 +185,12 @@ namespace fbchat_sharp.API
     /// </summary>
     internal class Constants
     {
-        public static readonly Dictionary<string, string> LIKES = new Dictionary<string, string>() {
-            { "large", EmojiSize.LARGE},
-            { "medium", EmojiSize.MEDIUM},
-            { "small", EmojiSize.SMALL},
-            { "l", EmojiSize.LARGE},
-            { "m", EmojiSize.MEDIUM},
+        public static readonly Dictionary<string, EmojiSize> LIKES = new Dictionary<string, EmojiSize>() {
+            { "large", EmojiSize.LARGE },
+            { "medium", EmojiSize.MEDIUM },
+            { "small", EmojiSize.SMALL },
+            { "l", EmojiSize.LARGE },
+            { "m", EmojiSize.MEDIUM },
             { "s", EmojiSize.SMALL }
         };
 

@@ -56,6 +56,7 @@
     <Compile Include="API\GraphQl.cs" />
     <Compile Include="API\Models.cs" />
     <Compile Include="API\Utils.cs" />
+    <Compile Include="Extensions.cs" />
     <Compile Include="MessengerClient.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
