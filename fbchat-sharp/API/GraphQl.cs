@@ -14,8 +14,14 @@ namespace fbchat_sharp.API
                 return null;
             if (color.Length == 0)
                 return ThreadColor.MESSENGER_BLUE;
-            // return "#{}".format(color[2:].lower()))
-            return ThreadColor.MESSENGER_BLUE;
+            try
+            {
+                return string.Format("#{0}", color.Skip(1).ToString());
+            }
+            catch
+            {
+                throw new FBchatException(string.Format("Could not get ThreadColor from color: {0}", color));
+            }
         }
 
         public static Dictionary<string, string> get_customization_info(JToken thread)
@@ -23,33 +29,89 @@ namespace fbchat_sharp.API
             return new Dictionary<string, string>();
 
             /*
-             if thread is None or thread.get("customization_info") is None:
+            if thread is None or thread['customization_info') is None:
         return {}
-info = thread["customization_info"]
+    info = thread['customization_info']
 
-rtn = {
-        "emoji": info.get("emoji"),
-        "color": graphql_color_to_enum(info.get("outgoing_bubble_color"))
+    rtn = {
+        'emoji': info['emoji'),
+        'color': graphql_color_to_enum(info['outgoing_bubble_color'))
     }
-    if thread.get("thread_type") == "GROUP" or thread.get("is_group_thread") or thread.get("thread_key", { }).get("thread_fbid"):
-        rtn["nicknames"] = {}
-        for k in info.get("participant_customizations", []):
-            rtn["nicknames"][k["participant_id"]] = k.get("nickname")
-    elif info.get("participant_customizations"):
-        uid = thread.get("thread_key", {}).get("other_user_id") or thread.get("id")
-        pc = info["participant_customizations"]
+    if thread['thread_type') in ('GROUP', 'ROOM') or thread['is_group_thread') or thread['thread_key', {})['thread_fbid'):
+        rtn['nicknames'] = {}
+        for k in info['participant_customizations', []):
+            rtn['nicknames'][k['participant_id']] = k['nickname')
+    elif info['participant_customizations'):
+        uid = thread['thread_key', {})['other_user_id') or thread['id')
+        pc = info['participant_customizations']
         if len(pc) > 0:
-            if pc[0].get("participant_id") == uid:
-                rtn["nickname"] = pc[0].get("nickname")
+            if pc[0]['participant_id') == uid:
+                rtn['nickname'] = pc[0]['nickname')
             else:
-                rtn["own_nickname"] = pc[0].get("nickname")
+                rtn['own_nickname'] = pc[0]['nickname')
         if len(pc) > 1:
-            if pc[1].get("participant_id") == uid:
-                rtn["nickname"] = pc[1].get("nickname")
+            if pc[1]['participant_id') == uid:
+                rtn['nickname'] = pc[1]['nickname')
             else:
-                rtn["own_nickname"] = pc[1].get("nickname")
+                rtn['own_nickname'] = pc[1]['nickname')
     return rtn
              */
+        }
+
+        public static FB_Sticker graphql_to_sticker(JToken s)
+        {
+            if (s == null)
+            {
+                return null;
+            }
+            var sticker = new FB_Sticker(uid: s["id"].Value<string>());
+            if (s["pack"] != null)
+            {
+                sticker.pack = s["pack"]["id"].Value<string>();
+            }
+            if (s["sprite_image"] != null)
+            {
+                sticker.is_animated = true;
+                sticker.medium_sprite_image = s["sprite_image"]["uri"].Value<string>();
+                sticker.large_sprite_image = s["sprite_image_2x"]["uri"].Value<string>();
+                sticker.frames_per_row = s["frames_per_row"].Value<int>();
+                sticker.frames_per_col = s["frames_per_column"].Value<int>();
+                sticker.frame_rate = s["frame_rate"].Value<float>();
+            }
+            sticker.url = s["url"].Value<string>();
+            sticker.width = s["width"].Value<int>();
+            sticker.height = s["height"].Value<int>();
+            if (s["label"] != null)
+            {
+                sticker.label = s["label"].Value<string>();
+            }
+            return sticker;
+        }
+
+        public static FB_Attachment graphql_to_attachment(JToken a)
+        {
+            var _type = a["__typename"].Value<string>();
+            if (new string[] {
+            "MessageImage",
+            "MessageAnimatedImage"
+        }.Contains(_type))
+            {
+                return new FB_ImageAttachment(original_extension: a["original_extension"] != null || a["filename"] != null ? a["filename"].Value<string>().Split('-')[0] : null, width: a["original_dimensions"]["width"].Value<int>(), height: a["original_dimensions"]["height"].Value<int>(),
+                    is_animated: _type == "MessageAnimatedImage", thumbnail_url: a["thumbnail"].Value<string>(),
+                    preview: a["preview"] ?? a["preview_image"], large_preview: a["large_preview"], animated_preview: a["animated_image"], uid: a["legacy_attachment_id"].Value<string>());
+            }
+            else if (_type == "MessageVideo")
+            {
+                return new FB_VideoAttachment(width: a["original_dimensions"]["width"].Value<int>(), height: a["original_dimensions"]["height"].Value<int>(), duration: a["playable_duration_in_ms"].Value<int>(), preview_url: a["playable_url"].Value<string>(), small_image: a["chat_image"].Value<string>(), medium_image: a["inbox_image"].Value<string>(), large_image: a["large_image"].Value<string>(), uid: a["legacy_attachment_id"].Value<string>());
+            }
+            else if (_type == "MessageFile")
+            {
+                return new FB_FileAttachment(url: a["url"].Value<string>(), name: a["filename"].Value<string>(), is_malicious: a["is_malicious"].Value<bool>(), uid: a["message_file_fbid"].Value<string>());
+            }
+            else
+            {
+                return new FB_Attachment(uid: a["legacy_attachment_id"].Value<string>());
+            }
         }
 
         public static FB_Message graphql_to_message(string thread_id, JToken message)
@@ -57,29 +119,44 @@ rtn = {
             if (message["message_sender"] == null)
                 message["message_sender"] = new JObject(new JProperty("id", 0));
             if (message["message"] == null)
-                message["message"] = new JObject(new JProperty("text", "" ));
-            bool is_read = false;
-            if (message["unread"] != null)
-                is_read = !message["unread"].Value<bool>();
+                message["message"] = new JObject(new JProperty("text", ""));
 
-            return new FB_Message(
-                uid: message["message_id"]?.Value<string>(),
-                author: message["message_sender"]["id"]?.Value<string>(),
-                thread_id: thread_id,
-                timestamp: message["timestamp_precise"]?.Value<string>(),
-                is_read: is_read,
-                reactions: new List<string>(),
+            var rtn = new FB_Message(
                 text: message["message"]["text"]?.Value<string>(),
                 mentions: new List<FB_Mention>(),
-                sticker: message["sticker"]?.Value<JObject>(),
-                attachments: message["blob_attachments"]?.Value<JArray>(),
-                extensible_attachment: null);
+                sticker: graphql_to_sticker(message["sticker"]));
+
+            rtn.thread_id = thread_id;
+            rtn.uid = message["message_id"]?.Value<string>();
+            rtn.author = message["message_sender"]["id"]?.Value<string>();
+            rtn.timestamp = message["timestamp_precise"]?.Value<string>();
+            if (message["unread"] != null)
+                rtn.is_read = !message["unread"].Value<bool>();
+            rtn.reactions = new Dictionary<string, MessageReaction>();
+
+            foreach (var r in message["message_reactions"])
+            {
+                // rtn.reactions.Add(r["user"]["id"].Value<string>(), r["reaction"]);
+            }
+
+            if (message["blob_attachments"] != null)
+            {
+                rtn.attachments = new List<FB_Attachment>();
+                foreach (var attachment in message["blob_attachments"])
+                {
+                    rtn.attachments.Add(graphql_to_attachment(attachment));
+                }
+            }
+            // TODO: This is still missing parsing:
+            // message.get('extensible_attachment')
+            return rtn;
         }
 
         public static FB_User graphql_to_user(JToken user)
         {
             if (user["profile_picture"] == null)
                 user["profile_picture"] = new JObject(new JProperty("uri", ""));
+            var c_info = get_customization_info(user);
 
             return new FB_User(
                 uid: user["id"]?.Value<string>(),
@@ -112,6 +189,28 @@ rtn = {
                 photo: group["image"]["uri"].Value<string>(),
                 name: group["name"].Value<string>(),
                 message_count: group["messages_count"].Value<int>());
+        }
+
+        public static FB_Room graphql_to_room(JToken room)
+        {
+            if (room["image"] == null)
+                room["image"] = null;
+            var c_info = get_customization_info(room);
+
+            return new FB_Room(
+                room["thread_key"]["thread_fbid"].Value<string>(),
+                participants: new HashSet<string>(room["all_participants"]["nodes"].Select(node => node["messaging_actor"]["id"].Value<string>())),
+                nicknames: null,
+                color: ThreadColor.MESSENGER_BLUE,
+                emoji: "",
+                photo: room["image"]["uri"].Value<string>(),
+                name: room["name"].Value<string>(),
+                message_count: room["messages_count"].Value<int>(),
+                admins: new HashSet<string>(room["thread_admins"].Select(node => node["id"].Value<string>())),
+                approval_mode: room["approval_mode"].Value<bool>(),
+                approval_requests: new HashSet<string>(room["thread_queue_metadata"]["approval_requests"]["nodes"].Select(node => node["id"].Value<string>())),
+                join_link: room["joinable_mode"]["link"].Value<string>(),
+                privacy_mode: room["privacy_mode"].Value<bool>());
         }
 
         public static FB_Page graphql_to_page(JToken page)
@@ -188,7 +287,7 @@ rtn = {
                 {"query_params", param }
             };
             else
-                throw new Exception("A query or doc_id must be specified");
+                throw new FBchatException("A query or doc_id must be specified");
         }
 
 
@@ -209,7 +308,7 @@ QueryFragment User: User {
 ";
 
         public static string FRAGMENT_GROUP = @"
-QueryFragment FGroup: MessageThread {
+QueryFragment Group: MessageThread {
         name,
         thread_key {
             thread_fbid
@@ -264,11 +363,11 @@ Query SearchUser(<search> = '', <limit> = 1) {
 " + FRAGMENT_USER;
 
         public static string SEARCH_GROUP = @"
-Query SearchFGroup(<search> = '', <limit> = 1, <pic_size> = 32) {
+Query SearchGroup(<search> = '', <limit> = 1, <pic_size> = 32) {
         viewer() {
             message_threads.with_thread_name(<search>).last(<limit>) as groups {
                 nodes {
-                    @FGroup
+                    @Group
                 }
             }
         }
@@ -294,7 +393,7 @@ Query SearchThread(<search> = '', <limit> = 1) {
                 nodes {
                     __typename,
                     @User,
-                    @FGroup,
+                    @Group,
                     @Page
                 }
             }

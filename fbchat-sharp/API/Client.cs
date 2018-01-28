@@ -9,8 +9,8 @@ using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
-[assembly: InternalsVisibleTo("FMessenger.Windows")]
-[assembly: InternalsVisibleTo("FMessenger.WindowsPhone")]
+// [assembly: InternalsVisibleTo("FMessenger.Windows")]
+// [assembly: InternalsVisibleTo("FMessenger.WindowsPhone")]
 namespace fbchat_sharp.API
 {
     /// <summary>
@@ -116,7 +116,7 @@ namespace fbchat_sharp.API
              * :raises: Exception on failed login
             */
 
-            this.HttpClientHandler = new HttpClientHandler() { UseCookies = true, CookieContainer = new CookieContainer(), AllowAutoRedirect = true };
+            this.HttpClientHandler = new HttpClientHandler() { UseCookies = true, CookieContainer = new CookieContainer(), AllowAutoRedirect = false };
             this.http_client = new HttpClient(this.HttpClientHandler);
 
             this.sticky = null;
@@ -189,8 +189,13 @@ namespace fbchat_sharp.API
             var request = new HttpRequestMessage(HttpMethod.Get, builder.ToString());
             foreach (var header in this._header) request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             // this.client.Timeout = TimeSpan.FromSeconds(timeout);
-            return await http_client.SendAsync(request);
+            var response = await http_client.SendAsync(request);
             // return this._session.get(url, headers: this._header, param: payload, timeout: timeout);
+
+            if ((int)response.StatusCode < 300 || (int)response.StatusCode > 399)
+                return response;
+            else
+                return await _get(response.Headers.Location.ToString(), query, timeout);
         }
 
         private async Task<HttpResponseMessage> _post(string url, Dictionary<string, string> query = null, int timeout = 30)
@@ -201,8 +206,13 @@ namespace fbchat_sharp.API
             foreach (var header in this._header) request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             request.Content = content;
             // this.client.Timeout = TimeSpan.FromSeconds(timeout);
-            return await http_client.SendAsync(request);
+            var response = await http_client.SendAsync(request);
             // return this._session.post(url, headers: this._header, data: payload, timeout: timeout);
+
+            if ((int)response.StatusCode < 300 || (int)response.StatusCode > 399)
+                return response;
+            else
+                return await _post(response.Headers.Location.ToString(), query, timeout);
         }
 
         private async Task<HttpResponseMessage> _cleanGet(string url, int timeout = 30)
@@ -210,8 +220,13 @@ namespace fbchat_sharp.API
             var request = new HttpRequestMessage(HttpMethod.Get, url);
             foreach (var header in this._header) request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             // this.client.Timeout = TimeSpan.FromSeconds(timeout);
-            return await http_client.SendAsync(request);
+            var response = await http_client.SendAsync(request);
             // return this._session.get(url, headers: this._header, param: query, timeout: timeout);
+
+            if ((int)response.StatusCode < 300 || (int)response.StatusCode > 399)
+                return response;
+            else
+                return await _cleanGet(response.Headers.Location.ToString(), timeout);
         }
 
         private async Task<HttpResponseMessage> _cleanPost(string url, Dictionary<string, string> query = null, int timeout = 30)
@@ -222,8 +237,13 @@ namespace fbchat_sharp.API
             foreach (var header in this._header) request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             request.Content = content;
             // this.client.Timeout = TimeSpan.FromSeconds(timeout);
-            return await http_client.SendAsync(request);
+            var response = await http_client.SendAsync(request);
             // return this._session.post(url, headers: this._header, data: query, timeout: timeout);
+
+            if ((int)response.StatusCode < 300 || (int)response.StatusCode > 399)
+                return response;
+            else
+                return await _cleanPost(response.Headers.Location.ToString(), query, timeout);
         }
 
         private async Task<HttpResponseMessage> _postFile(string url, object files = null, Dictionary<string, string> query = null, int timeout = 30)
@@ -247,7 +267,7 @@ namespace fbchat_sharp.API
                 { "queries", GraphQL_JSON_Decoder.graphql_queries_to_json(queries)}
             };
 
-            var j = GraphQL_JSON_Decoder.graphql_response_to_json((string)await Utils.checkRequest(await this._post(ReqUrl.GRAPHQL, payload), do_json_check: false));
+            var j = GraphQL_JSON_Decoder.graphql_response_to_json((string)await Utils.checkRequest(await this._post(ReqUrl.GRAPHQL, payload), as_json: false));
 
             return j;
         }
@@ -276,7 +296,7 @@ namespace fbchat_sharp.API
             {
                 UseCookies = true,
                 CookieContainer = new CookieContainer(),
-                AllowAutoRedirect = true
+                AllowAutoRedirect = false
             };
             this.http_client = new HttpClient(HttpClientHandler);
             this.req_counter = 1;
@@ -1286,7 +1306,7 @@ namespace fbchat_sharp.API
                 {"viewer_uid", this.uid },
                 {"state", "active" }
             };
-            await Utils.checkRequest(await this._get(ReqUrl.PING, data), do_json_check: false);
+            await Utils.checkRequest(await this._get(ReqUrl.PING, data), as_json: false);
         }
 
         private async Task<Tuple<string, string>> _fetchSticky()
@@ -1686,7 +1706,7 @@ namespace fbchat_sharp.API
             :param msg: A full set of the data received
             :type thread_type: models.ThreadType
             */
-            UpdateEvent(this, new UpdateEventArgs(UpdateStatus.NEW_MESSAGE, new FB_Message(mid, author_id, thread_id, ts, false, null, message)));
+            // UpdateEvent(this, new UpdateEventArgs(UpdateStatus.NEW_MESSAGE, new FB_Message(mid, author_id, thread_id, ts, false, null, message)));
             Debug.WriteLine(string.Format("Message from {0} in {1} ({2}): {3}", author_id, thread_id, thread_type.ToString(), message));
         }
 

@@ -5,6 +5,46 @@ using System.Collections.Generic;
 namespace fbchat_sharp.API
 {
     /// <summary>
+    /// Custom exception thrown by fbchat. All exceptions in the fbchat module inherits this
+    /// </summary>
+    public class FBchatException : Exception
+    {
+        public FBchatException(string message) : base(message)
+        {
+        }
+    }
+
+    /// <summary>
+    /// Thrown by fbchat when Facebook returns an error
+    /// </summary>
+    public class FBchatFacebookError : FBchatException
+    {
+        /// The error code that Facebook returned
+        public string fb_error_code = null;
+        /// The error message that Facebook returned (In the user's own language)
+        public string fb_error_message = null;
+        /// The status code that was sent in the http response (eg. 404) (Usually only set if not successful, aka. not 200)
+        public int request_status_code = 0;
+
+        public FBchatFacebookError(string message, string fb_error_code = null, string fb_error_message = null, int request_status_code = 0) : base(message)
+        {
+            this.fb_error_code = fb_error_code.ToString();
+            this.fb_error_message = fb_error_message;
+            this.request_status_code = request_status_code;
+        }
+    }
+
+    /// <summary>
+    /// Thrown by fbchat when wrong values are entered
+    /// </summary>
+    public class FBchatUserError : FBchatException
+    {
+        public FBchatUserError(string message) : base(message)
+        {
+        }
+    }
+
+    /// <summary>
     /// Facebook messenger thread class
     /// </summary>
     public class FB_Thread
@@ -98,7 +138,7 @@ namespace fbchat_sharp.API
         /// <param name="emoji"></param>
         public FB_User(string uid, string photo = null, string name = null, int message_count = 0, string url = null, string first_name = null, string last_name = null, bool is_friend = false, string gender = null, float affinity = 0, string nickname = null, string own_nickname = null, string color = null, string emoji = null) :
             base(ThreadType.USER, uid, photo, name, message_count: message_count)
-        {            
+        {
             this.url = url;
             this.first_name = first_name;
             this.last_name = last_name;
@@ -118,7 +158,7 @@ namespace fbchat_sharp.API
     public class FB_Group : FB_Thread
     {
         /// Unique list (set) of the group thread"s participant user IDs
-        public HashSet<string> participants = new HashSet<string>();
+        public ISet<string> participants = null;
         /// Dict, containing user nicknames mapped to their IDs
         public Dictionary<string, string> nicknames = new Dictionary<string, string>();
         /// A `ThreadColor`. The groups"s message color
@@ -137,13 +177,50 @@ namespace fbchat_sharp.API
         /// <param name="nicknames"></param>
         /// <param name="color"></param>
         /// <param name="emoji"></param>
-        public FB_Group(string uid, string photo = null, string name = null, int message_count = 0, HashSet <string> participants = null, Dictionary<string, string> nicknames = null, string color = null, string emoji = null) :
+        public FB_Group(string uid, string photo = null, string name = null, int message_count = 0, ISet<string> participants = null, Dictionary<string, string> nicknames = null, string color = null, string emoji = null) :
             base(ThreadType.GROUP, uid, photo, name, message_count: message_count)
-        {            
+        {
             this.participants = participants;
             this.nicknames = nicknames;
             this.color = color;
             this.emoji = emoji;
+        }
+    }
+
+    /// <summary>
+    /// Represents a Facebook room. Inherits `Group`
+    /// </summary>
+    public class FB_Room : FB_Group
+    {
+
+        /// Set containing user IDs of thread admins
+        public ISet<string> admins = null;
+        /// True if users need approval to join
+        public bool approval_mode = false;
+        /// Set containing user IDs requesting to join
+        public ISet<string> approval_requests = null;
+        /// Link for joining room
+        public string join_link = null;
+        /// True is room is not discoverable
+        public bool privacy_mode = false;
+
+        public FB_Room(string uid, string photo = null, string name = null, int message_count = 0, ISet<string> participants = null, Dictionary<string, string> nicknames = null, string color = null, string emoji = null, ISet<string> admins = null, bool approval_mode = false, ISet<string> approval_requests = null, string join_link = null, bool privacy_mode = false)
+            : base(uid, photo, name, message_count, participants, nicknames, color, emoji)
+        {
+            this.type = ThreadType.ROOM;
+            if (admins == null)
+            {
+                admins = new HashSet<string>();
+            }
+            this.admins = admins;
+            this.approval_mode = approval_mode;
+            if (approval_requests == null)
+            {
+                approval_requests = new HashSet<string>();
+            }
+            this.approval_requests = approval_requests;
+            this.join_link = join_link;
+            this.privacy_mode = privacy_mode;
         }
     }
 
@@ -192,68 +269,301 @@ namespace fbchat_sharp.API
     /// </summary>
     public class FB_Message
     {
-        /// The message ID
-        public string uid = "";
-        /// ID of the sender
-        public string author = "";
-        /// ID of the thread the message was sent to
-        public string thread_id = "";
-        /// Timestamp of when the message was sent
-        public string timestamp = "";
-        /// Whether the message is read
-        public bool is_read = false;
-        /// A list of message reactions
-        public List<string> reactions = new List<string>();
         /// The actual message
-        public string text { get; set; }
+        public string text = null;
         /// A list of :class:`Mention` objects
         public List<FB_Mention> mentions = new List<FB_Mention>();
+        /// A :class:`EmojiSize`. Size of a sent emoji
+        public EmojiSize emoji_size = null;
+        /// The message ID
+        public string uid = null;
+        /// ID of the sender
+        public string author = null;
+        /// Timestamp of when the message was sent
+        public string timestamp = null;
+        /// Whether the message is read
+        public bool is_read = false;
+        /// A dict with user's IDs as keys, and their :class:`MessageReaction` as values
+        public Dictionary<string, MessageReaction> reactions = null;
         /// An ID of a sent sticker
-        public JObject sticker = new JObject();
+        public FB_Sticker sticker = null;
         /// A list of attachments
-        public JArray attachments = new JArray();
-        /// An extensible attachment, e.g. share object
-        public Dictionary<string, JToken> extensible_attachment = new Dictionary<string, JToken>();
+        public List<FB_Attachment> attachments = new List<FB_Attachment>();
+        /// ID of the thread the message was sent to
+        public string thread_id = "";
         /// The message was sent from me (not filled)
         public bool is_from_me { get; set; }
 
         /// <summary>
         /// Represents a Facebook message
         /// </summary>
-        /// <param name="uid"></param>
-        /// <param name="author"></param>
-        /// <param name="thread_id"></param>
-        /// <param name="timestamp"></param>
-        /// <param name="is_read"></param>
-        /// <param name="reactions"></param>
         /// <param name="text"></param>
         /// <param name="mentions"></param>
         /// <param name="sticker"></param>
+        /// <param name="emoji_size"></param>
         /// <param name="attachments"></param>
-        /// <param name="extensible_attachment"></param>
-        public FB_Message(string uid, string author = null, string thread_id = null, string timestamp = null, bool is_read = false, List<string> reactions = null, string text = null, List<FB_Mention> mentions = null, JObject sticker = null, JArray attachments = null, Dictionary<string, JToken> extensible_attachment = null)
+        public FB_Message(string text = null, List<FB_Mention> mentions = null, FB_Sticker sticker = null, EmojiSize emoji_size = null, List<FB_Attachment> attachments = null)
         {
-            this.uid = uid;
-            this.author = author;
-            this.thread_id = thread_id;
-            this.timestamp = timestamp;
-            this.is_read = is_read;
-            this.reactions = reactions;
+            // this.uid = uid;
+            // this.author = author;
+            // this.timestamp = timestamp;
+            // this.thread_id = thread_id;
             this.text = text;
+            if (mentions == null)
+                mentions = new List<FB_Mention>();
             this.mentions = mentions;
             this.sticker = sticker;
-            this.attachments = attachments;
-            this.extensible_attachment = extensible_attachment;
+            if (attachments == null)
+                this.attachments = new List<FB_Attachment>();
+            this.emoji_size = emoji_size;
+            this.reactions = new Dictionary<string, MessageReaction>();
+        }
+
+        /// <returns>Pretty string representation of the thread</returns>
+        public override string ToString()
+        {
+            return this.__unicode__();
+        }
+
+        private string __unicode__()
+        {
+            return string.Format("<Message ({0}): {1}, mentions={2} emoji_size={3} attachments={4}>", this.uid, this.text, this.mentions, this.emoji_size, this.attachments);
         }
     }
 
+    /// <summary>
+    /// Represents a Facebook attachment
+    /// </summary>    
+    public class FB_Attachment
+    {
+        /// The attachment ID
+        public string uid = null;
+
+        public FB_Attachment(string uid = null)
+        {
+            this.uid = uid;
+        }
+    }
+
+    /// <summary>
+    /// Represents a Facebook sticker that has been sent to a Facebook thread as an attachment
+    /// </summary>
+    public class FB_Sticker : FB_Attachment
+    {
+        /// The sticker-pack's ID
+        public string pack = null;
+        /// Whether the sticker is animated
+        public bool is_animated = false;
+        /// If the sticker is animated, the following should be present
+        /// URL to a medium spritemap
+        public string medium_sprite_image = null;
+        /// URL to a large spritemap
+        public string large_sprite_image = null;
+        /// The amount of frames present in the spritemap pr. row
+        public int frames_per_row = 0;
+        /// The amount of frames present in the spritemap pr. coloumn
+        public int frames_per_col = 0;
+        /// The frame rate the spritemap is intended to be played in
+        public float frame_rate = 0;
+        /// URL to the sticker's image
+        public object url = null;
+        /// Width of the sticker
+        public float width = 0;
+        /// Height of the sticker
+        public float height = 0;
+        /// The sticker's label/name
+        public string label = null;
+
+        public FB_Sticker(string uid = null) : base(uid)
+        {
+        }
+    }
+
+    /// <summary>
+    /// Represents a shared item (eg. URL) that has been sent as a Facebook attachment - *Currently Incomplete!*
+    /// </summary>
+    public class FB_ShareAttachment : FB_Attachment
+    {
+        public FB_ShareAttachment(string uid = null) : base(uid)
+        {
+        }
+    }
+
+    /// <summary>
+    /// Represents a file that has been sent as a Facebook attachment
+    /// </summary>
+    public class FB_FileAttachment : FB_Attachment
+    {
+        /// Url where you can download the file
+        public object url = null;
+        /// Size of the file in bytes
+        public long size = 0;
+        /// Name of the file
+        public string name = null;
+        /// Whether Facebook determines that this file may be harmful
+        public bool is_malicious = false;
+
+        public FB_FileAttachment(string uid = null, string url = null, long size = 0, string name = null, bool is_malicious = false) : base(uid)
+        {
+            this.url = url;
+            this.size = size;
+            this.name = name;
+            this.is_malicious = is_malicious;
+        }
+    }
+
+    /// <summary>
+    /// Represents an audio file that has been sent as a Facebook attachment - *Currently Incomplete!*
+    /// </summary>
+    public class FB_AudioAttachment : FB_FileAttachment
+    {
+        public FB_AudioAttachment(string uid = null, string url = null, long size = 0, string name = null, bool is_malicious = false)
+            : base(uid, url, size, name, is_malicious)
+        {
+        }
+    }
+
+    /// <summary>
+    /// Represents an image that has been sent as a Facebook attachment
+    /// To retrieve the full image url, use: :func:`fbchat.Client.fetchImageUrl`
+    /// and pass it the uid of the image attachment
+    /// </summary>
+    public class FB_ImageAttachment : FB_Attachment
+    {
+        /// The extension of the original image (eg. 'png')
+        public string original_extension = null;
+        /// Width of original image
+        public float width = 0;
+        /// Height of original image
+        public float height = 0;
+        /// Whether the image is animated
+        public bool is_animated = false;
+        /// URL to a thumbnail of the image
+        public string thumbnail_url = null;
+        /// URL to a medium preview of the image
+        public string preview_url = null;
+        /// Width of the medium preview image
+        public int preview_width = 0;
+        /// Height of the medium preview image
+        public int preview_height = 0;
+        /// URL to a large preview of the image
+        public string large_preview_url = null;
+        /// Width of the large preview image
+        public int large_preview_width = 0;
+        /// Height of the large preview image
+        public int large_preview_height = 0;
+        /// URL to an animated preview of the image (eg. for gifs)
+        public string animated_preview_url = null;
+        /// Width of the animated preview image
+        public int animated_preview_width = 0;
+        /// Height of the animated preview image
+        public int animated_preview_height = 0;
+
+        public FB_ImageAttachment(string uid = null, string original_extension = null, int width = 0, int height = 0, bool is_animated = false, string thumbnail_url = null, object preview = null, object large_preview = null, object animated_preview = null) : base(uid)
+        {
+            this.original_extension = original_extension;
+            if (width != 0)
+            {
+                width = Convert.ToInt32(width);
+            }
+            this.width = width;
+            if (height != 0)
+            {
+                height = Convert.ToInt32(height);
+            }
+            this.height = height;
+            this.is_animated = is_animated;
+            this.thumbnail_url = thumbnail_url;
+            if (preview == null)
+            {
+            }
+            // this.preview_url = preview.get("uri");
+            // this.preview_width = preview.get("width");
+            // this.preview_height = preview.get("height");
+            if (large_preview == null)
+            {
+            }
+            // this.large_preview_url = large_preview.get("uri");
+            // this.large_preview_width = large_preview.get("width");
+            // this.large_preview_height = large_preview.get("height");
+            if (animated_preview == null)
+            {
+            }
+            // this.animated_preview_url = animated_preview.get("uri");
+            // this.animated_preview_width = animated_preview.get("width");
+            // this.animated_preview_height = animated_preview.get("height");
+        }
+    }
+
+    /// <summary>
+    /// Represents a video that has been sent as a Facebook attachment
+    /// </summary>
+    public class FB_VideoAttachment
+        : FB_Attachment
+    {
+        /// Size of the original video in bytes
+        public int size = 0;
+        /// Width of original video
+        public int width = 0;
+        /// Height of original video
+        public int height = 0;
+        /// Length of video in milliseconds
+        public int duration = 0;
+        /// URL to very compressed preview video
+        public string preview_url = null;
+        /// URL to a small preview image of the video
+        public string small_image_url = null;
+        /// Width of the small preview image
+        public int small_image_width = 0;
+        /// Height of the small preview image
+        public int small_image_height = 0;
+        /// URL to a medium preview image of the video
+        public string medium_image_url = null;
+        /// Width of the medium preview image
+        public int medium_image_width = 0;
+        /// Height of the medium preview image
+        public int medium_image_height = 0;
+        /// URL to a large preview image of the video
+        public string large_image_url = null;
+        /// Width of the large preview image
+        public int large_image_width = 0;
+        /// Height of the large preview image
+        public int large_image_height = 0;
+
+        public FB_VideoAttachment(string uid = null, int size = 0, int width = 0, int height = 0, int duration = 0, string preview_url = null, object small_image = null, object medium_image = null, object large_image = null) : base(uid)
+        {
+            this.size = size;
+            this.width = width;
+            this.height = height;
+            this.duration = duration;
+            this.preview_url = preview_url;
+            if (small_image == null)
+            {
+            }
+            // this.small_image_url = small_image.get("uri");
+            // this.small_image_width = small_image.get("width");
+            // this.small_image_height = small_image.get("height");
+            if (medium_image == null)
+            {
+            }
+            // this.medium_image_url = medium_image.get("uri");
+            // this.medium_image_width = medium_image.get("width");
+            // this.medium_image_height = medium_image.get("height");
+            if (large_image == null)
+            {
+            }
+            // this.large_image_url = large_image.get("uri");
+            // this.large_image_width = large_image.get("width");
+            // this.large_image_height = large_image.get("height");
+        }
+    }
     /// <summary>
     /// Facebook messenger mention class
     /// </summary>
     public class FB_Mention
     {
-        /// The user ID the mention is pointing at
-        public string user_id = "";
+        /// The thread ID the mention is pointing at
+        public string thread_id = null;
         /// The character where the mention starts
         public int offset = 0;
         /// The length of the mention
@@ -262,14 +572,25 @@ namespace fbchat_sharp.API
         /// <summary>
         /// Represents a @mention
         /// </summary>
-        /// <param name="user_id"></param>
+        /// <param name="thread_id"></param>
         /// <param name="offset"></param>
         /// <param name="length"></param>
-        public FB_Mention(string user_id, int offset = 0, int length = 10)
+        public FB_Mention(string thread_id = null, int offset = 0, int length = 10)
         {
-            this.user_id = user_id;
+            this.thread_id = thread_id;
             this.offset = offset;
             this.length = length;
+        }
+
+        /// <returns>Pretty string representation of the thread</returns>
+        public override string ToString()
+        {
+            return this.__unicode__();
+        }
+
+        private string __unicode__()
+        {
+            return string.Format("<Mention {0}: offset={1} length={2}>", this.thread_id, this.offset, this.length);
         }
     }
 
@@ -281,6 +602,18 @@ namespace fbchat_sharp.API
         USER = 1,
         GROUP = 2,
         PAGE = 3,
+        ROOM = 4,
+    }
+
+    /// <summary>
+    /// Used to specify where a thread is located (inbox, pending, archived, other).
+    /// </summary>
+    public class ThreadLocation
+    {
+        public static readonly string INBOX = "inbox";
+        public static readonly string PENDING = "pending";
+        public static readonly string ARCHIVED = "action:archived";
+        public static readonly string OTHER = "other";
     }
 
     /// <summary>
@@ -339,30 +672,5 @@ namespace fbchat_sharp.API
         public static readonly string ANGRY = "😠";
         public static readonly string YES = "👍";
         public static readonly string NO = "👎";
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    public class Constants
-    {
-        public static readonly Dictionary<string, string> LIKES = new Dictionary<string, string>() {
-            { "large", EmojiSize.LARGE},
-            { "medium", EmojiSize.MEDIUM},
-            { "small", EmojiSize.SMALL},
-            { "l", EmojiSize.LARGE},
-            { "m", EmojiSize.MEDIUM},
-            { "s", EmojiSize.SMALL }
-        };
-
-        public static readonly Dictionary<string, Tuple<string, string>> MessageReactionFix = new Dictionary<string, Tuple<string, string>>() {
-            { "😍", new Tuple<string, string>("0001f60d", "%F0%9F%98%8D")},
-            { "😆", new Tuple<string, string>("0001f606", "%F0%9F%98%86")},
-            { "😮", new Tuple<string, string>("0001f62e", "%F0%9F%98%AE")},
-            { "😢", new Tuple<string, string>("0001f622", "%F0%9F%98%A2")},
-            { "😠", new Tuple<string, string>("0001f620", "%F0%9F%98%A0")},
-            { "👍", new Tuple<string, string>("0001f44d", "%F0%9F%91%8D")},
-            { "👎", new Tuple<string, string>("0001f44e", "%F0%9F%91%8E")}
-        };
-    }
+    }    
 }

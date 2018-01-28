@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -26,12 +27,24 @@ namespace fbchat_sharp.API
 
         public static string strip_to_json(string text)
         {
-            return text.Substring(text.IndexOf("{"));
+            try
+            {
+                return text.Substring(text.IndexOf("{"));
+            }
+            catch (Exception)
+            {
+                throw new FBchatException(string.Format("No JSON object found: {0}, {1}", text, text.IndexOf('{')));
+            }
         }
 
         public static string get_decoded(byte[] content)
         {
             return Encoding.GetEncoding(ReqUrl.facebookEncoding).GetString(content, 0, content.Length);
+        }
+
+        public JToken parse_json(string content)
+        {
+            return JToken.Parse(content);
         }
 
         public JToken get_json(byte[] content)
@@ -86,30 +99,30 @@ namespace fbchat_sharp.API
                 if (j["errorDescription"] != null)
                 {
                     // "errorDescription" is in the users own language!
-                    throw new Exception(string.Format("Error #{0} when sending request: {1}", j["error"], j["errorDescription"]));
+                    throw new FBchatFacebookError(string.Format("Error #{0} when sending request: {1}", j["error"], j["errorDescription"]), fb_error_code: j["error"].Value<string>(), fb_error_message: j["errorDescription"].Value<string>());
                 }
                 else if (j["error"]["debug_info"] != null)
                 {
-                    throw new Exception(string.Format("Error #{0} when sending request: {1}", j["error"]["code"].Value<int>(), j["error"]["debug_info"].Value<string>()));
+                    throw new FBchatFacebookError(string.Format("Error #{0} when sending request: {1}", j["error"]["code"].Value<int>(), j["error"]["debug_info"].Value<string>()), fb_error_code: j["error"]["code"].Value<string>(), fb_error_message: j["error"]["debug_info"].Value<string>());
                 }
                 else
                 {
-                    throw new Exception(string.Format("Error {0} when sending request", j["error"]));
+                    throw new FBchatFacebookError(string.Format("Error {0} when sending request", j["error"]), fb_error_code: j["error"].Value<string>());
                 }
             }
         }
 
-        public static async Task<object> checkRequest(HttpResponseMessage r, bool do_json_check = true)
+        public static async Task<object> checkRequest(HttpResponseMessage r, bool as_json = true)
         {
             if (!r.IsSuccessStatusCode)
-                throw new Exception(string.Format("Error when sending request: Got {0} response", r.StatusCode));
+                throw new FBchatFacebookError(string.Format("Error when sending request: Got {0} response", r.StatusCode), request_status_code: (int)r.StatusCode);
 
             var buffer = await r.Content.ReadAsByteArrayAsync();
             if (buffer == null || buffer.Length == 0)
-                throw new Exception("Error when sending request: Got empty response");
+                throw new FBchatFacebookError("Error when sending request: Got empty response");
             string content = get_decoded(buffer);
 
-            if (do_json_check)
+            if (as_json)
             {
                 content = strip_to_json(content);
                 try
@@ -120,7 +133,7 @@ namespace fbchat_sharp.API
                 }
                 catch (Exception e)
                 {
-                    throw new Exception(string.Format("Error while parsing JSON: {0}", content), e);
+                    throw new FBchatFacebookError(string.Format("Error while parsing JSON: {0}", content));
                 }
             }
             else
@@ -128,11 +141,73 @@ namespace fbchat_sharp.API
                 return content;
             }
         }
+
+        public static JToken get_jsmods_require(JToken j, int index)
+        {
+            if (j["jsmods"] != null && j["jsmods"]["require"] != null)
+            {
+                try
+                {
+                    return j["jsmods"]["require"][0][index][0];
+                }
+                catch (Exception)
+                {
+                    // Debug.WriteLine("Error when getting jsmods_require: {0}. Facebook might have changed protocol", j);
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        public static JToken get_emojisize_from_tags(JToken tags)
+        {
+            if (tags == null)
+                return null;
+            var tmp = tags.Where(tag => tag.Value<string>().StartsWith("hot_emoji_size:"));
+            if (tmp.Any())
+            {
+                try
+                {
+                    return Constants.LIKES[tmp.First().Value<string>().Split(':')[1]];
+                }
+                catch (Exception)
+                {
+                    // Debug.WriteLine("Could not determine emoji size from {0} - {1}", tags, tmp);
+                    return null;
+                }
+            }
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    internal class Constants
+    {
+        public static readonly Dictionary<string, string> LIKES = new Dictionary<string, string>() {
+            { "large", EmojiSize.LARGE},
+            { "medium", EmojiSize.MEDIUM},
+            { "small", EmojiSize.SMALL},
+            { "l", EmojiSize.LARGE},
+            { "m", EmojiSize.MEDIUM},
+            { "s", EmojiSize.SMALL }
+        };
+
+        public static readonly Dictionary<string, Tuple<string, string>> MessageReactionFix = new Dictionary<string, Tuple<string, string>>() {
+            { "😍", new Tuple<string, string>("0001f60d", "%F0%9F%98%8D")},
+            { "😆", new Tuple<string, string>("0001f606", "%F0%9F%98%86")},
+            { "😮", new Tuple<string, string>("0001f62e", "%F0%9F%98%AE")},
+            { "😢", new Tuple<string, string>("0001f622", "%F0%9F%98%A2")},
+            { "😠", new Tuple<string, string>("0001f620", "%F0%9F%98%A0")},
+            { "👍", new Tuple<string, string>("0001f44d", "%F0%9F%91%8D")},
+            { "👎", new Tuple<string, string>("0001f44e", "%F0%9F%91%8E")}
+        };
     }
 
     internal class GENDER
     {
-        public static Dictionary<int, string> standard_GENDERS = new Dictionary<int, string>() {
+        public static readonly Dictionary<int, string> standard_GENDERS = new Dictionary<int, string>() {
             {0, "unknown"},
             {1, "female_singular"},
             {2, "male_singular"},
@@ -147,7 +222,7 @@ namespace fbchat_sharp.API
             {11, "unknown_plural" },
         };
 
-        public static Dictionary<string, string> graphql_GENDERS = new Dictionary<string, string>()
+        public static readonly Dictionary<string, string> graphql_GENDERS = new Dictionary<string, string>()
         {
             { "UNKNOWN", "unknown" },
             { "FEMALE", "female_singular" },
@@ -173,8 +248,8 @@ namespace fbchat_sharp.API
         public static readonly string BASE = "https://www.facebook.com";
         public static readonly string MOBILE = "https://m.facebook.com/";
         public static readonly string LISTEN = "https://0-edge-chat.facebook.com/";
-        public static readonly string STICKY = "https://0-edge-chat.facebook.com/pull";
-        public static readonly string PING = "https://0-edge-chat.facebook.com/active_ping";
+        public static string STICKY = "https://0-edge-chat.facebook.com/pull";
+        public static string PING = "https://0-edge-chat.facebook.com/active_ping";
         public static readonly string UPLOAD = "https://upload.facebook.com/ajax/mercury/upload.php";
         public static readonly string INFO = "https://www.facebook.com/chat/user_info/";
         public static readonly string CONNECT = "https://www.facebook.com/ajax/add_friend/action.php?dpr=1";
@@ -189,6 +264,24 @@ namespace fbchat_sharp.API
         public static readonly string MESSAGE_REACTION = "https://www.facebook.com/webgraphql/mutation";
         public static readonly string TYPING = "https://www.facebook.com/ajax/messaging/typ.php";
         public static readonly string GRAPHQL = "https://www.facebook.com/api/graphqlbatch/";
+        public static readonly string ATTACHMENT_PHOTO = "https://www.facebook.com/mercury/attachments/photo/";
+        public static readonly string EVENT_REMINDER = "https://www.facebook.com/ajax/eventreminder/create";
+
+        public int pull_channel = 0;
+
+        public void change_pull_channel(int? channel = 0)
+        {
+            if (channel == null)
+            {
+                this.pull_channel = (this.pull_channel + 1) % 5;
+            }
+            else
+            {
+                this.pull_channel = (int)channel;
+            }
+            ReqUrl.STICKY = string.Format("https://{0}-edge-chat.facebook.com/pull", this.pull_channel);
+            ReqUrl.PING = string.Format("https://{0}-edge-chat.facebook.com/active_ping", this.pull_channel);
+        }
 
         public static readonly string facebookEncoding = "UTF-8";
     }
