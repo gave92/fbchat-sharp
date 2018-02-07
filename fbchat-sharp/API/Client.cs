@@ -747,9 +747,10 @@ namespace fbchat_sharp.API
 
             var users = new List<FB_User>();
 
-            foreach (var k in j["payload"].Value<JObject>().Properties())
+            foreach (var u in j["payload"].Value<JObject>().Properties())
             {
-                if (new[] { "user", "friend" }.Contains(k.Value["type"].Value<string>()))
+                var k = u.Children().FirstOrDefault()?.Value<JObject>();
+                if (k != null && new[] { "user", "friend" }.Contains(k["type"].Value<string>()))
                 {
                     if (new[] { "0", "\0" }.Contains(k["id"].Value<string>()))
                     {
@@ -779,7 +780,7 @@ namespace fbchat_sharp.API
              :raises: Exception if request failed
              */
 
-            var j = await this.graphql_request(new GraphQL(query: GraphQL.SEARCH_USER, param: new Dictionary<string, string>() {
+            var j = await this.graphql_request(new GraphQL(query: GraphQL.SEARCH_USER, param: new Dictionary<string, object>() {
                 { "search", name }, { "limit", limit.ToString() }
              }));
 
@@ -801,7 +802,7 @@ namespace fbchat_sharp.API
              * :raises: Exception if request failed
              */
 
-            var j = await this.graphql_request(new GraphQL(query: GraphQL.SEARCH_PAGE, param: new Dictionary<string, string>() {
+            var j = await this.graphql_request(new GraphQL(query: GraphQL.SEARCH_PAGE, param: new Dictionary<string, object>() {
                 { "search", name }, { "limit", limit.ToString() }
             }));
 
@@ -824,7 +825,7 @@ namespace fbchat_sharp.API
              * :raises: Exception if request failed
              * */
 
-            var j = await this.graphql_request(new GraphQL(query: GraphQL.SEARCH_GROUP, param: new Dictionary<string, string>() {
+            var j = await this.graphql_request(new GraphQL(query: GraphQL.SEARCH_GROUP, param: new Dictionary<string, object>() {
               { "search", name }, {"limit", limit.ToString() }
             }));
 
@@ -847,7 +848,7 @@ namespace fbchat_sharp.API
              * :raises: Exception if request failed
              */
 
-            var j = await this.graphql_request(new GraphQL(query: GraphQL.SEARCH_THREAD, param: new Dictionary<string, string>(){
+            var j = await this.graphql_request(new GraphQL(query: GraphQL.SEARCH_THREAD, param: new Dictionary<string, object>(){
                 { "search", name }, {"limit", limit.ToString() }
             }));
 
@@ -1055,7 +1056,7 @@ namespace fbchat_sharp.API
             var queries = new List<GraphQL>();
             foreach (var thread_id in thread_ids)
             {
-                queries.Add(new GraphQL(doc_id: "1386147188135407", param: new Dictionary<string, string>() {
+                queries.Add(new GraphQL(doc_id: "1386147188135407", param: new Dictionary<string, object>() {
                     { "id", thread_id },
                     { "message_limit", 0.ToString() },
                     { "load_messages", false.ToString() },
@@ -1154,7 +1155,7 @@ namespace fbchat_sharp.API
             var thread = this._getThread(thread_id, null);
             thread_id = thread.Item1;
 
-            var dict = new Dictionary<string, string>() {
+            var dict = new Dictionary<string, object>() {
                 { "id", thread_id},
                 { "message_limit", limit.ToString()},
                 { "load_messages", true.ToString()},
@@ -1178,6 +1179,45 @@ namespace fbchat_sharp.API
         /// <param name="offset">The offset, from where in the list to recieve threads from</param>
         /// <param name="limit">Max.number of threads to retrieve. Capped at 20</param>
         /// <param name="thread_location">models.ThreadLocation: INBOX, PENDING, ARCHIVED or OTHER</param>
+        /// <param name="before">A unix timestamp, indicating from which point to retrieve messages</param>
+        public async Task<List<FB_Thread>> fetchThreadListQL(int offset = 0, int limit = 20, string thread_location = ThreadLocation.INBOX, string before = null)
+        {
+            /*
+             * Get thread list of your facebook account
+             * :param offset: The offset, from where in the list to recieve threads from
+             * :param limit: Max.number of threads to retrieve.Capped at 20
+             * :type offset: int
+             * :type limit: int
+             * :return: :class:`models.Thread` objects
+             * :rtype: list
+             * :raises: Exception if request failed
+             */
+
+            if (limit > 20 || limit < 1)
+            {
+                throw new FBchatUserError("`limit` should be between 1 and 20");
+            }
+
+            var dict = new Dictionary<string, object>() {
+                { "limit", limit.ToString() },
+                { "tags", new string[] { thread_location } },
+                { "before", before },
+                { "includeDeliveryReceipts", true.ToString() },
+                { "includeSeqID", false.ToString() }
+            };
+
+            var j = await this.graphql_request(new GraphQL(doc_id: "1349387578499440", param: dict));
+
+            return j["viewer"]["message_threads"]["nodes"].Select(node => GraphQL_JSON_Decoder.graphql_to_thread(node)).ToList();
+        }
+
+        /// <summary>
+        /// Get thread list of your facebook account
+        /// </summary>
+        /// <param name="offset">The offset, from where in the list to recieve threads from</param>
+        /// <param name="limit">Max.number of threads to retrieve. Capped at 20</param>
+        /// <param name="thread_location">models.ThreadLocation: INBOX, PENDING, ARCHIVED or OTHER</param>
+        [Obsolete("Deprecated. Use :func:`fbchat.Client.fetchThreadListQL` instead")]
         public async Task<List<FB_Thread>> fetchThreadList(int offset = 0, int limit = 20, string thread_location = ThreadLocation.INBOX)
         {
             /*
@@ -1203,7 +1243,7 @@ namespace fbchat_sharp.API
             };
 
             var j = (JToken)(await this._post(ReqUrl.THREADS, data, fix_request: true, as_json: true));
-            if (j["payload"] == null)
+            if (j["payload"] == null || !j["payload"].Children().Any())
             {
                 throw new FBchatException(string.Format("Missing payload: {0}, with data: {1}", j, data));
             }
@@ -1419,7 +1459,7 @@ namespace fbchat_sharp.API
                 throw new FBchatException(string.Format("Error when sending message: No message IDs could be found: {0}", j));
             }
 
-            fb_dtsg = Utils.get_jsmods_require(j, 2).Value<string>();
+            fb_dtsg = Utils.get_jsmods_require(j, 2)?.Value<string>();
             if (fb_dtsg != null)
                 this.payloadDefault["fb_dtsg"] = fb_dtsg;
 

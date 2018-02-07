@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Diagnostics;
 
 namespace fbchat_sharp.API
 {
@@ -60,7 +61,7 @@ namespace fbchat_sharp.API
 
         public static FB_Sticker graphql_to_sticker(JToken s)
         {
-            if (s == null)
+            if (s == null || s.Type == JTokenType.Null)
             {
                 return null;
             }
@@ -116,9 +117,9 @@ namespace fbchat_sharp.API
 
         public static FB_Message graphql_to_message(string thread_id, JToken message)
         {
-            if (message["message_sender"] == null)
+            if (message["message_sender"] == null || message["message_sender"].Type == JTokenType.Null)
                 message["message_sender"] = new JObject(new JProperty("id", 0));
-            if (message["message"] == null)
+            if (message["message"] == null || message["message"].Type == JTokenType.Null)
                 message["message"] = new JObject(new JProperty("text", ""));
 
             var rtn = new FB_Message(
@@ -154,7 +155,7 @@ namespace fbchat_sharp.API
 
         public static FB_User graphql_to_user(JToken user)
         {
-            if (user["profile_picture"] == null)
+            if (user["profile_picture"] == null || user["profile_picture"].Type == JTokenType.Null)
                 user["profile_picture"] = new JObject(new JProperty("uri", ""));
             var c_info = get_customization_info(user);
 
@@ -177,7 +178,7 @@ namespace fbchat_sharp.API
 
         public static FB_Group graphql_to_group(JToken group)
         {
-            if (group["image"] == null)
+            if (group["image"] == null || group["image"].Type == JTokenType.Null)
                 group["image"] = new JObject(new JProperty("uri", ""));
 
             return new FB_Group(
@@ -193,8 +194,8 @@ namespace fbchat_sharp.API
 
         public static FB_Room graphql_to_room(JToken room)
         {
-            if (room["image"] == null)
-                room["image"] = null;
+            if (room["image"] == null || room["image"].Type == JTokenType.Null)
+                room["image"] = new JObject(new JProperty("uri", ""));
             var c_info = get_customization_info(room);
 
             return new FB_Room(
@@ -215,9 +216,9 @@ namespace fbchat_sharp.API
 
         public static FB_Page graphql_to_page(JToken page)
         {
-            if (page["profile_picture"] == null)
+            if (page["profile_picture"] == null || page["profile_picture"].Type == JTokenType.Null)
                 page["profile_picture"] = new JObject(new JProperty("uri", ""));
-            if (page["city"] == null)
+            if (page["city"] == null || page["city"].Type == JTokenType.Null)
                 page["city"] = new JObject(new JProperty("name", ""));
 
             return new FB_Page(
@@ -229,6 +230,37 @@ namespace fbchat_sharp.API
                 name: page["name"].Value<string>(),
                 message_count: page["messages_count"].Value<int>()
             );
+        }
+
+        public static FB_Thread graphql_to_thread(JToken thread)
+        {
+            if (thread["thread_type"].Value<string>().Equals("GROUP"))
+            {
+                return GraphQL_JSON_Decoder.graphql_to_group(thread);
+            }
+            else if (thread["thread_type"].Value<string>().Equals("ROOM"))
+            {
+                return GraphQL_JSON_Decoder.graphql_to_room(thread);
+            }
+            else if (thread["thread_type"].Value<string>().Equals("ONE_TO_ONE"))
+            {
+                if (thread["image"] == null || thread["image"].Type == JTokenType.Null)
+                    thread["image"] = new JObject(new JProperty("uri", ""));
+
+                return new FB_Group(
+                    uid: thread["thread_key"]["other_user_id"].Value<string>(),
+                    participants: new HashSet<string>(thread["all_participants"]["nodes"].Select(node => node["messaging_actor"]["id"].Value<string>())),
+                    nicknames: new Dictionary<string, string>(),
+                    color: ThreadColor.MESSENGER_BLUE,
+                    emoji: "",
+                    photo: thread["image"]["uri"].Value<string>(),
+                    name: thread["name"].Value<string>(),
+                    message_count: thread["messages_count"].Value<int>());
+            }
+            else
+            {
+                throw new FBchatException(string.Format("Unknown thread type: {0}", thread));
+            }
         }
 
         public static string graphql_queries_to_json(List<GraphQL> queries)
@@ -273,7 +305,7 @@ namespace fbchat_sharp.API
     {
         public Dictionary<string, object> value;
 
-        public GraphQL(string query = null, string doc_id = null, Dictionary<string, string> param = null)
+        public GraphQL(string query = null, string doc_id = null, Dictionary<string, object> param = null)
         {
             if (query != null)
                 this.value = new Dictionary<string, object>(){
