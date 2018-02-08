@@ -21,15 +21,8 @@ namespace examples
             // Check login was successful
             if (logged_in)
             {
+                // client.UpdateEvent += (e,d) => { if (d.EventType == UpdateStatus.NEW_MESSAGE) Console.WriteLine(d.Payload); };
                 // client.StartListening();
-
-                // Send a message to myself
-                //var msg_uid = await client.SendMessage("Message test", thread_id: client.GetUserUid());
-
-                //if (msg_uid != null)
-                //{
-                //    Console.WriteLine("Message sent: {0}", msg_uid);
-                //}
 
                 // Fetch latest threads
                 var threads = await client.FetchThreadList();
@@ -51,12 +44,21 @@ namespace examples
                 var messages = await client.FetchThreadMessages(threads.FirstOrDefault()?.uid, 5);
                 messages.ForEach(v => Console.WriteLine(v));
 
-                // Send image
+                // Send a message to myself
+                var msg_uid = await client.SendMessage("Message test", thread_id: client.GetUserUid());
+
+                if (msg_uid != null)
+                {
+                    Console.WriteLine("Message sent: {0}", msg_uid);
+                }
+
+                // Send an image to myself
                 using (FileStream stream = File.OpenRead(@"C:\Users\Marco\Pictures\Saved Pictures\opengraph.png"))
                 {
                     await client.sendLocalImage(@"C:\Users\Marco\Pictures\Saved Pictures\opengraph.png", stream, null, client.GetUserUid(), ThreadType.USER);
                 }
 
+                // await Task.Delay(60 * 1000);                
                 // client.StopListening();
 
                 // Do logout

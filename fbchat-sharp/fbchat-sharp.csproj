@@ -56,9 +56,11 @@
     <Compile Include="API\GraphQl.cs" />
     <Compile Include="API\Models.cs" />
     <Compile Include="API\Utils.cs" />
-    <Compile Include="Extensions.cs" />
+    <Compile Include="Utils\Extensions.cs" />
     <Compile Include="MessengerClient.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utils\KnownMimeTypes.cs" />
+    <Compile Include="Utils\MimeUtility.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

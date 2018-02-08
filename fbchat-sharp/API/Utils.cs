@@ -194,6 +194,17 @@ namespace fbchat_sharp.API
             { "s", EmojiSize.SMALL }
         };
 
+        public static readonly Dictionary<string, MessageReaction> REACTIONS = new Dictionary<string, MessageReaction>() {
+            { "😍", MessageReaction.LOVE },
+            { "😆", MessageReaction.SMILE },
+            { "😮", MessageReaction.WOW },
+            { "😢", MessageReaction.SAD },
+            { "😠", MessageReaction.ANGRY },
+            { "👍", MessageReaction.YES },
+            { "👎", MessageReaction.NO }
+        };
+
+        /*
         public static readonly Dictionary<string, Tuple<string, string>> MessageReactionFix = new Dictionary<string, Tuple<string, string>>() {
             { "😍", new Tuple<string, string>("0001f60d", "%F0%9F%98%8D")},
             { "😆", new Tuple<string, string>("0001f606", "%F0%9F%98%86")},
@@ -203,6 +214,7 @@ namespace fbchat_sharp.API
             { "👍", new Tuple<string, string>("0001f44d", "%F0%9F%91%8D")},
             { "👎", new Tuple<string, string>("0001f44e", "%F0%9F%91%8E")}
         };
+        */
     }
 
     internal class GENDER

@@ -31,23 +31,22 @@ namespace fbchat_sharp.API
     /// </summary>
     public class UpdateEventArgs : EventArgs
     {
-        private UpdateStatus update_event;
-        private object update;
+        /// <returns>
+        /// EventType: UpdateStatus enum associated with this event        
+        /// </returns>
+        public UpdateStatus EventType { get; }
+        /// <returns>
+        /// Payload: object associated with this event, e.g. a FB_Message 
+        /// </returns>
+        public object Payload { get; }
 
         /// <param name="_update_event">UpdateStatus enum associated with this event</param>
         /// <param name="_data">object associated with this event, e.g. a FB_Message</param>
         public UpdateEventArgs(UpdateStatus _update_event, object _data)
         {
-            this.update_event = _update_event;
-            this.update = _data;
-        }
-
-        /// <returns>
-        /// Returns the info associated with this event in a dynamic object
-        /// event.Data.Type: UpdateStatus enum associated with this event
-        /// event.Data.Update: object associated with this event, e.g. a FB_Message 
-        /// </returns>
-        public dynamic Data { get { return new { Type = update_event, Update = update }; } }
+            this.EventType = _update_event;
+            this.Payload = _data;
+        }        
     }
 
     /// <summary>
@@ -1810,73 +1809,73 @@ namespace fbchat_sharp.API
                                 }
                                 catch (Exception)
                                 {
-                                    Debug.WriteLine("An exception occured while reading attachments");
+                                    Debug.WriteLine("An exception occured while reading mentions");
                                 }
+                            }
 
-                                FB_Sticker sticker = null;
-                                var attachments = new List<FB_Attachment>();
+                            FB_Sticker sticker = null;
+                            var attachments = new List<FB_Attachment>();
 
-                                if (delta["attachments"] != null)
+                            if (delta["attachments"] != null)
+                            {
+                                try
                                 {
-                                    try
+                                    foreach (var a in delta["attachments"])
                                     {
-                                        foreach (var a in delta["attachments"])
+                                        var mercury = a["mercury"];
+                                        if (mercury["blob_attachment"] != null)
                                         {
-                                            var mercury = a["mercury"];
-                                            if (mercury["blob_attachment"] != null)
-                                            {
-                                                var image_metadata = a["imageMetadata"];
-                                                var attach_type = mercury["blob_attachment"]["__typename"];
-                                                var attachment = GraphQL_JSON_Decoder.graphql_to_attachment(mercury["blob_attachment"]);
+                                            var image_metadata = a["imageMetadata"];
+                                            var attach_type = mercury["blob_attachment"]["__typename"];
+                                            var attachment = GraphQL_JSON_Decoder.graphql_to_attachment(mercury["blob_attachment"]);
 
-                                                if (new string[] { "MessageFile", "MessageVideo", "MessageAudio" }.Contains(attach_type.Value<string>()))
-                                                {
-                                                    // TODO: Add more data here for audio files
-                                                    // attachment.size = a["fileSize"].Value<int>();
-                                                    attachments.Add(attachment);
-                                                }
-                                                else if (mercury["sticker_attachment"] != null)
-                                                {
-                                                    sticker = GraphQL_JSON_Decoder.graphql_to_sticker(a["mercury"]["sticker_attachment"]);
-                                                }
-                                                else if (mercury["extensible_attachment"] != null)
-                                                {
-                                                    // TODO: Add more data here for shared stuff (URLs, events and so on)
-                                                    continue;
-                                                }
+                                            if (new string[] { "MessageFile", "MessageVideo", "MessageAudio" }.Contains(attach_type.Value<string>()))
+                                            {
+                                                // TODO: Add more data here for audio files
+                                                // attachment.size = a["fileSize"].Value<int>();
+                                                attachments.Add(attachment);
+                                            }
+                                            else if (mercury["sticker_attachment"] != null)
+                                            {
+                                                sticker = GraphQL_JSON_Decoder.graphql_to_sticker(a["mercury"]["sticker_attachment"]);
+                                            }
+                                            else if (mercury["extensible_attachment"] != null)
+                                            {
+                                                // TODO: Add more data here for shared stuff (URLs, events and so on)
+                                                continue;
                                             }
                                         }
                                     }
-                                    catch (Exception)
-                                    {
-                                        Debug.WriteLine(string.Format("An exception occured while reading attachments: {0}", delta["attachments"]));
-                                    }
-
-                                    EmojiSize? emoji_size = null;
-                                    if (metadata != null && metadata["tags"] != null)
-                                        emoji_size = Utils.get_emojisize_from_tags(metadata["tags"]);
-
-                                    var message = new FB_Message(text: delta["body"]?.Value<string>(),
-                                        mentions: mentions,
-                                        emoji_size: emoji_size,
-                                        sticker: sticker,
-                                        attachments: attachments);
-
-                                    message.uid = mid;
-                                    message.author = author_id;
-                                    message.timestamp = ts;
-                                    // message.reactions = {};
-
-                                    var id_type = getThreadIdAndThreadType(metadata);
-                                    this.onMessage(mid: mid, author_id: author_id, message: delta["body"]?.Value<string>(), message_object: message,
-                                        thread_id: id_type.Item1, thread_type: id_type.Item2, ts: ts, metadata: metadata, msg: m);
                                 }
-                                // Unknown message type
-                                else
+                                catch (Exception)
                                 {
-                                    this.onUnknownMesssageType(msg: m);
+                                    Debug.WriteLine(string.Format("An exception occured while reading attachments: {0}", delta["attachments"]));
                                 }
                             }
+
+                            EmojiSize? emoji_size = null;
+                            if (metadata != null && metadata["tags"] != null)
+                                emoji_size = Utils.get_emojisize_from_tags(metadata["tags"]);
+
+                            var message = new FB_Message(text: delta["body"]?.Value<string>(),
+                                mentions: mentions,
+                                emoji_size: emoji_size,
+                                sticker: sticker,
+                                attachments: attachments);
+
+                            message.uid = mid;
+                            message.author = author_id;
+                            message.timestamp = ts;
+                            // message.reactions = {};
+
+                            var id_type = getThreadIdAndThreadType(metadata);
+                            this.onMessage(mid: mid, author_id: author_id, message: delta["body"]?.Value<string>(), message_object: message,
+                                thread_id: id_type.Item1, thread_type: id_type.Item2, ts: ts, metadata: metadata, msg: m);
+                        }
+                        // Unknown message type
+                        else
+                        {
+                            this.onUnknownMesssageType(msg: m);
                         }
                     }
 
@@ -2101,7 +2100,7 @@ namespace fbchat_sharp.API
             :param msg: A full set of the data received
             :type thread_type: models.ThreadType
             */
-            UpdateEvent(this, new UpdateEventArgs(UpdateStatus.NEW_MESSAGE, message_object));
+            OnUpdateEvent(new UpdateEventArgs(UpdateStatus.NEW_MESSAGE, message_object));
             Debug.WriteLine(string.Format("Message from {0} in {1} ({2}): {3}", author_id, thread_id, thread_type.ToString(), message));
         }
 

@@ -181,7 +181,7 @@ namespace fbchat_sharp.API
         /// <returns>Message ID of the sent message</returns>
         public async Task<string> SendMessage(string message, string thread_id = null, ThreadType thread_type = ThreadType.USER)
         {
-            return await this.SafeWrapper<string>(async () => await base.sendMessage(message, thread_id, thread_type));
+            return await this.SafeWrapper<string>(async () => await base.send(new FB_Message() { text = message }, thread_id, thread_type));
         }
 
         /// <summary>

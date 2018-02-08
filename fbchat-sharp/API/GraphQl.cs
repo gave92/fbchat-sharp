@@ -92,26 +92,42 @@ namespace fbchat_sharp.API
         public static FB_Attachment graphql_to_attachment(JToken a)
         {
             var _type = a["__typename"].Value<string>();
-            if (new string[] {
-            "MessageImage",
-            "MessageAnimatedImage"
-        }.Contains(_type))
+            if (new string[] { "MessageImage", "MessageAnimatedImage" }.Contains(_type))
             {
-                return new FB_ImageAttachment(original_extension: a["original_extension"] != null || a["filename"] != null ? a["filename"].Value<string>().Split('-')[0] : null, width: a["original_dimensions"]["width"].Value<int>(), height: a["original_dimensions"]["height"].Value<int>(),
-                    is_animated: _type == "MessageAnimatedImage", thumbnail_url: a["thumbnail"].Value<string>(),
-                    preview: a["preview"] ?? a["preview_image"], large_preview: a["large_preview"], animated_preview: a["animated_image"], uid: a["legacy_attachment_id"].Value<string>());
+                return new FB_ImageAttachment(
+                    original_extension: a["original_extension"]?.Value<string>() ?? a["filename"]?.Value<string>()?.Split('-')[0],
+                    width: a["original_dimensions"]["x"].Value<int>(),
+                    height: a["original_dimensions"]["y"].Value<int>(),
+                    is_animated: _type == "MessageAnimatedImage",
+                    thumbnail_url: a["thumbnail"]["uri"]?.Value<string>(),
+                    preview: a["preview"],
+                    large_preview: a["large_preview"],
+                    animated_preview: a["animated_image"],
+                    uid: a["legacy_attachment_id"]?.Value<string>());
             }
             else if (_type == "MessageVideo")
             {
-                return new FB_VideoAttachment(width: a["original_dimensions"]["width"].Value<int>(), height: a["original_dimensions"]["height"].Value<int>(), duration: a["playable_duration_in_ms"].Value<int>(), preview_url: a["playable_url"].Value<string>(), small_image: a["chat_image"].Value<string>(), medium_image: a["inbox_image"].Value<string>(), large_image: a["large_image"].Value<string>(), uid: a["legacy_attachment_id"].Value<string>());
+                return new FB_VideoAttachment(
+                    width: a["original_dimensions"]["x"].Value<int>(),
+                    height: a["original_dimensions"]["y"].Value<int>(),
+                    duration: a["playable_duration_in_ms"].Value<int>(),
+                    preview_url: a["playable_url"]?.Value<string>(),
+                    small_image: a["chat_image"]?.Value<string>(),
+                    medium_image: a["inbox_image"]?.Value<string>(),
+                    large_image: a["large_image"]?.Value<string>(),
+                    uid: a["legacy_attachment_id"]?.Value<string>());
             }
             else if (_type == "MessageFile")
             {
-                return new FB_FileAttachment(url: a["url"].Value<string>(), name: a["filename"].Value<string>(), is_malicious: a["is_malicious"].Value<bool>(), uid: a["message_file_fbid"].Value<string>());
+                return new FB_FileAttachment(
+                    url: a["url"].Value<string>(),
+                    name: a["filename"]?.Value<string>(),
+                    is_malicious: a["is_malicious"].Value<bool>(),
+                    uid: a["message_file_fbid"]?.Value<string>());
             }
             else
             {
-                return new FB_Attachment(uid: a["legacy_attachment_id"].Value<string>());
+                return new FB_Attachment(uid: a["legacy_attachment_id"]?.Value<string>());
             }
         }
 
@@ -137,7 +153,7 @@ namespace fbchat_sharp.API
 
             foreach (var r in message["message_reactions"])
             {
-                // rtn.reactions.Add(r["user"]["id"].Value<string>(), r["reaction"]);
+                rtn.reactions.Add(r["user"]["id"]?.Value<string>(), Constants.REACTIONS[r["reaction"].Value<string>()]);
             }
 
             if (message["blob_attachments"] != null)

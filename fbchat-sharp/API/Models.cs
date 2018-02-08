@@ -685,14 +685,21 @@ namespace fbchat_sharp.API
     /// <summary>
     /// Used to specify a message reaction
     /// </summary>
-    public class MessageReaction
+    public enum MessageReaction
     {
-        public static readonly string LOVE = "😍";
-        public static readonly string SMILE = "😆";
-        public static readonly string WOW = "😮";
-        public static readonly string SAD = "😢";
-        public static readonly string ANGRY = "😠";
-        public static readonly string YES = "👍";
-        public static readonly string NO = "👎";
-    }    
+        [Description("😍")]
+        LOVE,
+        [Description("😆")]
+        SMILE,
+        [Description("😮")]
+        WOW,
+        [Description("😢")]
+        SAD,
+        [Description("😠")]
+        ANGRY,
+        [Description("👍")]
+        YES,
+        [Description("👎")]
+        NO
+    }
 }
