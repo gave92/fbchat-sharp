@@ -9,6 +9,7 @@ using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.IO;
+using System.Net.Http.Headers;
 
 // [assembly: InternalsVisibleTo("FMessenger.Windows")]
 // [assembly: InternalsVisibleTo("FMessenger.WindowsPhone")]
@@ -312,20 +313,22 @@ namespace fbchat_sharp.API
                 return await _cleanPost(response.Headers.Location.ToString(), query, timeout);
         }
 
-        private async Task<object> _postFile(string url, Stream[] files = null, Dictionary<string, string> query = null, int timeout = 30, bool fix_request = false, bool as_json = false, int error_retries = 3)
+        private async Task<object> _postFile(string url, FB_File[] files = null, Dictionary<string, string> query = null, int timeout = 30, bool fix_request = false, bool as_json = false, int error_retries = 3)
         {
             // return await Task.FromResult<HttpResponseMessage>(new HttpResponseMessage(HttpStatusCode.BadRequest));            
             var content = new MultipartFormDataContent();
-            if (query != null)
+            var payload = this._generatePayload(query);
+            foreach (var keyValuePair in payload)
             {
-                var payload = this._generatePayload(query);
-                content.Add(new FormUrlEncodedContent(payload));
+                content.Add(new StringContent(keyValuePair.Value), keyValuePair.Key);
             }
             if (files != null)
             {
                 foreach (var file in files)
                 {
-                    content.Add(new StreamContent(file));
+                    var image = new StreamContent(file.data);
+                    image.Headers.ContentType = new MediaTypeHeaderValue(MimeMapping.MimeUtility.GetMimeMapping(file.path));
+                    content.Add(image, "file", file.path);
                 }
             }
             var request = new HttpRequestMessage(HttpMethod.Post, url);
@@ -1519,7 +1522,7 @@ namespace fbchat_sharp.API
         /// <returns></returns>
         public async Task<string> _uploadImage(string image_path = null, Stream data = null, string mimetype = null)
         {
-            var j = (JToken)await this._postFile(ReqUrl.UPLOAD, new Stream[] { data }, fix_request: true, as_json: true);
+            var j = (JToken)await this._postFile(ReqUrl.UPLOAD, new FB_File[] { new FB_File(data, image_path) }, fix_request: true, as_json: true);
             // Return the image_id
             if (mimetype != "image/gif")
                 return j["payload"]["metadata"][0]["image_id"].Value<string>();

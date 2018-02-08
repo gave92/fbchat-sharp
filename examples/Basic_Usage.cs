@@ -1,6 +1,7 @@
 ﻿using fbchat_sharp.API;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -49,6 +50,12 @@ namespace examples
                 // Fetch latest messages
                 var messages = await client.FetchThreadMessages(threads.FirstOrDefault()?.uid, 5);
                 messages.ForEach(v => Console.WriteLine(v));
+
+                // Send image
+                using (FileStream stream = File.OpenRead(@"C:\Users\Marco\Pictures\Saved Pictures\opengraph.png"))
+                {
+                    await client.sendLocalImage(@"C:\Users\Marco\Pictures\Saved Pictures\opengraph.png", stream, null, client.GetUserUid(), ThreadType.USER);
+                }
 
                 // client.StopListening();
 

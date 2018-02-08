@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 
 namespace fbchat_sharp.API
 {
@@ -29,7 +30,7 @@ namespace fbchat_sharp.API
 
         public FBchatFacebookError(string message, string fb_error_code = null, string fb_error_message = null, int request_status_code = 0) : base(message)
         {
-            this.fb_error_code = fb_error_code.ToString();
+            this.fb_error_code = fb_error_code;
             this.fb_error_message = fb_error_message;
             this.request_status_code = request_status_code;
         }
@@ -42,6 +43,23 @@ namespace fbchat_sharp.API
     {
         public FBchatUserError(string message) : base(message)
         {
+        }
+    }
+
+    /// <summary>
+    /// Facebook messenger file class
+    /// </summary>
+    public class FB_File
+    {
+        /// Local or remote file path
+        public string path = null;
+        /// Local or remote file stream
+        public Stream data = null;
+
+        public FB_File(Stream data = null, string path = null)
+        {
+            this.data = data;
+            this.path = path;
         }
     }
 
