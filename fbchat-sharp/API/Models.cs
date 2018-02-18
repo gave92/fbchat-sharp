@@ -289,7 +289,7 @@ namespace fbchat_sharp.API
     public class FB_Message
     {
         /// The actual message
-        public string text = null;
+        public string text { get; set; }
         /// A list of :class:`Mention` objects
         public List<FB_Mention> mentions = new List<FB_Mention>();
         /// A :class:`EmojiSize`. Size of a sent emoji
@@ -478,7 +478,7 @@ namespace fbchat_sharp.API
         /// Height of the animated preview image
         public int animated_preview_height = 0;
 
-        public FB_ImageAttachment(string uid = null, string original_extension = null, int width = 0, int height = 0, bool is_animated = false, string thumbnail_url = null, object preview = null, object large_preview = null, object animated_preview = null) : base(uid)
+        public FB_ImageAttachment(string uid = null, string original_extension = null, int width = 0, int height = 0, bool is_animated = false, string thumbnail_url = null, JToken preview = null, JToken large_preview = null, JToken animated_preview = null) : base(uid)
         {
             this.original_extension = original_extension;
             if (width != 0)
@@ -493,24 +493,24 @@ namespace fbchat_sharp.API
             this.height = height;
             this.is_animated = is_animated;
             this.thumbnail_url = thumbnail_url;
-            if (preview == null)
+            if (preview != null)
             {
+                this.preview_url = preview["uri"].Value<string>();
+                this.preview_width = preview["width"].Value<int>();
+                this.preview_height = preview["height"].Value<int>();
             }
-            // this.preview_url = preview.get("uri");
-            // this.preview_width = preview.get("width");
-            // this.preview_height = preview.get("height");
-            if (large_preview == null)
+            if (large_preview != null)
             {
+                this.large_preview_url = large_preview["uri"].Value<string>();
+                this.large_preview_width = large_preview["width"].Value<int>();
+                this.large_preview_height = large_preview["height"].Value<int>();
             }
-            // this.large_preview_url = large_preview.get("uri");
-            // this.large_preview_width = large_preview.get("width");
-            // this.large_preview_height = large_preview.get("height");
-            if (animated_preview == null)
+            if (animated_preview != null)
             {
+                this.animated_preview_url = animated_preview["uri"].Value<string>();
+                this.animated_preview_width = animated_preview["width"].Value<int>();
+                this.animated_preview_height = animated_preview["height"].Value<int>();
             }
-            // this.animated_preview_url = animated_preview.get("uri");
-            // this.animated_preview_width = animated_preview.get("width");
-            // this.animated_preview_height = animated_preview.get("height");
         }
     }
 
@@ -549,31 +549,31 @@ namespace fbchat_sharp.API
         /// Height of the large preview image
         public int large_image_height = 0;
 
-        public FB_VideoAttachment(string uid = null, int size = 0, int width = 0, int height = 0, int duration = 0, string preview_url = null, object small_image = null, object medium_image = null, object large_image = null) : base(uid)
+        public FB_VideoAttachment(string uid = null, int size = 0, int width = 0, int height = 0, int duration = 0, string preview_url = null, JToken small_image = null, JToken medium_image = null, JToken large_image = null) : base(uid)
         {
             this.size = size;
             this.width = width;
             this.height = height;
             this.duration = duration;
             this.preview_url = preview_url;
-            if (small_image == null)
+            if (small_image != null)
             {
+                this.small_image_url = small_image["uri"].Value<string>();
+                this.small_image_width = small_image["width"].Value<int>();
+                this.small_image_height = small_image["height"].Value<int>();
             }
-            // this.small_image_url = small_image.get("uri");
-            // this.small_image_width = small_image.get("width");
-            // this.small_image_height = small_image.get("height");
-            if (medium_image == null)
+            if (medium_image != null)
             {
+                this.medium_image_url = medium_image["uri"].Value<string>();
+                this.medium_image_width = medium_image["width"].Value<int>();
+                this.medium_image_height = medium_image["height"].Value<int>();
             }
-            // this.medium_image_url = medium_image.get("uri");
-            // this.medium_image_width = medium_image.get("width");
-            // this.medium_image_height = medium_image.get("height");
-            if (large_image == null)
+            if (large_image != null)
             {
+                this.large_image_url = large_image["uri"].Value<string>();
+                this.large_image_width = large_image["width"].Value<int>();
+                this.large_image_height = large_image["height"].Value<int>();
             }
-            // this.large_image_url = large_image.get("uri");
-            // this.large_image_width = large_image.get("width");
-            // this.large_image_height = large_image.get("height");
         }
     }
     /// <summary>

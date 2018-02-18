@@ -1,15 +1,14 @@
 
 
 using System;
-using System.Collections.Generic;
 
 namespace MimeMapping
 {
 
-	///<summary>
-	/// MIME type constants. Last updated on 2017-08-18T19:21:28Z. 
-	/// Generated from the <a href="http://svn.apache.org/repos/asf/httpd/httpd/trunk/docs/conf/mime.types">apache</a> and <a href="https://raw.githubusercontent.com/h5bp/server-configs-nginx/master/mime.types">nginx</a> sources
-	///</summary>
+    ///<summary>
+    /// MIME type constants. Last updated on 2017-08-18T19:21:28Z. 
+    /// Generated from the <a href="http://svn.apache.org/repos/asf/httpd/httpd/trunk/docs/conf/mime.types">apache</a> and <a href="https://raw.githubusercontent.com/h5bp/server-configs-nginx/master/mime.types">nginx</a> sources
+    ///</summary>
     public static class KnownMimeTypes
     {
 

@@ -3,7 +3,6 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Diagnostics;
 
 namespace fbchat_sharp.API
 {
@@ -70,7 +69,7 @@ namespace fbchat_sharp.API
             {
                 sticker.pack = s["pack"]["id"].Value<string>();
             }
-            if (s["sprite_image"] != null)
+            if (s["sprite_image"] != null && s["sprite_image"].Type != JTokenType.Null)
             {
                 sticker.is_animated = true;
                 sticker.medium_sprite_image = s["sprite_image"]["uri"].Value<string>();
@@ -112,9 +111,9 @@ namespace fbchat_sharp.API
                     height: a["original_dimensions"]["y"].Value<int>(),
                     duration: a["playable_duration_in_ms"].Value<int>(),
                     preview_url: a["playable_url"]?.Value<string>(),
-                    small_image: a["chat_image"]?.Value<string>(),
-                    medium_image: a["inbox_image"]?.Value<string>(),
-                    large_image: a["large_image"]?.Value<string>(),
+                    small_image: a["chat_image"],
+                    medium_image: a["inbox_image"],
+                    large_image: a["large_image"],
                     uid: a["legacy_attachment_id"]?.Value<string>());
             }
             else if (_type == "MessageFile")
@@ -248,7 +247,7 @@ namespace fbchat_sharp.API
             );
         }
 
-        public static FB_Thread graphql_to_thread(JToken thread)
+        public static FB_Thread graphql_to_thread(JToken thread, string ownUid)
         {
             if (thread["thread_type"].Value<string>().Equals("GROUP"))
             {
@@ -260,18 +259,29 @@ namespace fbchat_sharp.API
             }
             else if (thread["thread_type"].Value<string>().Equals("ONE_TO_ONE"))
             {
-                if (thread["image"] == null || thread["image"].Type == JTokenType.Null)
-                    thread["image"] = new JObject(new JProperty("uri", ""));
+                var participants = thread["all_participants"]["nodes"].Select(node => node["messaging_actor"]);
+                var user = participants.SingleOrDefault(p => p["id"].Value<string>() != ownUid);
+                if (user == null) user = participants.First(); // Fix for self chat
 
-                return new FB_Group(
+                if (user["big_image_src"] == null || user["big_image_src"].Type == JTokenType.Null)
+                    user["big_image_src"] = new JObject(new JProperty("uri", ""));
+
+                return new FB_User(
                     uid: thread["thread_key"]["other_user_id"].Value<string>(),
-                    participants: new HashSet<string>(thread["all_participants"]["nodes"].Select(node => node["messaging_actor"]["id"].Value<string>())),
-                    nicknames: new Dictionary<string, string>(),
+                    url: user["url"]?.Value<string>(),
+                    name: user["name"]?.Value<string>(),
+                    first_name: user["short_name"]?.Value<string>(),
+                    last_name: user["name"]?.Value<string>()?.Replace(user["short_name"]?.Value<string>(), "")?.Trim(),
+                    is_friend: user["is_viewer_friend"]?.Value<bool>() ?? false,
+                    gender: user["gender"]?.Value<string>(),
+                    nickname: "",
                     color: ThreadColor.MESSENGER_BLUE,
                     emoji: "",
-                    photo: thread["image"]["uri"].Value<string>(),
-                    name: thread["name"].Value<string>(),
-                    message_count: thread["messages_count"].Value<int>());
+                    own_nickname: "",
+                    affinity: 0,
+                    photo: user["big_image_src"]["uri"]?.Value<string>(),
+                    message_count: thread["messages_count"]?.Value<int>() ?? 0
+                    );
             }
             else
             {

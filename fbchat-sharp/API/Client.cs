@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.IO;
 using System.Net.Http.Headers;
@@ -46,7 +45,7 @@ namespace fbchat_sharp.API
         {
             this.EventType = _update_event;
             this.Payload = _data;
-        }        
+        }
     }
 
     /// <summary>
@@ -1210,7 +1209,7 @@ namespace fbchat_sharp.API
 
             var j = await this.graphql_request(new GraphQL(doc_id: "1349387578499440", param: dict));
 
-            return j["viewer"]["message_threads"]["nodes"].Select(node => GraphQL_JSON_Decoder.graphql_to_thread(node)).ToList();
+            return j["viewer"]["message_threads"]["nodes"].Select(node => GraphQL_JSON_Decoder.graphql_to_thread(node, uid)).ToList();
         }
 
         /// <summary>
