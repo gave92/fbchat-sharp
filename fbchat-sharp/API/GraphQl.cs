@@ -247,7 +247,7 @@ namespace fbchat_sharp.API
             );
         }
 
-        public static FB_Thread graphql_to_thread(JToken thread, string ownUid)
+        public static FB_Thread graphql_to_thread(JToken thread)
         {
             if (thread["thread_type"].Value<string>().Equals("GROUP"))
             {
@@ -260,14 +260,13 @@ namespace fbchat_sharp.API
             else if (thread["thread_type"].Value<string>().Equals("ONE_TO_ONE"))
             {
                 var participants = thread["all_participants"]["nodes"].Select(node => node["messaging_actor"]);
-                var user = participants.SingleOrDefault(p => p["id"].Value<string>() != ownUid);
-                if (user == null) user = participants.First(); // Fix for self chat
+                var user = participants.Single(p => p["id"].Value<string>() == thread["thread_key"]["other_user_id"].Value<string>());
 
                 if (user["big_image_src"] == null || user["big_image_src"].Type == JTokenType.Null)
                     user["big_image_src"] = new JObject(new JProperty("uri", ""));
 
                 return new FB_User(
-                    uid: thread["thread_key"]["other_user_id"].Value<string>(),
+                    uid: user["id"].Value<string>(),
                     url: user["url"]?.Value<string>(),
                     name: user["name"]?.Value<string>(),
                     first_name: user["short_name"]?.Value<string>(),

@@ -1209,7 +1209,7 @@ namespace fbchat_sharp.API
 
             var j = await this.graphql_request(new GraphQL(doc_id: "1349387578499440", param: dict));
 
-            return j["viewer"]["message_threads"]["nodes"].Select(node => GraphQL_JSON_Decoder.graphql_to_thread(node, uid)).ToList();
+            return j["viewer"]["message_threads"]["nodes"].Select(node => GraphQL_JSON_Decoder.graphql_to_thread(node)).ToList();
         }
 
         /// <summary>
