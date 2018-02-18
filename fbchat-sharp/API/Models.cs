@@ -307,7 +307,7 @@ namespace fbchat_sharp.API
         /// An ID of a sent sticker
         public FB_Sticker sticker = null;
         /// A list of attachments
-        public List<FB_Attachment> attachments = new List<FB_Attachment>();
+        public List<FB_Attachment> attachments { get; set; }
         /// ID of the thread the message was sent to
         public string thread_id = "";
         /// The message was sent from me (not filled)
@@ -458,25 +458,25 @@ namespace fbchat_sharp.API
         /// Whether the image is animated
         public bool is_animated = false;
         /// URL to a thumbnail of the image
-        public string thumbnail_url = null;
+        public string thumbnail_url { get; set; }
         /// URL to a medium preview of the image
-        public string preview_url = null;
+        public string preview_url { get; set; }
         /// Width of the medium preview image
-        public int preview_width = 0;
+        public int preview_width { get; set; }
         /// Height of the medium preview image
-        public int preview_height = 0;
+        public int preview_height { get; set; }
         /// URL to a large preview of the image
-        public string large_preview_url = null;
+        public string large_preview_url { get; set; }
         /// Width of the large preview image
-        public int large_preview_width = 0;
+        public int large_preview_width { get; set; }
         /// Height of the large preview image
-        public int large_preview_height = 0;
+        public int large_preview_height { get; set; }
         /// URL to an animated preview of the image (eg. for gifs)
-        public string animated_preview_url = null;
+        public string animated_preview_url { get; set; }
         /// Width of the animated preview image
-        public int animated_preview_width = 0;
+        public int animated_preview_width { get; set; }
         /// Height of the animated preview image
-        public int animated_preview_height = 0;
+        public int animated_preview_height { get; set; }
 
         public FB_ImageAttachment(string uid = null, string original_extension = null, int width = 0, int height = 0, bool is_animated = false, string thumbnail_url = null, JToken preview = null, JToken large_preview = null, JToken animated_preview = null) : base(uid)
         {
@@ -529,25 +529,25 @@ namespace fbchat_sharp.API
         /// Length of video in milliseconds
         public int duration = 0;
         /// URL to very compressed preview video
-        public string preview_url = null;
+        public string preview_url { get; set; }
         /// URL to a small preview image of the video
-        public string small_image_url = null;
+        public string small_image_url { get; set; }
         /// Width of the small preview image
-        public int small_image_width = 0;
+        public int small_image_width { get; set; }
         /// Height of the small preview image
-        public int small_image_height = 0;
+        public int small_image_height { get; set; }
         /// URL to a medium preview image of the video
-        public string medium_image_url = null;
+        public string medium_image_url { get; set; }
         /// Width of the medium preview image
-        public int medium_image_width = 0;
+        public int medium_image_width { get; set; }
         /// Height of the medium preview image
-        public int medium_image_height = 0;
+        public int medium_image_height { get; set; }
         /// URL to a large preview image of the video
-        public string large_image_url = null;
+        public string large_image_url { get; set; }
         /// Width of the large preview image
-        public int large_image_width = 0;
+        public int large_image_width { get; set; }
         /// Height of the large preview image
-        public int large_image_height = 0;
+        public int large_image_height { get; set; }
 
         public FB_VideoAttachment(string uid = null, int size = 0, int width = 0, int height = 0, int duration = 0, string preview_url = null, JToken small_image = null, JToken medium_image = null, JToken large_image = null) : base(uid)
         {
