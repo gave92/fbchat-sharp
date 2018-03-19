@@ -434,11 +434,24 @@ namespace fbchat_sharp.API
     /// <summary>
     /// Represents an audio file that has been sent as a Facebook attachment - *Currently Incomplete!*
     /// </summary>
-    public class FB_AudioAttachment : FB_FileAttachment
+    public class FB_AudioAttachment : FB_Attachment
     {
-        public FB_AudioAttachment(string uid = null, string url = null, long size = 0, string name = null, bool is_malicious = false)
-            : base(uid, url, size, name, is_malicious)
+        /// Name of the file
+        public string filename = null;
+        /// Url where you can download the file
+        public object url = null;
+        /// Length of video in milliseconds
+        public int duration = 0;
+        /// Audio type
+        public string audio_type = "";
+
+        public FB_AudioAttachment(string filename = null, string url = null, int duration = 0, string audio_type = null)
+            : base()
         {
+            this.filename = filename;
+            this.url = url;
+            this.duration = duration;
+            this.audio_type = audio_type;
         }
     }
 
@@ -629,10 +642,10 @@ namespace fbchat_sharp.API
     /// </summary>
     public class ThreadLocation
     {
-        public const string INBOX = "inbox";
-        public const string PENDING = "pending";
-        public const string ARCHIVED = "action:archived";
-        public const string OTHER = "other";
+        public const string INBOX = "INBOX";
+        public const string PENDING = "PENDING";
+        public const string ARCHIVED = "ARCHIVED";
+        public const string OTHER = "OTHER";
     }
 
     /// <summary>

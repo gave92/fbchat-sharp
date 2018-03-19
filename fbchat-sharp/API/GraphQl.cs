@@ -116,6 +116,14 @@ namespace fbchat_sharp.API
                     large_image: a["large_image"],
                     uid: a["legacy_attachment_id"]?.Value<string>());
             }
+            else if (_type == "MessageAudio")
+            {
+                return new FB_AudioAttachment(
+                    url: a["playable_url"].Value<string>(),
+                    filename: a["filename"]?.Value<string>(),
+                    duration: a["playable_duration_in_ms"].Value<int>(),
+                    audio_type: a["audio_type"]?.Value<string>());
+            }
             else if (_type == "MessageFile")
             {
                 return new FB_FileAttachment(

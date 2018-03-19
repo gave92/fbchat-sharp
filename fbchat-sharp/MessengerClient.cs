@@ -169,7 +169,7 @@ namespace fbchat_sharp.API
         /// <param name="before">A unix timestamp, indicating from which point to retrieve messages</param>
         public async Task<List<FB_Thread>> FetchThreadList(int offset = 0, int limit = 20, string thread_location = "inbox", string before = null)
         {
-            return await this.SafeWrapper<List<FB_Thread>>(async () => await base.fetchThreadListQL(offset, limit, thread_location, before));
+            return await this.SafeWrapper<List<FB_Thread>>(async () => await base.fetchThreadList(limit, thread_location, before));
         }
 
         /// <summary>

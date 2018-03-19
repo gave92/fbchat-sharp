@@ -1177,17 +1177,16 @@ namespace fbchat_sharp.API
         /// <summary>
         /// Get thread list of your facebook account
         /// </summary>
-        /// <param name="offset">The offset, from where in the list to recieve threads from</param>
         /// <param name="limit">Max.number of threads to retrieve. Capped at 20</param>
         /// <param name="thread_location">models.ThreadLocation: INBOX, PENDING, ARCHIVED or OTHER</param>
         /// <param name="before">A unix timestamp, indicating from which point to retrieve messages</param>
-        public async Task<List<FB_Thread>> fetchThreadListQL(int offset = 0, int limit = 20, string thread_location = ThreadLocation.INBOX, string before = null)
+        public async Task<List<FB_Thread>> fetchThreadList(int limit = 20, string thread_location = ThreadLocation.INBOX, string before = null)
         {
             /*
-             * Get thread list of your facebook account
-             * :param offset: The offset, from where in the list to recieve threads from
+             * Get thread list of your facebook account             
              * :param limit: Max.number of threads to retrieve.Capped at 20
-             * :type offset: int
+             * :param thread_location: models.ThreadLocation: INBOX, PENDING, ARCHIVED or OTHER
+             * :param before: A timestamp (in milliseconds), indicating from which point to retrieve threads
              * :type limit: int
              * :return: :class:`models.Thread` objects
              * :rtype: list
@@ -1213,131 +1212,46 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Get thread list of your facebook account
+        /// Get unread user threads
         /// </summary>
-        /// <param name="offset">The offset, from where in the list to recieve threads from</param>
-        /// <param name="limit">Max.number of threads to retrieve. Capped at 20</param>
-        /// <param name="thread_location">models.ThreadLocation: INBOX, PENDING, ARCHIVED or OTHER</param>
-        [Obsolete("Deprecated. Use :func:`fbchat.Client.fetchThreadListQL` instead")]
-        public async Task<List<FB_Thread>> fetchThreadList(int offset = 0, int limit = 20, string thread_location = ThreadLocation.INBOX)
+        /// <returns>Returns unread thread ids</returns>
+        public async Task<List<string>> fetchUnread()
         {
             /*
-             * Get thread list of your facebook account
-             * :param offset: The offset, from where in the list to recieve threads from
-             * :param limit: Max.number of threads to retrieve.Capped at 20
-             * :type offset: int
-             * :type limit: int
-             * :return: :class:`models.Thread` objects
+             * Get the unread thread list
+             * :return: List of unread thread ids
              * :rtype: list
-             * :raises: Exception if request failed
-             */
-
-            if (limit > 20 || limit < 1)
-            {
-                throw new FBchatUserError("`limit` should be between 1 and 20");
-            }
-
-            var data = new Dictionary<string, string>() {
-                { "client", this.client},
-                { $"{thread_location}[offset]", offset.ToString()},
-                { $"{thread_location}[limit]", limit.ToString()},
-            };
-
-            var j = (JToken)(await this._post(ReqUrl.THREADS, data, fix_request: true, as_json: true));
-            if (j["payload"] == null || !j["payload"].Children().Any())
-            {
-                throw new FBchatException(string.Format("Missing payload: {0}, with data: {1}", j, data));
-            }
-
-            var participants = new Dictionary<string, FB_Thread>();
-            if (j["payload"]["participants"] != null)
-            {
-                foreach (var p in j["payload"]["participants"])
-                {
-                    if (p["type"].Value<string>() == "page")
-                    {
-                        participants[p["fbid"].Value<string>()] = new FB_Page(p["fbid"].Value<string>(), url: p["href"].Value<string>(), photo: p["image_src"].Value<string>(), name: p["name"].Value<string>());
-                    }
-                    else if (p["type"].Value<string>() == "user")
-                    {
-                        participants[p["fbid"].Value<string>()] = new FB_User(p["fbid"].Value<string>(), url: p["href"].Value<string>(), first_name: p["short_name"].Value<string>(), is_friend: p["is_friend"].Value<bool>(), gender: GENDER.standard_GENDERS[p["gender"].Value<int>()], photo: p["image_src"].Value<string>(), name: p["name"].Value<string>());
-                    }
-                    else
-                    {
-                        throw new FBchatException(string.Format("A participant had an unknown type {0}: {1}", p["type"].Value<string>(), p));
-                    }
-                }
-            }
-
-            var entries = new List<FB_Thread>();
-            if (j["payload"]["threads"] != null)
-            {
-                foreach (var k in j["payload"]["threads"])
-                {
-                    if (k["thread_type"].Value<int>() == 1)
-                    {
-                        if (!participants.ContainsKey(k["other_user_fbid"].Value<string>()))
-                        {
-                            throw new FBchatException(string.Format("A thread was not in participants: {0}", j["payload"]));
-                        }
-                        participants[k["other_user_fbid"].Value<string>()].message_count = k["message_count"].Value<int>();
-                        entries.Add(participants[k["other_user_fbid"].Value<string>()]);
-                    }
-                    else if (k["thread_type"].Value<int>() == 2)
-                    {
-                        var part = new HashSet<string>(k["participants"].Select(p => p.Value<string>().Replace("fbid:", "")));
-                        entries.Add(new FB_Group(k["thread_fbid"].Value<string>(), participants: part, photo: k["image_src"].Value<string>(), name: k["name"].Value<string>(), message_count: k["message_count"].Value<int>()));
-                    }
-                    else if (k["thread_type"].Value<int>() == 3)
-                    {
-                        var part = new HashSet<string>(k["participants"].Select(p => p.Value<string>().Replace("fbid:", "")));
-                        var adm = new HashSet<string>(k["admin_ids"].Select(p => p.Value<string>().Replace("fbid:", "")));
-                        var req = new HashSet<string>(k["approval_queue_ids"].Select(p => p.Value<string>().Replace("fbid:", "")));
-                        entries.Add(new FB_Room(k["thread_fbid"].Value<string>(),
-                            participants: part,
-                            photo: k["image_src"].Value<string>(),
-                            name: k["name"].Value<string>(),
-                            message_count: k["message_count"].Value<int>(),
-                            admins: adm,
-                            approval_mode: k["approval_mode"].Value<bool>(),
-                            approval_requests: req,
-                            join_link: k["joinable_mode"]["link"].Value<string>()));
-                    }
-                    else
-                    {
-                        throw new FBchatException(string.Format("A thread had an unknown thread type: {0}", k));
-                    }
-                }
-            }
-
-            return entries;
-        }
-
-        /// <summary>
-        /// Get unread user messages
-        /// </summary>
-        /// <returns>Returns unread message ids and count</returns>
-        public async Task<Dictionary<string, object>> fetchUnread()
-        {
-            /*
-             * ..todo::
-             * Documenting this
-             * :raises: Exception if request failed
+             * :raises: FBchatException if request failed
              */
 
             var form = new Dictionary<string, string>() {
-                { "client", "mercury_sync"},
+                { "client", "mercury"},
                 { "folders[0]", "inbox"},
                 { "last_action_timestamp", (Utils.now() - 60 * 1000).ToString()},
-                { "last_action_timestamp", 0.ToString()}
+                //{ "last_action_timestamp", 0.ToString()}
             };
 
-            var j = (JToken)(await this._post(ReqUrl.THREAD_SYNC, form, fix_request: true, as_json: true));
+            var j = (JToken)(await this._post(ReqUrl.UNREAD_THREADS, form, fix_request: true, as_json: true));
 
-            return new Dictionary<string, object>() {
-                { "message_counts", j["payload"]["message_counts"].Value<int>() },
-                { "unseen_threads", j["payload"]["unseen_thread_ids"] }
-            };
+            return j["payload"]["unread_thread_fbids"][0]["other_user_fbids"].ToObject<List<string>>();
+        }
+
+        /// <summary>
+        /// Get unseen user threads
+        /// </summary>
+        /// <returns>Returns unseen message ids</returns>
+        public async Task<List<string>> fetchSeen()
+        {
+            /*
+             * Get the unseeen thread list
+             * :return: List of unseeen thread ids
+             * :rtype: list
+             * :raises: FBchatException if request failed
+             */
+
+            var j = (JToken)(await this._post(ReqUrl.UNSEEN_THREADS, null, fix_request: true, as_json: true));
+
+            return j["payload"]["unseen_thread_fbids"][0]["other_user_fbids"].ToObject<List<string>>();
         }
 
         /// <summary>
@@ -2139,15 +2053,15 @@ namespace fbchat_sharp.API
         /// 
         /// </summary>
         /// <returns>Returns true is the request was successful</returns>
-        public async Task<bool> markAsDelivered(string userID, string threadID)
+        public async Task<bool> markAsDelivered(string thread_id, string message_id)
         {
             /*
              * ..todo::
              * Documenting this
              */
             var data = new Dictionary<string, string>() {
-                { "message_ids[0]", threadID },
-                { string.Format("thread_ids[{0}][0]", userID), threadID}
+                { "message_ids[0]", message_id },
+                { string.Format("thread_ids[{0}][0]", thread_id), message_id}
             };
 
             var r = (HttpResponseMessage)(await this._post(ReqUrl.DELIVERED, data));
@@ -2158,16 +2072,16 @@ namespace fbchat_sharp.API
         /// 
         /// </summary>
         /// <returns>Returns true is the request was successful</returns>
-        public async Task<bool> markAsRead(string userID)
+        public async Task<bool> markAsRead(string thread_id)
         {
             /*
              * ..todo::
              * Documenting this
              */
             var data = new Dictionary<string, string>() {
+                { string.Format("ids[{0}]", thread_id), true.ToString()},
                 { "watermarkTimestamp", Utils.now().ToString() },
-                { "shouldSendReadReceipt", true.ToString()},
-                { string.Format("ids[{0}]", userID), true.ToString()}
+                { "shouldSendReadReceipt", true.ToString()}
             };
 
             var r = (HttpResponseMessage)(await this._post(ReqUrl.READ_STATUS, data));

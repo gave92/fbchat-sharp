@@ -60,7 +60,7 @@ namespace examples
                     await client.sendLocalImage(@"C:\Users\Marco\Pictures\Saved Pictures\opengraph.png", stream, null, client.GetUserUid(), ThreadType.USER);
                 }
 
-                // await Task.Delay(60 * 1000);                
+                // await Task.Delay(60 * 1000);
                 // client.StopListening();
 
                 // Do logout

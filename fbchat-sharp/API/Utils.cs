@@ -251,7 +251,8 @@ namespace fbchat_sharp.API
         public static readonly string SEARCH = "https://www.facebook.com/ajax/typeahead/search.php";
         public static readonly string LOGIN = "https://m.facebook.com/login.php?login_attempt=1";
         public static readonly string SEND = "https://www.facebook.com/messaging/send/";
-        public static readonly string THREAD_SYNC = "https://www.facebook.com/ajax/mercury/thread_sync.php";
+        public static readonly string UNREAD_THREADS = "https://www.facebook.com/ajax/mercury/unread_threads.php";
+        public static readonly string UNSEEN_THREADS = "https://www.facebook.com/mercury/unseen_thread_ids/";
         public static readonly string THREADS = "https://www.facebook.com/ajax/mercury/threadlist_info.php";
         public static readonly string MESSAGES = "https://www.facebook.com/ajax/mercury/thread_info.php";
         public static readonly string READ_STATUS = "https://www.facebook.com/ajax/mercury/change_read_status.php";
