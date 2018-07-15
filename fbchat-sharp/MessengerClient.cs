@@ -195,6 +195,11 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
+        /// Called when a 2FA code is requested
+        /// </summary>
+        protected override abstract string on2FACode();
+
+        /// <summary>
         /// How to delete saved cookies from disk
         /// </summary>
         protected abstract Task DeleteCookiesAsync();

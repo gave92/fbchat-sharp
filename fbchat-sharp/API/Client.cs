@@ -480,7 +480,7 @@ namespace fbchat_sharp.API
             soup = (string)await Utils.checkRequest(r, false);
 
             if (r.RequestMessage.RequestUri.ToString().Contains("checkpoint") &&
-                (soup.Contains("Enter Security Code to Continue") || soup.Contains("Enter Login Code to Continue")))
+                (soup.Contains("id=\"approvals_code\"")))
             {
                 r = await this._2FA(r);
             }
@@ -504,7 +504,55 @@ namespace fbchat_sharp.API
 
         private async Task<HttpResponseMessage> _2FA(HttpResponseMessage r)
         {
-            return await Task.FromResult<HttpResponseMessage>(new HttpResponseMessage(HttpStatusCode.BadRequest));
+            string soup = (string)await Utils.checkRequest(r, false);
+            var parser = new HtmlParser();
+            var document = parser.Parse(soup);
+            var fb_dtsg = document.QuerySelectorAll("input").Where(i => i.GetAttribute("name").Equals("fb_dtsg")).Select(i => i.GetAttribute("value")).First();
+            var nh = document.QuerySelectorAll("input").Where(i => i.GetAttribute("name").Equals("nh")).Select(i => i.GetAttribute("value")).First();
+
+            string s = on2FACode();
+
+            var data = new Dictionary<string, string>();
+            data["approvals_code"] = s;
+            data["fb_dtsg"] = fb_dtsg;
+            data["nh"] = nh;
+            data["submit[Submit Code]"] = "Submit Code";
+            data["codes_submitted"] = 0.ToString();
+
+            r = (HttpResponseMessage)(await this._cleanPost(ReqUrl.CHECKPOINT, data));
+            if (r.RequestMessage.RequestUri.ToString().Contains("home"))
+                return r;
+
+            data.Remove("approvals_code");
+            data.Remove("submit[Submit Code]");
+            data.Remove("codes_submitted");
+
+            data["name_action_selected"] = "save_device";
+            data["submit[Continue]"] = "Continue";
+
+            r = (HttpResponseMessage)(await this._cleanPost(ReqUrl.CHECKPOINT, data));
+            if (r.RequestMessage.RequestUri.ToString().Contains("home"))
+                return r;
+
+            data.Remove("name_action_selected");
+
+            r = (HttpResponseMessage)(await this._cleanPost(ReqUrl.CHECKPOINT, data));
+            if (r.RequestMessage.RequestUri.ToString().Contains("home"))
+                return r;
+
+            data.Remove("submit[Continue]");
+            data["submit[This was me]"] = "This Was Me";
+
+            r = (HttpResponseMessage)(await this._cleanPost(ReqUrl.CHECKPOINT, data));
+            if (r.RequestMessage.RequestUri.ToString().Contains("home"))
+                return r;
+
+            data.Remove("submit[This was me]");
+            data["submit[Continue]"] = "Continue";
+            data["name_action_selected"] = "save_device";
+
+            r = (HttpResponseMessage)(await this._cleanPost(ReqUrl.CHECKPOINT, data));
+            return r;
         }
 
         /// <summary>
@@ -2043,6 +2091,17 @@ namespace fbchat_sharp.API
              * :param msg: A full set of the data received
              */
             Debug.WriteLine(string.Format("Exception in parsing of {0}", msg));
+        }
+
+        /// <summary>
+        /// Called when a 2FA code is requested
+        /// </summary>
+        protected virtual string on2FACode()
+        {
+            /*
+             * Called when a 2FA code is requested
+             */
+            throw new NotImplementedException("You should override this.");
         }
 
         /*

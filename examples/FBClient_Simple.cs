@@ -15,6 +15,12 @@ namespace examples
             await Task.Yield();
         }
 
+        protected override string on2FACode()
+        {
+            Console.WriteLine("Insert 2FA code:");
+            return Console.ReadLine();
+        }
+
         protected override async Task<List<Cookie>> ReadCookiesFromDiskAsync()
         {
             await Task.Yield();
