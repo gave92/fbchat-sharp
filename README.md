@@ -25,15 +25,20 @@ The simple example will login to messenger and get the last 20 messages from a u
 #### 1. Implement the abstract MessengerClient class
 
 ```cs
-// The 3 abstract methods allow to load and save an active session to avoid logging in every time
+// The 4 abstract methods allow to load and save an active session to avoid logging in every time and to provide the 2FA code if requested
 // In this example the mothods do nothing
 public class FBClient : MessengerClient
 {
+    protected override string on2FACode()
+    {
+        return null;
+    }
+    
     protected override async Task DeleteCookiesAsync()
     {
         await Task.Yield();
-    }
-
+    }    
+        
     protected override async Task<List<Cookie>> ReadCookiesFromDiskAsync()
     {
         await Task.Yield();
