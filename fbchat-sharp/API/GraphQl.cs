@@ -179,14 +179,28 @@ namespace fbchat_sharp.API
         public static FB_User graphql_to_user(JToken user)
         {
             if (user["profile_picture"] == null || user["profile_picture"].Type == JTokenType.Null)
-                user["profile_picture"] = new JObject(new JProperty("uri", ""));
+            {
+                if (user["big_image_src"] != null && user["big_image_src"].Type != JTokenType.Null)
+                {
+                    user["profile_picture"] = user["big_image_src"];
+                }
+                else
+                {
+                    user["profile_picture"] = new JObject(new JProperty("uri", ""));
+                }
+            }
             var c_info = get_customization_info(user);
+
+            var name = user["name"]?.Value<string>();
+            var first_name = user["first_name"]?.Value<string>() ?? user["short_name"]?.Value<string>();
+            var last_name = first_name != null ? name?.Replace(first_name, "")?.Trim() : null;
 
             return new FB_User(
                 uid: user["id"]?.Value<string>(),
-                url: user["url"]?.Value<string>(),
-                first_name: user["first_name"]?.Value<string>(),
-                last_name: user["last_name"]?.Value<string>(),
+                url: user["url"]?.Value<string>(),                
+                name: name,
+                first_name: first_name,
+                last_name: last_name,
                 is_friend: user["is_viewer_friend"]?.Value<bool>() ?? false,
                 gender: user["gender"]?.Value<string>(),
                 affinity: user["viewer_affinity"]?.Value<float>() ?? 0,
@@ -194,8 +208,7 @@ namespace fbchat_sharp.API
                 color: ThreadColor.MESSENGER_BLUE,
                 emoji: "",
                 own_nickname: "",
-                photo: user["profile_picture"]["uri"]?.Value<string>(),
-                name: user["name"]?.Value<string>(),
+                photo: user["profile_picture"]["uri"]?.Value<string>(),                
                 message_count: user["messages_count"]?.Value<int>() ?? 0);
         }
 
@@ -269,26 +282,7 @@ namespace fbchat_sharp.API
             {
                 var participants = thread["all_participants"]["nodes"].Select(node => node["messaging_actor"]);
                 var user = participants.Single(p => p["id"].Value<string>() == thread["thread_key"]["other_user_id"].Value<string>());
-
-                if (user["big_image_src"] == null || user["big_image_src"].Type == JTokenType.Null)
-                    user["big_image_src"] = new JObject(new JProperty("uri", ""));
-
-                return new FB_User(
-                    uid: user["id"].Value<string>(),
-                    url: user["url"]?.Value<string>(),
-                    name: user["name"]?.Value<string>(),
-                    first_name: user["short_name"]?.Value<string>(),
-                    last_name: user["name"]?.Value<string>()?.Replace(user["short_name"]?.Value<string>(), "")?.Trim(),
-                    is_friend: user["is_viewer_friend"]?.Value<bool>() ?? false,
-                    gender: user["gender"]?.Value<string>(),
-                    nickname: "",
-                    color: ThreadColor.MESSENGER_BLUE,
-                    emoji: "",
-                    own_nickname: "",
-                    affinity: 0,
-                    photo: user["big_image_src"]["uri"]?.Value<string>(),
-                    message_count: thread["messages_count"]?.Value<int>() ?? 0
-                    );
+                return GraphQL_JSON_Decoder.graphql_to_user(user);
             }
             else
             {

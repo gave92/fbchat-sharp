@@ -160,7 +160,7 @@ namespace fbchat_sharp.API
         {
             this.url = url;
             this.first_name = first_name;
-            this.last_name = last_name;
+            this.last_name = last_name ?? (first_name != null ? name?.Replace(first_name, "")?.Trim() : null);
             this.is_friend = is_friend;
             this.gender = gender;
             this.affinity = affinity;
@@ -168,6 +168,17 @@ namespace fbchat_sharp.API
             this.own_nickname = own_nickname;
             this.color = color;
             this.emoji = emoji;
+        }
+
+        /// <returns>Pretty string representation of the thread</returns>
+        public override string ToString()
+        {
+            return this.__unicode__();
+        }
+
+        private string __unicode__()
+        {
+            return string.Format("<{0} {1} {2} ({3})>", this.type.ToString(), this.first_name, this.last_name, this.uid);
         }
     }
 

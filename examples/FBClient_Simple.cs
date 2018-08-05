@@ -10,16 +10,16 @@ namespace examples
 {
     public class FBClient_Simple : MessengerClient
     {
-        protected override async Task DeleteCookiesAsync()
-        {
-            await Task.Yield();
-        }
-
         protected override string on2FACode()
         {
             Console.WriteLine("Insert 2FA code:");
             return Console.ReadLine();
         }
+
+        protected override async Task DeleteCookiesAsync()
+        {
+            await Task.Yield();
+        }      
 
         protected override async Task<List<Cookie>> ReadCookiesFromDiskAsync()
         {

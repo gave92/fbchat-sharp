@@ -3497,12 +3497,12 @@
   },
   "project": {
     "restore": {
-      "projectUniqueName": "C:\\Users\\Marco\\Source\\Repos\\fbchat-sharp\\fbchat-sharp\\fbchat-sharp.csproj",
+      "projectUniqueName": "C:\\Users\\Marco\\source\\repos\\fbchat-sharp\\fbchat-sharp\\fbchat-sharp.csproj",
       "projectName": "fbchat-sharp",
-      "projectPath": "C:\\Users\\Marco\\Source\\Repos\\fbchat-sharp\\fbchat-sharp\\fbchat-sharp.csproj",
-      "projectJsonPath": "C:\\Users\\Marco\\Source\\Repos\\fbchat-sharp\\fbchat-sharp\\project.json",
+      "projectPath": "C:\\Users\\Marco\\source\\repos\\fbchat-sharp\\fbchat-sharp\\fbchat-sharp.csproj",
+      "projectJsonPath": "C:\\Users\\Marco\\source\\repos\\fbchat-sharp\\fbchat-sharp\\project.json",
       "packagesPath": "C:\\Users\\Marco\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Marco\\Source\\Repos\\fbchat-sharp\\fbchat-sharp\\obj\\",
+      "outputPath": "C:\\Users\\Marco\\source\\repos\\fbchat-sharp\\fbchat-sharp\\obj\\",
       "projectStyle": "ProjectJson",
       "configFilePaths": [
         "C:\\Users\\Marco\\AppData\\Roaming\\NuGet\\NuGet.Config",
