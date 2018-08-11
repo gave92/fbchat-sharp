@@ -98,8 +98,8 @@ namespace fbchat_sharp.API
                     width: a["original_dimensions"]["x"].Value<int>(),
                     height: a["original_dimensions"]["y"].Value<int>(),
                     is_animated: _type == "MessageAnimatedImage",
-                    thumbnail_url: a["thumbnail"]["uri"]?.Value<string>(),
-                    preview: a["preview"],
+                    thumbnail_url: a["thumbnail"]?.Value<JToken>("uri")?.Value<string>(),
+                    preview: a["preview"] ?? a["preview_image"],
                     large_preview: a["large_preview"],
                     animated_preview: a["animated_image"],
                     uid: a["legacy_attachment_id"]?.Value<string>());
