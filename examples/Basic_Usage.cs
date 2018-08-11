@@ -10,19 +10,33 @@ namespace examples
 {
     class Basic_Usage
     {
-        public static async Task Run(string email, string password)
+        public static async Task Run()
         {
             // Instantiate FBClient
-            FBClient_Simple client = new FBClient_Simple();
+            MessengerClient client = new FBClient_Cookies();
 
-            // Login with username and password
-            var logged_in = await client.DoLogin(email, password);
+            // Try logging in from saved session
+            var logged_in = await client.TryLogin();
+            if (!logged_in)
+            {
+                // Read email and pw from console
+                Console.WriteLine("Insert Facebook email:");
+                var email = Console.ReadLine();
+                Console.WriteLine("Insert Facebook password:");
+                var password = Console.ReadLine();
+                
+                // Login with username and password
+                logged_in = await client.DoLogin(email, password);
+            }
 
             // Check login was successful
             if (logged_in)
             {
                 // client.UpdateEvent += (e,d) => { if (d.EventType == UpdateStatus.NEW_MESSAGE) Console.WriteLine(d.Payload); };
                 // client.StartListening();
+
+                // Save session cookies
+                await client.WriteCookiesAsync();
 
                 // Fetch latest threads
                 var threads = await client.FetchThreadList();
@@ -57,14 +71,14 @@ namespace examples
                 // Send an image to myself
                 // using (FileStream stream = File.OpenRead(@"C:\Users\Marco\Pictures\Saved Pictures\opengraph.png"))
                 // {
-                    // await client.sendLocalImage(@"C:\Users\Marco\Pictures\Saved Pictures\opengraph.png", stream, null, client.GetUserUid(), ThreadType.USER);
+                // await client.sendLocalImage(@"C:\Users\Marco\Pictures\Saved Pictures\opengraph.png", stream, null, client.GetUserUid(), ThreadType.USER);
                 // }
 
                 // await Task.Delay(60 * 1000);
                 // client.StopListening();
 
                 // Do logout
-                await client.DoLogout();
+                // await client.DoLogout();
             }
             else
             {
