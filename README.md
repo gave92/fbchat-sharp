@@ -2,7 +2,7 @@
 
 # fbchat-sharp: Facebook Messenger client library for C#
 
-![logo](https://img.shields.io/badge/license-BSD-blue.svg)
+![logo](https://img.shields.io/badge/license-BSD-blue.svg)&nbsp;[![donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/gave92)
 
 Facebook ([Messenger](https://www.messenger.com/)) client library for C#. This is a porting from the excellent [fbchat](https://github.com/carpedm20/fbchat) library for Python.
 
