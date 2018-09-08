@@ -1,11 +1,11 @@
 ﻿{
   "supports": {},
   "dependencies": {
-    "AngleSharp": "0.9.9.1",
+    "AngleSharp": "0.9.10",
     "Microsoft.NETCore.Portable.Compatibility": "1.0.1",
-    "NETStandard.Library": "2.0.1",
-    "Newtonsoft.Json": "10.0.3",
-    "System.ComponentModel.Annotations": "4.4.1"
+    "NETStandard.Library": "2.0.3",
+    "Newtonsoft.Json": "11.0.2",
+    "System.ComponentModel.Annotations": "4.5.0"
   },
   "frameworks": {
     "netstandard1.2": {}
