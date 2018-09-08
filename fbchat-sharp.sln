@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2019
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "fbchat-sharp", "fbchat-sharp\fbchat-sharp.csproj", "{DB5CF1EA-533E-41F9-BB99-F9435E3B64C9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "examples", "examples\examples.csproj", "{F541B940-735A-4697-8019-D3F9631580EC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "netcore", "netcore\netcore.csproj", "{585AC4CC-6DE1-4FE5-B406-5A493F0312FD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,8 +23,15 @@ Global
 		{F541B940-735A-4697-8019-D3F9631580EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F541B940-735A-4697-8019-D3F9631580EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F541B940-735A-4697-8019-D3F9631580EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{585AC4CC-6DE1-4FE5-B406-5A493F0312FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{585AC4CC-6DE1-4FE5-B406-5A493F0312FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{585AC4CC-6DE1-4FE5-B406-5A493F0312FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{585AC4CC-6DE1-4FE5-B406-5A493F0312FD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {97F2F21B-6DC6-417F-B4C6-7693AC9384ED}
 	EndGlobalSection
 EndGlobal
