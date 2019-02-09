@@ -10,7 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\fbchat-sharp\fbchat-sharp.csproj" />
+    <ProjectReference Include="..\..\fbchat-sharp\fbchat-sharp.csproj" />
   </ItemGroup>
 
 </Project>

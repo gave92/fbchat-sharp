@@ -510,7 +510,7 @@ namespace fbchat_sharp.API
             var fb_dtsg = document.QuerySelectorAll("input").Where(i => i.GetAttribute("name").Equals("fb_dtsg")).Select(i => i.GetAttribute("value")).First();
             var nh = document.QuerySelectorAll("input").Where(i => i.GetAttribute("name").Equals("nh")).Select(i => i.GetAttribute("value")).First();
 
-            string s = on2FACode();
+            string s = await on2FACode();
 
             var data = new Dictionary<string, string>();
             data["approvals_code"] = s;
@@ -665,7 +665,7 @@ namespace fbchat_sharp.API
             // Holds result of last login
             Tuple<bool, string> tuple_login = null;
 
-            foreach (int i in Enumerable.Range(1, max_tries + 1))
+            foreach (int i in Enumerable.Range(1, max_tries))
             {
                 tuple_login = await this._login();
                 if (!tuple_login.Item1)
@@ -2096,7 +2096,7 @@ namespace fbchat_sharp.API
         /// <summary>
         /// Called when a 2FA code is requested
         /// </summary>
-        protected virtual string on2FACode()
+        protected virtual async Task<string> on2FACode()
         {
             /*
              * Called when a 2FA code is requested

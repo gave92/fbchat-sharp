@@ -2,7 +2,7 @@
   "version": 3,
   "targets": {
     ".NETStandard,Version=v1.2": {
-      "AngleSharp/0.9.10": {
+      "AngleSharp/0.9.11": {
         "type": "package",
         "dependencies": {
           "System.Collections": "4.0.11",
@@ -616,12 +616,14 @@
     }
   },
   "libraries": {
-    "AngleSharp/0.9.10": {
-      "sha512": "Q9U5wHevquKfMLE35Cexdn2yq7/6ZGCljWNGSCjAchBxzVMCMlYE2naglXCBQZ9wXJwt+xWTySFmUs2+Ozsaew==",
+    "AngleSharp/0.9.11": {
+      "sha512": "Mo1+W3kY8k+0+NtLvDUJTWbyzCMlJZ4JKTVuD3iSNExiUuRU943BMZSvDJ/tWQHxI66L0shyhQFqUj9MDZsWLg==",
       "type": "package",
-      "path": "anglesharp/0.9.10",
+      "path": "anglesharp/0.9.11",
       "files": [
-        "anglesharp.0.9.10.nupkg.sha512",
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "anglesharp.0.9.11.nupkg.sha512",
         "anglesharp.nuspec",
         "lib/net40/AngleSharp.dll",
         "lib/net40/AngleSharp.xml",
@@ -1193,10 +1195,11 @@
       ]
     },
     "System.ComponentModel.Annotations/4.5.0": {
-      "sha512": "IjDa643EO77A4CL9dhxfZ6zzGu+pM8Ar0NYPRMN3TvDiga4uGDzFHOj/ArpyNxxKyO5IFT2LZ0rK3kUog7g3jA==",
+      "sha512": "UxYQ3FGUOtzJ7LfSdnYSFd7+oEv6M8NgUatatIN2HxNtDdlcvFAf+VIq4Of9cDMJEJC0aSRv/x898RYhB4Yppg==",
       "type": "package",
       "path": "system.componentmodel.annotations/4.5.0",
       "files": [
+        ".nupkg.metadata",
         ".signature.p7s",
         "LICENSE.TXT",
         "THIRD-PARTY-NOTICES.TXT",
@@ -2134,6 +2137,7 @@
       "type": "package",
       "path": "system.net.requests/4.0.11",
       "files": [
+        ".nupkg.metadata",
         "ThirdPartyNotices.txt",
         "dotnet_library_license.txt",
         "lib/MonoAndroid10/_._",
@@ -3484,7 +3488,7 @@
   },
   "projectFileDependencyGroups": {
     "": [
-      "AngleSharp >= 0.9.10",
+      "AngleSharp >= 0.9.11",
       "Microsoft.NETCore.Portable.Compatibility >= 1.0.1",
       "NETStandard.Library >= 2.0.3",
       "Newtonsoft.Json >= 11.0.2",
@@ -3510,12 +3514,13 @@
       ],
       "sources": {
         "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "C:\\Users\\Marco\\source\\repos\\CalendarControl\\CalendarControl": {},
         "C:\\Users\\Marco\\source\\repos\\fbchat-sharp\\fbchat-sharp": {},
         "https://api.nuget.org/v3/index.json": {}
       }
     },
     "dependencies": {
-      "AngleSharp": "[0.9.10, )",
+      "AngleSharp": "[0.9.11, )",
       "Microsoft.NETCore.Portable.Compatibility": "[1.0.1, )",
       "NETStandard.Library": "[2.0.3, )",
       "Newtonsoft.Json": "[11.0.2, )",

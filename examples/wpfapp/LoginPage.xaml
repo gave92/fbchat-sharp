@@ -1,0 +1,53 @@
+﻿<Page x:Class="wpfapp.LoginPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:wpfapp"
+      mc:Ignorable="d" 
+      d:DesignHeight="450" d:DesignWidth="800"
+      Title="LoginPage">
+
+    <d:DesignerProperties.DesignStyle>
+        <Style TargetType="Page">
+            <Setter Property="Background" Value="White"/>
+        </Style>
+    </d:DesignerProperties.DesignStyle>
+    
+    <Grid>
+        <StackPanel Orientation="Vertical"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+            <Image Source="fbchat-icon.png"
+                   Width="80"/>
+            <TextBlock Text="fbchat-sharp"
+                       HorizontalAlignment="Center"                       
+                       FontSize="24"
+                       Margin="0,20,0,0"/>
+            <TextBlock Text="Login to Messenger"
+                       FontSize="16"
+                       HorizontalAlignment="Center"
+                       Margin="0,20,0,0"/>
+            <TextBox InputScope=""
+                     Name="Email"
+                     Width="200"
+                     FontSize="16"
+                     HorizontalAlignment="Center"
+                     Margin="0,20,0,0"/>
+            <PasswordBox InputScope=""
+                     Name="Password"
+                     Width="200"
+                     FontSize="16"
+                     HorizontalAlignment="Center"
+                     Margin="0,10,0,0"/>
+            <Button FontSize="24"
+                    HorizontalAlignment="Center"
+                    Margin="0,20,0,0"
+                    Foreground="#0084ff"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Content="Continue"
+                    Click="LoginButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Page>

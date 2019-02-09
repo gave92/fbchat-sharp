@@ -12,9 +12,14 @@ namespace examples
     public class FBClient_Cookies : MessengerClient
     {
         private static readonly string appName = "FBChat-Sharp";
-        private static readonly string sessionFile = "SESSION_COOKIES.dat";        
+        private static readonly string sessionFile = "SESSION_COOKIES.dat";
 
-        protected override string on2FACode()
+        public FBClient_Cookies()
+        {
+            this.Set2FACallback(get2FACode);
+        }
+
+        private async Task<string> get2FACode()
         {
             Console.WriteLine("Insert 2FA code:");
             return Console.ReadLine();

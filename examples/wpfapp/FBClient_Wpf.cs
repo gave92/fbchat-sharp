@@ -9,16 +9,10 @@ using System.Threading.Tasks;
 namespace examples
 {
     // Like FBClient_Simple but also saves session cookies
-    public class FBClient_Cookies : MessengerClient
+    public class FBClient_Wpf : MessengerClient
     {
         private static readonly string appName = "FBChat-Sharp";
-        private static readonly string sessionFile = "SESSION_COOKIES.dat";        
-
-        protected override string on2FACode()
-        {
-            Console.WriteLine("Insert 2FA code:");
-            return Console.ReadLine();
-        }
+        private static readonly string sessionFile = "SESSION_COOKIES.dat";
 
         protected override async Task DeleteCookiesAsync()
         {

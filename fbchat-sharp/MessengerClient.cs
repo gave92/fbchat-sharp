@@ -48,6 +48,7 @@ namespace fbchat_sharp.API
             try
             {
                 await this.doLogin(email, password, max_tries);
+                await this.WriteCookiesAsync();
                 return true;
             }
             catch (Exception ex)
@@ -193,11 +194,29 @@ namespace fbchat_sharp.API
         {
             Debug.WriteLine(string.Format("{0}: {1}", message, method));
         }
+        
+        /// <summary>
+        /// Use this to set the callback for providing a 2FA code
+        /// </summary>
+        public void Set2FACallback(Func<Task<string>> get2FACode)
+        {
+            this.get2FACode = get2FACode;
+        }
+
+        private Func<Task<string>> get2FACode;
 
         /// <summary>
         /// Called when a 2FA code is requested
         /// </summary>
-        protected override abstract string on2FACode();
+        protected override async Task<string> on2FACode()
+        {
+            if (get2FACode == null)
+            {
+                this.Log("2FA code callback is not set. Use Set2FACallback().");
+                return null;
+            }
+            return await get2FACode();
+        }
 
         /// <summary>
         /// How to delete saved cookies from disk

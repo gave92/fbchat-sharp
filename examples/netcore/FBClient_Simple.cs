@@ -8,7 +8,12 @@ namespace examples
 {
     public class FBClient_Simple : MessengerClient
     {
-        protected override string on2FACode()
+        public FBClient_Simple()
+        {
+            this.Set2FACallback(get2FACode);
+        }
+
+        private async Task<string> get2FACode()
         {
             Console.WriteLine("Insert 2FA code:");
             return Console.ReadLine();
