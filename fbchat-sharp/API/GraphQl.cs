@@ -1,7 +1,8 @@
-﻿using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace fbchat_sharp.API
@@ -197,7 +198,7 @@ namespace fbchat_sharp.API
 
             return new FB_User(
                 uid: user["id"]?.Value<string>(),
-                url: user["url"]?.Value<string>(),                
+                url: user["url"]?.Value<string>(),
                 name: name,
                 first_name: first_name,
                 last_name: last_name,
@@ -208,7 +209,7 @@ namespace fbchat_sharp.API
                 color: ThreadColor.MESSENGER_BLUE,
                 emoji: "",
                 own_nickname: "",
-                photo: user["profile_picture"]["uri"]?.Value<string>(),                
+                photo: user["profile_picture"]["uri"]?.Value<string>(),
                 message_count: user["messages_count"]?.Value<int>() ?? 0);
         }
 
@@ -303,25 +304,28 @@ namespace fbchat_sharp.API
 
         public static List<JToken> graphql_response_to_json(string content)
         {
-            var json_array = content.Split(new[] { "\n{", " {" }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.StartsWith("{") ? s : "{" + s);
-            var rtn = new List<JToken>(Enumerable.Repeat(default(JToken), json_array.Count()));
+            var rtn = new List<JToken>();
 
-            foreach (var json_string in json_array)
+            using (var jsonReader = new JsonTextReader(new StringReader(content)) { CloseInput = false, SupportMultipleContent = true })
             {
-                var x = JToken.Parse(json_string);
-                if (x["error_results"] != null)
+                while (jsonReader.Read())
                 {
-                    rtn.RemoveAt(rtn.Count - 1);
-                    continue;
+                    if (jsonReader.TokenType == JsonToken.Comment)
+                        continue;
+                    var x = JToken.ReadFrom(jsonReader);
+                    if (x["error_results"] != null)
+                    {
+                        continue;
+                    }
+                    Utils.check_json(x);
+                    string key = x.Value<JObject>().Properties().Where(k => k.Name.StartsWith("q")).First().Name;
+                    JToken value = x[key];
+                    Utils.check_json(value);
+                    if (value["response"] != null)
+                        rtn.Insert(int.Parse(key.Substring(1)), value["response"]);
+                    else
+                        rtn.Insert(int.Parse(key.Substring(1)), value["data"]);
                 }
-                Utils.check_json(x);
-                string key = x.Value<JObject>().Properties().Where(k => k.Name.StartsWith("q")).First().Name;
-                JToken value = x[key];
-                Utils.check_json(value);
-                if (value["response"] != null)
-                    rtn[int.Parse(key.Substring(1))] = value["response"];
-                else
-                    rtn[int.Parse(key.Substring(1))] = value["data"];
             }
 
             return rtn;
