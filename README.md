@@ -29,11 +29,6 @@ The simple example will login to messenger and get the last 20 messages from a u
 // In this example the mothods do nothing
 public class FBClient : MessengerClient
 {
-    protected override string on2FACode()
-    {
-        return null;
-    }
-    
     protected override async Task DeleteCookiesAsync()
     {
         await Task.Yield();
