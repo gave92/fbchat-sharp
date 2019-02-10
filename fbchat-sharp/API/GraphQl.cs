@@ -322,9 +322,9 @@ namespace fbchat_sharp.API
                     JToken value = x[key];
                     Utils.check_json(value);
                     if (value["response"] != null)
-                        rtn.Insert(int.Parse(key.Substring(1)), value["response"]);
+                        rtn.Insert(Math.Min(rtn.Count, int.Parse(key.Substring(1))), value["response"]);
                     else
-                        rtn.Insert(int.Parse(key.Substring(1)), value["data"]);
+                        rtn.Insert(Math.Min(rtn.Count, int.Parse(key.Substring(1))), value["data"]);
                 }
             }
 

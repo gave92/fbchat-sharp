@@ -4,6 +4,7 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:wpfapp"
+      xmlns:helpers="clr-namespace:wpfapp.Helpers"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
       Title="MainPage">
@@ -13,22 +14,156 @@
             <Setter Property="Background" Value="White"/>
         </Style>
     </d:DesignerProperties.DesignStyle>
-    
-    <Grid>
-        <StackPanel Orientation="Vertical"
-                    HorizontalAlignment="Center"
+
+    <Page.Resources>
+        <DataTemplate x:Key="NormalMessageTemplate">
+            <Border Background="#f1f0f0"
+                    Padding="8"
+                    HorizontalAlignment="Left"
                     VerticalAlignment="Center">
-            <TextBlock Text="{Binding Profile.name, Mode=OneWay}"
-                       FontSize="24"
-                       HorizontalAlignment="Center"/>
-            <Button FontSize="16"
-                    Margin="0,20,0,0"
-                    HorizontalAlignment="Center"
-                    Foreground="#0084ff"
-                    Background="Transparent"
-                    BorderThickness="0"
-                    Content="Logout"
-                    Click="LogoutButton_Click"/>
-        </StackPanel>
+                <TextBlock Text="{Binding text, Mode=OneWay}"
+                           FontSize="16"
+                           Foreground="Black"/>
+            </Border>
+        </DataTemplate>
+        <DataTemplate x:Key="OwnMessageTemplate">
+            <Border Background="#09f"
+                    Padding="8"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center">
+                <TextBlock Text="{Binding text, Mode=OneWay}"
+                           FontSize="16"
+                           Foreground="White"/>
+            </Border>
+
+        </DataTemplate>
+        <helpers:MessageTemplateSelector x:Key="MessageTemplateSelector" />
+    </Page.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" 
+                              MaxWidth="400" 
+                              MinWidth="200"/>
+            <ColumnDefinition Width="3*"/>
+        </Grid.ColumnDefinitions>
+
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="48"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0"
+                    BorderThickness="0,0,0.5,0.5" 
+                    BorderBrush="LightGray">
+                <Grid>
+                    <TextBlock Text="{Binding Profile.Value.name, Mode=OneWay}"
+                           FontSize="16"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="1">
+                <ListView Name="ThreadList"
+                          ItemsSource="{Binding Threads, Mode=OneWay}"
+                          ScrollViewer.CanContentScroll="False"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                          ScrollViewer.VerticalScrollBarVisibility="Auto"
+                          SelectionMode="Single"
+                          BorderThickness="0,0,0.5,0"
+                          BorderBrush="LightGray"
+                          SelectionChanged="ThreadListView_SelectionChanged">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <Grid Width="50" Height="50">
+                                    <Rectangle Fill="LightGray"/>
+                                    <Image Source="{Binding photo, Mode=OneWay}"/>
+                                </Grid>
+                                <TextBlock Text="{Binding name, Mode=OneWay}"
+                                           FontSize="16"
+                                           Margin="12,0,0,0"
+                                           HorizontalAlignment="Left"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                </ListView>
+            </Grid>
+        </Grid>
+
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="48"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Border BorderThickness="0,0,0,0.5"
+                    BorderBrush="LightGray"
+                    Grid.Row="0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding SelectedThread.Value.name, Mode=OneWay}"
+                               FontSize="16"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                    
+                    <Button Grid.Column="1"
+                            ContentTemplate="{StaticResource SettingsIcon}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="8" Margin="4"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Click="LogoutButton_Click"/>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="1">
+                <ListView Name="MessageList"
+                          ItemsSource="{Binding Messages, Mode=OneWay}"
+                          ScrollViewer.CanContentScroll="False"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                          ScrollViewer.VerticalScrollBarVisibility="Auto"
+                          SelectionMode="Single"
+                          BorderThickness="0"
+                          VerticalAlignment="Bottom"
+                          VerticalContentAlignment="Bottom"
+                          ItemTemplateSelector="{StaticResource MessageTemplateSelector}">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                </ListView>
+            </Grid>
+
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0" Name="SendText"
+                         FontSize="16"/>
+                <Button Grid.Column="1" Content="Send"
+                        FontSize="16"
+                        Click="SendButton_Click"/>
+            </Grid>
+        </Grid>
     </Grid>
 </Page>
