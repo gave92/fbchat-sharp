@@ -177,11 +177,8 @@ namespace fbchat_sharp.API
             return rtn;
         }
 
-        public static FB_User graphql_to_user(JToken thread)
-        {
-            var participants = thread["all_participants"]["nodes"].Select(node => node["messaging_actor"]);
-            var user = participants.Single(p => p["id"].Value<string>() == thread["thread_key"]["other_user_id"].Value<string>());
-
+        public static FB_User graphql_to_user(JToken thread, JToken user)
+        {            
             if (user["profile_picture"] == null || user["profile_picture"].Type == JTokenType.Null)
             {
                 if (user["big_image_src"] != null && user["big_image_src"].Type != JTokenType.Null)
@@ -288,8 +285,10 @@ namespace fbchat_sharp.API
                 return GraphQL_JSON_Decoder.graphql_to_room(thread);
             }
             else if (thread["thread_type"].Value<string>().Equals("ONE_TO_ONE"))
-            {                
-                return GraphQL_JSON_Decoder.graphql_to_user(thread);
+            {
+                var participants = thread["all_participants"]["nodes"].Select(node => node["messaging_actor"]);
+                var user = participants.Single(p => p["id"].Value<string>() == thread["thread_key"]["other_user_id"].Value<string>());
+                return GraphQL_JSON_Decoder.graphql_to_user(thread, user);
             }
             else
             {

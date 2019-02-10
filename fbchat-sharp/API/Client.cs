@@ -833,7 +833,7 @@ namespace fbchat_sharp.API
                 { "search", name }, { "limit", limit.ToString() }
              }));
 
-            return j[name]["users"]["nodes"].Select(node => GraphQL_JSON_Decoder.graphql_to_user(node)).ToList();
+            return j[name]["users"]["nodes"].Select(node => GraphQL_JSON_Decoder.graphql_to_user(node, node)).ToList();
         }
 
         /// <summary>
@@ -907,7 +907,7 @@ namespace fbchat_sharp.API
             {
                 if (node["__typename"].Value<string>().Equals("User"))
                 {
-                    rtn.Add(GraphQL_JSON_Decoder.graphql_to_user(node));
+                    rtn.Add(GraphQL_JSON_Decoder.graphql_to_user(node, node));
                 }
                 else if (node["__typename"].Value<string>().Equals("MessageThread"))
                 {
@@ -1164,7 +1164,7 @@ namespace fbchat_sharp.API
                     }
                     if (entry["type"].Value<int>() == (int)ThreadType.USER)
                     {
-                        rtn[_id] = GraphQL_JSON_Decoder.graphql_to_user(entry);
+                        rtn[_id] = GraphQL_JSON_Decoder.graphql_to_user(entry, entry);
                     }
                     else
                     {
