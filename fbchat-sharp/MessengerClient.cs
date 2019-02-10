@@ -164,11 +164,10 @@ namespace fbchat_sharp.API
         /// <summary>
         /// Get thread list of your facebook account
         /// </summary>
-        /// <param name="offset">The offset, from where in the list to recieve threads from</param>
         /// <param name="limit">Max.number of threads to retrieve. Capped at 20</param>
         /// <param name="thread_location">models.ThreadLocation: INBOX, PENDING, ARCHIVED or OTHER</param>
         /// <param name="before">A unix timestamp, indicating from which point to retrieve messages</param>
-        public async Task<List<FB_Thread>> FetchThreadList(int offset = 0, int limit = 20, string thread_location = "inbox", string before = null)
+        public async Task<List<FB_Thread>> FetchThreadList(int limit = 20, string thread_location = "inbox", string before = null)
         {
             return await this.SafeWrapper<List<FB_Thread>>(async () => await base.fetchThreadList(limit, thread_location, before));
         }

@@ -145,6 +145,7 @@ namespace fbchat_sharp.API
         /// <param name="photo"></param>
         /// <param name="name"></param>
         /// <param name="message_count"></param>
+        /// <param name="last_message_timestamp"></param>
         /// <param name="url"></param>
         /// <param name="first_name"></param>
         /// <param name="last_name"></param>
@@ -155,8 +156,8 @@ namespace fbchat_sharp.API
         /// <param name="own_nickname"></param>
         /// <param name="color"></param>
         /// <param name="emoji"></param>
-        public FB_User(string uid, string photo = null, string name = null, int message_count = 0, string url = null, string first_name = null, string last_name = null, bool is_friend = false, string gender = null, float affinity = 0, string nickname = null, string own_nickname = null, string color = null, string emoji = null) :
-            base(ThreadType.USER, uid, photo, name, message_count: message_count)
+        public FB_User(string uid, string photo = null, string name = null, int message_count = 0, string last_message_timestamp = null, string url = null, string first_name = null, string last_name = null, bool is_friend = false, string gender = null, float affinity = 0, string nickname = null, string own_nickname = null, string color = null, string emoji = null) :
+            base(ThreadType.USER, uid, photo, name, message_count: message_count, last_message_timestamp: last_message_timestamp)
         {
             this.url = url;
             this.first_name = first_name;
@@ -203,12 +204,13 @@ namespace fbchat_sharp.API
         /// <param name="photo"></param>
         /// <param name="name"></param>
         /// <param name="message_count"></param>
+        /// <param name="last_message_timestamp"></param>
         /// <param name="participants"></param>
         /// <param name="nicknames"></param>
         /// <param name="color"></param>
         /// <param name="emoji"></param>
-        public FB_Group(string uid, string photo = null, string name = null, int message_count = 0, ISet<string> participants = null, Dictionary<string, string> nicknames = null, string color = null, string emoji = null) :
-            base(ThreadType.GROUP, uid, photo, name, message_count: message_count)
+        public FB_Group(string uid, string photo = null, string name = null, int message_count = 0, string last_message_timestamp = null, ISet<string> participants = null, Dictionary<string, string> nicknames = null, string color = null, string emoji = null) :
+            base(ThreadType.GROUP, uid, photo, name, message_count: message_count, last_message_timestamp: last_message_timestamp)
         {
             this.participants = participants;
             this.nicknames = nicknames;
@@ -235,7 +237,7 @@ namespace fbchat_sharp.API
         public bool privacy_mode = false;
 
         public FB_Room(string uid, string photo = null, string name = null, int message_count = 0, ISet<string> participants = null, Dictionary<string, string> nicknames = null, string color = null, string emoji = null, ISet<string> admins = null, bool approval_mode = false, ISet<string> approval_requests = null, string join_link = null, bool privacy_mode = false)
-            : base(uid, photo, name, message_count, participants, nicknames, color, emoji)
+            : base(uid, photo, name, message_count: message_count, participants: participants, nicknames: nicknames, color: color, emoji: emoji)
         {
             this.type = ThreadType.ROOM;
             if (admins == null)

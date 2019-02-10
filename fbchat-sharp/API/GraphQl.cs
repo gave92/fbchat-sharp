@@ -177,8 +177,11 @@ namespace fbchat_sharp.API
             return rtn;
         }
 
-        public static FB_User graphql_to_user(JToken user)
+        public static FB_User graphql_to_user(JToken thread)
         {
+            var participants = thread["all_participants"]["nodes"].Select(node => node["messaging_actor"]);
+            var user = participants.Single(p => p["id"].Value<string>() == thread["thread_key"]["other_user_id"].Value<string>());
+
             if (user["profile_picture"] == null || user["profile_picture"].Type == JTokenType.Null)
             {
                 if (user["big_image_src"] != null && user["big_image_src"].Type != JTokenType.Null)
@@ -195,6 +198,7 @@ namespace fbchat_sharp.API
             var name = user["name"]?.Value<string>();
             var first_name = user["first_name"]?.Value<string>() ?? user["short_name"]?.Value<string>();
             var last_name = first_name != null ? name?.Replace(first_name, "")?.Trim() : null;
+            var last_message_timestamp = thread["last_message"] != null ? thread["last_message"]["nodes"][0]["timestamp_precise"]?.Value<string>() : null;
 
             return new FB_User(
                 uid: user["id"]?.Value<string>(),
@@ -210,13 +214,16 @@ namespace fbchat_sharp.API
                 emoji: "",
                 own_nickname: "",
                 photo: user["profile_picture"]["uri"]?.Value<string>(),
-                message_count: user["messages_count"]?.Value<int>() ?? 0);
+                message_count: user["messages_count"]?.Value<int>() ?? 0,
+                last_message_timestamp: last_message_timestamp);
         }
 
         public static FB_Group graphql_to_group(JToken group)
         {
             if (group["image"] == null || group["image"].Type == JTokenType.Null)
                 group["image"] = new JObject(new JProperty("uri", ""));
+
+            var last_message_timestamp = group["last_message"] != null ? group["last_message"]["nodes"][0]["timestamp_precise"]?.Value<string>() : null;
 
             return new FB_Group(
                 uid: group["thread_key"]["thread_fbid"].Value<string>(),
@@ -226,7 +233,8 @@ namespace fbchat_sharp.API
                 emoji: "",
                 photo: group["image"]["uri"].Value<string>(),
                 name: group["name"].Value<string>(),
-                message_count: group["messages_count"].Value<int>());
+                message_count: group["messages_count"].Value<int>(),
+                last_message_timestamp: last_message_timestamp);
         }
 
         public static FB_Room graphql_to_room(JToken room)
@@ -280,10 +288,8 @@ namespace fbchat_sharp.API
                 return GraphQL_JSON_Decoder.graphql_to_room(thread);
             }
             else if (thread["thread_type"].Value<string>().Equals("ONE_TO_ONE"))
-            {
-                var participants = thread["all_participants"]["nodes"].Select(node => node["messaging_actor"]);
-                var user = participants.Single(p => p["id"].Value<string>() == thread["thread_key"]["other_user_id"].Value<string>());
-                return GraphQL_JSON_Decoder.graphql_to_user(user);
+            {                
+                return GraphQL_JSON_Decoder.graphql_to_user(thread);
             }
             else
             {

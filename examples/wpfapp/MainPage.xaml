@@ -71,6 +71,7 @@
                           ScrollViewer.CanContentScroll="False"
                           ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                           ScrollViewer.VerticalScrollBarVisibility="Auto"
+                          ScrollViewer.ScrollChanged="ThreadList_ScrollChanged"
                           SelectionMode="Single"
                           BorderThickness="0,0,0.5,0"
                           BorderBrush="LightGray"
@@ -121,15 +122,22 @@
                                FontSize="16"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"/>
-                    
+
                     <Button Grid.Column="1"
-                            ContentTemplate="{StaticResource SettingsIcon}"
+                            x:Name="MenuButton"
+                            Click="MenuButton_Click"
                             Background="Transparent"
                             BorderThickness="0"
                             Padding="8" Margin="4"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center"
-                            Click="LogoutButton_Click"/>
+                            ContentTemplate="{StaticResource SettingsIcon}">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Logout" Click="LogoutButton_Click"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                 </Grid>
             </Border>
 
@@ -139,6 +147,7 @@
                           ScrollViewer.CanContentScroll="False"
                           ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                           ScrollViewer.VerticalScrollBarVisibility="Auto"
+                          ScrollViewer.ScrollChanged="MessageList_ScrollChanged"
                           SelectionMode="Single"
                           BorderThickness="0"
                           VerticalAlignment="Bottom"

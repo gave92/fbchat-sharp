@@ -1818,6 +1818,8 @@ namespace fbchat_sharp.API
                             if (metadata != null && metadata["tags"] != null)
                                 emoji_size = Utils.get_emojisize_from_tags(metadata["tags"]);
 
+                            var id_type = getThreadIdAndThreadType(metadata);
+
                             var message = new FB_Message(text: delta["body"]?.Value<string>(),
                                 mentions: mentions,
                                 emoji_size: emoji_size,
@@ -1827,9 +1829,9 @@ namespace fbchat_sharp.API
                             message.uid = mid;
                             message.author = author_id;
                             message.timestamp = ts;
+                            message.thread_id = id_type.Item1;
                             // message.reactions = {};
-
-                            var id_type = getThreadIdAndThreadType(metadata);
+                            
                             this.onMessage(mid: mid, author_id: author_id, message: delta["body"]?.Value<string>(), message_object: message,
                                 thread_id: id_type.Item1, thread_type: id_type.Item2, ts: ts, metadata: metadata, msg: m);
                         }
