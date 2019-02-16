@@ -388,9 +388,9 @@ namespace fbchat_sharp.API
         public bool is_animated = false;
         /// If the sticker is animated, the following should be present
         /// URL to a medium spritemap
-        public string medium_sprite_image = null;
+        public string medium_sprite_image { get; set; }
         /// URL to a large spritemap
-        public string large_sprite_image = null;
+        public string large_sprite_image { get; set; }
         /// The amount of frames present in the spritemap pr. row
         public int frames_per_row = 0;
         /// The amount of frames present in the spritemap pr. coloumn
@@ -398,11 +398,11 @@ namespace fbchat_sharp.API
         /// The frame rate the spritemap is intended to be played in
         public float frame_rate = 0;
         /// URL to the sticker's image
-        public object url = null;
+        public string url { get; set; }
         /// Width of the sticker
-        public float width = 0;
+        public float width { get; set; }
         /// Height of the sticker
-        public float height = 0;
+        public float height { get; set; }
         /// The sticker's label/name
         public string label = null;
 
@@ -478,9 +478,9 @@ namespace fbchat_sharp.API
         /// The extension of the original image (eg. 'png')
         public string original_extension = null;
         /// Width of original image
-        public float width = 0;
+        public float width { get; set; }
         /// Height of original image
-        public float height = 0;
+        public float height { get; set; }
         /// Whether the image is animated
         public bool is_animated = false;
         /// URL to a thumbnail of the image
@@ -549,11 +549,11 @@ namespace fbchat_sharp.API
         /// Size of the original video in bytes
         public int size = 0;
         /// Width of original video
-        public int width = 0;
+        public int width { get; set; }
         /// Height of original video
-        public int height = 0;
+        public int height { get; set; }
         /// Length of video in milliseconds
-        public int duration = 0;
+        public int duration { get; set; }
         /// URL to very compressed preview video
         public string preview_url { get; set; }
         /// URL to a small preview image of the video

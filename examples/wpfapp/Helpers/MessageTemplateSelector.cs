@@ -9,14 +9,14 @@ namespace wpfapp.Helpers
         public override DataTemplate SelectTemplate(object item, DependencyObject container)
         {
             FrameworkElement elemnt = container as FrameworkElement;
-            FB_Message user = item as FB_Message;
-            if (user.is_from_me)
+            FB_Message message = item as FB_Message;
+            if (message.is_from_me)
             {
                 return elemnt.FindResource("OwnMessageTemplate") as DataTemplate;
             }
             else
             {
-                return elemnt.FindResource("NormalMessageTemplate") as DataTemplate;
+                return elemnt.FindResource("UserMessageTemplate") as DataTemplate;
             }
         }
     }

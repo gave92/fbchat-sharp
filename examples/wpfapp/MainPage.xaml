@@ -5,6 +5,7 @@
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:wpfapp"
       xmlns:helpers="clr-namespace:wpfapp.Helpers"
+      xmlns:controls="clr-namespace:wpfapp.Xaml"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
       Title="MainPage">
@@ -16,26 +17,13 @@
     </d:DesignerProperties.DesignStyle>
 
     <Page.Resources>
-        <DataTemplate x:Key="NormalMessageTemplate">
-            <Border Background="#f1f0f0"
-                    Padding="8"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Center">
-                <TextBlock Text="{Binding text, Mode=OneWay}"
-                           FontSize="16"
-                           Foreground="Black"/>
-            </Border>
+        <DataTemplate x:Key="UserMessageTemplate">
+            <controls:MessageControl HorizontalAlignment="Left"
+                                     VerticalAlignment="Center"/>
         </DataTemplate>
         <DataTemplate x:Key="OwnMessageTemplate">
-            <Border Background="#09f"
-                    Padding="8"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center">
-                <TextBlock Text="{Binding text, Mode=OneWay}"
-                           FontSize="16"
-                           Foreground="White"/>
-            </Border>
-
+            <controls:MessageControl HorizontalAlignment="Right"
+                                     VerticalAlignment="Center"/>
         </DataTemplate>
         <helpers:MessageTemplateSelector x:Key="MessageTemplateSelector" />
     </Page.Resources>
