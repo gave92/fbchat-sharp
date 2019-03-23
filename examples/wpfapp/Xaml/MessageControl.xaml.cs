@@ -23,9 +23,12 @@ namespace wpfapp.Xaml
             var Message = e.NewValue as FB_Message;
             if (Message == null) return;
 
-            foreach (var image in Message.attachments.Where(x => x is FB_ImageAttachment))
+            if (Message.attachments != null )
             {
-                this.Content.Children.Add(new ContentControl() { ContentTemplate = (DataTemplate)this.Resources["ImageMessageTemplate"], Content = image });
+                foreach (var image in Message.attachments.Where(x => x is FB_ImageAttachment))
+                {
+                    this.Content.Children.Add(new ContentControl() { ContentTemplate = (DataTemplate)this.Resources["ImageMessageTemplate"], Content = image });
+                }
             }            
             if (Message.sticker != null)
             {
