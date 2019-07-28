@@ -52,10 +52,26 @@
     <None Include="project.json" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Models\Attachment.cs" />
     <Compile Include="API\Client.cs" />
     <Compile Include="API\GraphQl.cs" />
     <Compile Include="API\Models.cs" />
     <Compile Include="API\Utils.cs" />
+    <Compile Include="Models\Client.cs" />
+    <Compile Include="Models\Exception.cs" />
+    <Compile Include="Models\File.cs" />
+    <Compile Include="Models\GraphQl.cs" />
+    <Compile Include="Models\Group.cs" />
+    <Compile Include="Models\Location.cs" />
+    <Compile Include="Models\Message.cs" />
+    <Compile Include="Models\Page.cs" />
+    <Compile Include="Models\Plan.cs" />
+    <Compile Include="Models\Poll.cs" />
+    <Compile Include="Models\QuickReply.cs" />
+    <Compile Include="Models\Sticker.cs" />
+    <Compile Include="Models\Thread.cs" />
+    <Compile Include="Models\User.cs" />
+    <Compile Include="Models\Utils.cs" />
     <Compile Include="Utils\Extensions.cs" />
     <Compile Include="MessengerClient.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
