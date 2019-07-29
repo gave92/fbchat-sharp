@@ -2,14 +2,15 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace fbchat_sharp.API.Models
 {
     public class Utils
     {
+        private readonly static Uri SomeBaseUri = new Uri("http://someurl");
+
         public static string strip_json_cruft(string text)
         {
             try
@@ -170,6 +171,34 @@ namespace fbchat_sharp.API.Models
                 rc[Uri.UnescapeDataString(row.Substring(0, index))] = Uri.UnescapeDataString(row.Substring(index + 1)); // use Unescape only parts
             }
             return rc;
+        }
+
+        public static ISet<T> require_list<T>(object list_)
+        {
+            if (list_ as IEnumerable<T> != null)
+                return new HashSet<T>((IEnumerable<T>)list_);
+            else
+                return new HashSet<T>() { (T)list_ };
+        }
+
+        public static string mimetype_to_key(string mimetype)
+        {
+            if (mimetype == null)
+                return "file_id";
+            if (mimetype == "image/gif")
+                return "gif_id";
+            var x = mimetype.Split('/');
+            if (new string[] { "video", "image", "audio" }.Contains(x[0]))
+                return string.Format("{0}_id", x[0]);
+            return "file_id";
+        }
+
+        public static string GetFileNameFromUrl(string url)
+        {
+            Uri uri;
+            if (!Uri.TryCreate(url, UriKind.Absolute, out uri))
+                uri = new Uri(SomeBaseUri, url);
+            return Path.GetFileName(uri.LocalPath);
         }
     }
 }

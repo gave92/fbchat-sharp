@@ -1,9 +1,9 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Async;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
@@ -34,6 +34,8 @@ namespace fbchat_sharp.API.Models
     {
         /// Whether the client is listening. Used when creating an external event loop to determine when to stop listening.
         private bool listening { get; set; }
+        /// Stores and manages state required for most Facebook requests.
+        private State _state { get; set; }
 
         /// <summary>
         /// The ID of the client.
@@ -125,7 +127,7 @@ namespace fbchat_sharp.API.Models
             return j;
         }
 
-        private async Task<object> _post(string url, Dictionary<string, object> query = null, List<FB_File> files = null, bool as_graphql = false, int error_retries = 3)
+        private async Task<object> _post(string url, Dictionary<string, object> query = null, Dictionary<string, FB_File> files = null, bool as_graphql = false, int error_retries = 3)
         {
             var payload = this._generatePayload(query);
             var r = await this._state._session.post(prefix_url(url), data: payload, files: files);
@@ -161,7 +163,7 @@ namespace fbchat_sharp.API.Models
             }
         }
 
-        private async Task<object> _payload_post(string url, Dictionary<string, object> data = null, List<FB_File> files = null)
+        private async Task<object> _payload_post(string url, Dictionary<string, object> data = null, Dictionary<string, FB_File> files = null)
         {
             var j = await this._post(url, data, files: files);
             try
@@ -1411,7 +1413,7 @@ namespace fbchat_sharp.API.Models
         /// <param name="thread_id">User / Group ID to send to</param>
         /// <param name="thread_type">ThreadType enum</param>
         /// <returns>Message ID of the sent message</returns>
-        public async Task<string> send(FB_Message message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        public async Task<string> send(FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
         {
             /*
              * Sends a message to a thread
@@ -1433,7 +1435,7 @@ namespace fbchat_sharp.API.Models
         /// Sends a message to a thread
         /// </summary>
         [Obsolete("Deprecated. Use :func:`fbchat.Client.send` instead")]
-        public async Task<string> sendMessage(string message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        public async Task<string> sendMessage(string message = null, string thread_id = null, ThreadType? thread_type = null)
         {
             return await this.send(new FB_Message(text: message), thread_id: thread_id, thread_type: thread_type);
         }
@@ -1442,7 +1444,7 @@ namespace fbchat_sharp.API.Models
         /// Sends a message to a thread
         /// </summary>
         [Obsolete("Deprecated. Use :func:`fbchat.Client.send` instead")]
-        public async Task<string> sendEmoji(string emoji = null, EmojiSize size = EmojiSize.SMALL, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        public async Task<string> sendEmoji(string emoji = null, EmojiSize size = EmojiSize.SMALL, string thread_id = null, ThreadType? thread_type = null)
         {
             return await this.send(new FB_Message(text: emoji, emoji_size: size), thread_id: thread_id, thread_type: thread_type);
         }
@@ -1484,7 +1486,7 @@ namespace fbchat_sharp.API.Models
         /// <param name="thread_id">User/Group ID to send to.See :ref:`intro_threads`</param>
         /// <param name="thread_type">See :ref:`intro_threads`</param>
         /// <returns></returns>
-        public async Task<string> quickReply(FB_QuickReply quick_reply, dynamic payload = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        public async Task<string> quickReply(FB_QuickReply quick_reply, dynamic payload = null, string thread_id = null, ThreadType? thread_type = null)
         {
             /*
              * Replies to a chosen quick reply
@@ -1545,6 +1547,316 @@ namespace fbchat_sharp.API.Models
              * */
             var data = new Dictionary<string, object>() { { "message_id", mid } };
             var j = await this._payload_post("/messaging/unsend_message/?dpr=1", data);
+        }
+
+        private async Task<dynamic> _sendLocation(
+            FB_LocationAttachment location, bool current = true, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null
+        )
+        {
+            var thread = this._getThread(thread_id, thread_type);
+            var data = this._getSendData(
+                message: message, thread_id: thread.Item1, thread_type: thread.Item2
+            );
+            data["action_type"] = "ma-type:user-generated-message";
+            data["location_attachment[coordinates][latitude]"] = location.latitude;
+            data["location_attachment[coordinates][longitude]"] = location.longitude;
+            data["location_attachment[is_current_location]"] = current;
+            return await this._doSendRequest(data);
+        }
+
+        /// <summary>
+        /// Sends a given location to a thread as the user's current location
+        /// </summary>
+        /// <param name="location">Location to send</param>
+        /// <param name="message">Additional message</param>
+        /// <param name="thread_id">User/Group ID to send to.See :ref:`intro_threads`</param>
+        /// <param name="thread_type">See :ref:`intro_threads`</param>
+        /// <returns>:ref:`Message ID<intro_message_ids>` of the sent message</returns>
+        public async Task<string> sendLocation(FB_LocationAttachment location, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
+        {
+            /*
+             * Sends a given location to a thread as the user's current location
+             * :param location: Location to send
+             * :param message: Additional message
+             * :param thread_id: User/Group ID to send to.See :ref:`intro_threads`
+             * :param thread_type: See :ref:`intro_threads`
+             * :type location: LocationAttachment
+             * :type message: Message
+             * :type thread_type: ThreadType
+             * :return: :ref:`Message ID<intro_message_ids>` of the sent message
+             * :raises: FBchatException if request failed
+             * */
+            return await this._sendLocation(
+                location: location,
+                current: true,
+                message: message,
+                thread_id: thread_id,
+                thread_type: thread_type
+            );
+        }
+
+        /// <summary>
+        /// Sends a given location to a thread as a pinned location
+        /// </summary>
+        /// <param name="location">Location to send</param>
+        /// <param name="message">Additional message</param>
+        /// <param name="thread_id">User/Group ID to send to.See :ref:`intro_threads`</param>
+        /// <param name="thread_type">See :ref:`intro_threads`</param>
+        /// <returns>:ref:`Message ID` of the sent message</returns>
+        public async Task<string> sendPinnedLocation(FB_LocationAttachment location, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
+        {
+            /*
+             * Sends a given location to a thread as a pinned location
+             * :param location: Location to send
+             * :param message: Additional message
+             * :param thread_id: User/Group ID to send to.See :ref:`intro_threads`
+             * :param thread_type: See :ref:`intro_threads`
+             * :type location: LocationAttachment
+             * :type message: Message
+             * :type thread_type: ThreadType
+             * :return: :ref:`Message ID<intro_message_ids>` of the sent message
+             * :raises: FBchatException if request failed
+             * */
+            return await this._sendLocation(
+                location: location,
+                current: false,
+                message: message,
+                thread_id: thread_id,
+                thread_type: thread_type
+            );
+        }
+
+        private async Task<List<Tuple<string, string>>> _upload(List<FB_File> files, bool voice_clip = false)
+        {
+            /*
+             * Uploads files to Facebook
+             * `files` should be a list of files that requests can upload, see:
+             * http://docs.python-requests.org/en/master/api/#requests.request
+             * Returns a list of tuples with a file's ID and mimetype
+             * */
+            var file_dict = new Dictionary<string, FB_File>();
+            foreach (var obj in files.Select((x, index) => new { f = x, i = index }))
+                file_dict.Add(string.Format("upload_{0}", obj.i), obj.f);
+
+            var data = new Dictionary<string, object>() { { "voice_clip", voice_clip } };
+
+            var j = (JToken)await this._payload_post(
+                "https://upload.facebook.com/ajax/mercury/upload.php", data, files: file_dict
+            );
+
+            if (j["metadata"].Count() != files.Count)
+                throw new FBchatException(
+                    string.Format("Some files could not be uploaded: {0}", j));
+
+            return j["metadata"].Select(md =>
+                new Tuple<string, string>(md[Utils.mimetype_to_key(md["filetype"]?.Value<string>())]?.Value<string>(), md["filetype"]?.Value<string>())).ToList();
+        }
+
+        private async Task<dynamic> _sendFiles(
+            List<Tuple<string, string>> files, FB_Message message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        {
+            /*
+             * Sends files from file IDs to a thread
+             * `files` should be a list of tuples, with a file's ID and mimetype
+             * */
+            var thread = this._getThread(thread_id, thread_type);
+            var data = this._getSendData(
+                message: this._oldMessage(message),
+                thread_id: thread_id,
+                thread_type: thread_type
+            );
+
+            data["action_type"] = "ma-type:user-generated-message";
+            data["has_attachment"] = true;
+
+            foreach (var obj in files.Select((x, index) => new { f = x, i = index }))
+                data[string.Format("{0}s[{1}]", Utils.mimetype_to_key(obj.f.Item2), obj.i)] = obj.f.Item1;
+
+            return await this._doSendRequest(data);
+        }
+
+        /// <summary>
+        /// Sends files from URLs to a thread
+        /// </summary>
+        /// <param name="file_urls">URLs of files to upload and send</param>
+        /// <param name="message">Additional message</param>
+        /// <param name="thread_id">User/Group ID to send to.See :ref:`intro_threads`</param>
+        /// <param name="thread_type">See :ref:`intro_threads`</param>
+        /// <returns>`Message ID of the sent files</returns>
+        public async Task<dynamic> sendRemoteFiles(
+            List<string> file_urls, FB_Message message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        {
+            /*
+             * Sends files from URLs to a thread
+             * :param file_urls: URLs of files to upload and send
+             * :param message: Additional message
+             * :param thread_id: User/Group ID to send to.See :ref:`intro_threads`
+             * :param thread_type: See :ref:`intro_threads`
+             * :type thread_type: ThreadType
+             * :return: :ref:`Message ID<intro_message_ids>` of the sent files
+             * :raises: FBchatException if request failed
+             * */
+            var ufile_urls = Utils.require_list<string>(file_urls);
+            var files = await this._upload(await this._state.get_files_from_urls(ufile_urls));
+            return await this._sendFiles(
+                files: files, message: message, thread_id: thread_id, thread_type: thread_type
+            );
+        }
+
+        /// <summary>
+        /// Sends local files to a thread
+        /// </summary>
+        /// <param name="file_paths">Paths of files to upload and send</param>
+        /// <param name="message">Additional message</param>
+        /// <param name="thread_id">User/Group ID to send to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">See :ref:`intro_threads`</param>
+        /// <returns>:ref:`Message ID` of the sent files</returns>
+        public async Task<string> sendLocalFiles(Dictionary<string, Stream> file_paths = null, FB_Message message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        {
+            /*
+             * Sends local files to a thread
+             * :param file_paths: Paths of files to upload and send
+             * :param message: Additional message
+             * :param thread_id: User/Group ID to send to. See :ref:`intro_threads`
+             * :param thread_type: See :ref:`intro_threads`
+             * :type thread_type: ThreadType
+             * :return: :ref:`Message ID <intro_message_ids>` of the sent files
+             * :raises: FBchatException if request failed
+             */
+
+            var files = await this._upload(this._state.get_files_from_paths(file_paths));
+            return await this._sendFiles(files: files, message: message, thread_id: thread_id, thread_type: thread_type);
+        }
+
+        /// <summary>
+        /// Sends voice clips from URLs to a thread
+        /// </summary>
+        /// <param name="clip_urls">URLs of voice clips to upload and send</param>
+        /// <param name="message">Additional message</param>
+        /// <param name="thread_id">User/Group ID to send to.See :ref:`intro_threads`</param>
+        /// <param name="thread_type">See :ref:`intro_threads`</param>
+        /// <returns>`Message ID of the sent files</returns>
+        public async Task<dynamic> sendRemoteVoiceClips(
+            List<string> clip_urls, FB_Message message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        {
+            /*
+             * Sends voice clips from URLs to a thread
+             * :param clip_urls: URLs of clips to upload and send
+             * :param message: Additional message
+             * :param thread_id: User/Group ID to send to.See :ref:`intro_threads`
+             * :param thread_type: See :ref:`intro_threads`
+             * :type thread_type: ThreadType
+             * :return: :ref:`Message ID<intro_message_ids>` of the sent files
+             * :raises: FBchatException if request failed
+             * */
+            var uclip_urls = Utils.require_list<string>(clip_urls);
+            var files = await this._upload(await this._state.get_files_from_urls(uclip_urls), voice_clip: true);
+            return await this._sendFiles(
+                files: files, message: message, thread_id: thread_id, thread_type: thread_type
+            );
+        }
+
+        /// <summary>
+        /// Sends local voice clips to a thread
+        /// </summary>
+        /// <param name="clip_paths">Paths of voice clips to upload and send</param>
+        /// <param name="message">Additional message</param>
+        /// <param name="thread_id">User/Group ID to send to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">See :ref:`intro_threads`</param>
+        /// <returns>:ref:`Message ID` of the sent files</returns>
+        public async Task<string> sendLocalVoiceClips(Dictionary<string, Stream> clip_paths = null, FB_Message message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        {
+            /*
+             * Sends local voice clips to a thread
+             * :param file_paths: Paths of files to upload and send
+             * :param message: Additional message
+             * :param thread_id: User/Group ID to send to. See :ref:`intro_threads`
+             * :param thread_type: See :ref:`intro_threads`
+             * :type thread_type: ThreadType
+             * :return: :ref:`Message ID <intro_message_ids>` of the sent files
+             * :raises: FBchatException if request failed
+             */
+
+            var files = await this._upload(this._state.get_files_from_paths(clip_paths), voice_clip: true);
+            return await this._sendFiles(files: files, message: message, thread_id: thread_id, thread_type: thread_type);
+        }
+
+        /// <summary>
+        /// Sends an image to a thread
+        /// </summary>
+        [Obsolete("Deprecated.")]
+        public async Task<string> sendImage(string image_id = null, FB_Message message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER, bool is_gif = false)
+        {
+            string mimetype = null;
+            if (!is_gif)
+                mimetype = "image/png";
+            else
+                mimetype = "image/gif";
+
+            return await this._sendFiles(
+                files: new List<Tuple<string, string>>() { new Tuple<string, string>(image_id, mimetype) },
+                message: message,
+                thread_id: thread_id,
+                thread_type: thread_type);
+        }
+
+        /// <summary>
+        /// Sends an image from a URL to a thread
+        /// </summary>
+        /// <param name="image_url"></param>
+        /// <param name="message"></param>
+        /// <param name="thread_id"></param>
+        /// <param name="thread_type"></param>
+        /// <returns></returns>
+        [Obsolete("Deprecated. Use :func:`fbchat.Client.sendRemoteImage` instead")]
+        public async Task<string> sendRemoteImage(string image_url = null, FB_Message message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        {
+            /*
+             * Sends an image from a URL to a thread
+             * : param image_url: URL of an image to upload and send
+             * :param message: Additional message
+             * :param thread_id: User / Group ID to send to.See: ref:`intro_threads`
+             * :param thread_type: See: ref:`intro_threads`
+             * :type thread_type: models.ThreadType
+             * :return: :ref:`Message ID<intro_message_ids>` of the sent image
+             * :raises: FBchatException if request failed
+             */
+
+            return await this.sendRemoteFiles(
+                file_urls: new List<string>() { image_url },
+                message: message,
+                thread_id: thread_id,
+                thread_type: thread_type);
+        }
+
+        /// <summary>
+        /// Sends a local image to a thread
+        /// </summary>
+        /// <param name="image_path"></param>
+        /// <param name="data"></param>
+        /// <param name="message"></param>
+        /// <param name="thread_id"></param>
+        /// <param name="thread_type"></param>
+        /// <returns></returns>
+        [Obsolete("Deprecated. Use :func:`fbchat.Client.sendLocalFiles` instead")]
+        public async Task<string> sendLocalImage(string image_path = null, Stream data = null, FB_Message message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        {
+            /*
+             * Sends a local image to a thread
+             * : param image_path: Path of an image to upload and send
+             * :param message: Additional message
+             * :param thread_id: User / Group ID to send to. See: ref:`intro_threads`
+             * :param thread_type: See: ref:`intro_threads`
+             * :type thread_type: models.ThreadType
+             * :return: :ref:`Message ID<intro_message_ids>` of the sent image
+             * :raises: FBchatException if request failed
+             */
+
+            return await this.sendLocalFiles(
+                file_paths: new Dictionary<string, Stream>() { { image_path, data } },
+                message: message,
+                thread_id: thread_id,
+                thread_type: thread_type);
         }
         #endregion
     }

@@ -14,14 +14,17 @@ namespace fbchat_sharp.API.Models
     public class FB_File
     {
         /// Local or remote file path
-        public string path = null;
+        public string path { get; set; }
         /// Local or remote file stream
-        public Stream data = null;
+        public Stream data { get; set; }
+        /// Local or remote file type
+        public string mimetype { get; set; }
 
-        public FB_File(Stream data = null, string path = null)
+        public FB_File(Stream data = null, string path = null, string mimetype = null)
         {
             this.data = data;
             this.path = path;
+            this.mimetype = mimetype;
         }
     }
 
