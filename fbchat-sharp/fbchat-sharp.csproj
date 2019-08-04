@@ -22,7 +22,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;NETSTANDARD</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Debug\fbchat-sharp.XML</DocumentationFile>
@@ -52,27 +52,44 @@
     <None Include="project.json" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Models\Attachment.cs" />
+    <Compile Include="AsyncEnumerable\AsyncEnumerable.cs" />
+    <Compile Include="AsyncEnumerable\AsyncEnumerationCanceledException.cs" />
+    <Compile Include="AsyncEnumerable\AsyncEnumerator.cs" />
+    <Compile Include="AsyncEnumerable\Extensions\AdapterExtensions.cs" />
+    <Compile Include="AsyncEnumerable\Extensions\ForEachAsyncExtensions.cs" />
+    <Compile Include="AsyncEnumerable\Extensions\IAsyncEnumerableExtensions.cs" />
+    <Compile Include="AsyncEnumerable\Extensions\IAsyncEnumeratorExtensions.cs" />
+    <Compile Include="AsyncEnumerable\Extensions\ParallelForEachException.cs" />
+    <Compile Include="AsyncEnumerable\Extensions\ParallelForEachExtensions.cs" />
+    <Compile Include="AsyncEnumerable\IAsyncEnumerable.cs" />
+    <Compile Include="AsyncEnumerable\IAsyncEnumerator.cs" />
+    <Compile Include="AsyncEnumerable\Internals\AsyncEnumerableWrapper.cs" />
+    <Compile Include="AsyncEnumerable\Internals\AsyncEnumeratorWrapper.cs" />
+    <Compile Include="AsyncEnumerable\Internals\CancellationTokenEx.cs" />
+    <Compile Include="AsyncEnumerable\Internals\CurrentValueContainer.cs" />
+    <Compile Include="AsyncEnumerable\Internals\EmptyAsyncEnumerable.cs" />
+    <Compile Include="AsyncEnumerable\Internals\EmptyAsyncEnumerator.cs" />
+    <Compile Include="AsyncEnumerable\Internals\EnumerableAdapter.cs" />
+    <Compile Include="AsyncEnumerable\Internals\EnumeratorAdapter.cs" />
+    <Compile Include="AsyncEnumerable\Internals\TaskCompletionSource.cs" />
+    <Compile Include="AsyncEnumerable\Internals\TaskEx.cs" />
+    <Compile Include="API\Attachment.cs" />
     <Compile Include="API\Client.cs" />
+    <Compile Include="API\Exception.cs" />
+    <Compile Include="API\File.cs" />
     <Compile Include="API\GraphQl.cs" />
-    <Compile Include="API\Models.cs" />
+    <Compile Include="API\Group.cs" />
+    <Compile Include="API\Location.cs" />
+    <Compile Include="API\Message.cs" />
+    <Compile Include="API\Page.cs" />
+    <Compile Include="API\Plan.cs" />
+    <Compile Include="API\Poll.cs" />
+    <Compile Include="API\QuickReply.cs" />
+    <Compile Include="API\State.cs" />
+    <Compile Include="API\Sticker.cs" />
+    <Compile Include="API\Thread.cs" />
+    <Compile Include="API\User.cs" />
     <Compile Include="API\Utils.cs" />
-    <Compile Include="Models\Client.cs" />
-    <Compile Include="Models\Exception.cs" />
-    <Compile Include="Models\File.cs" />
-    <Compile Include="Models\GraphQl.cs" />
-    <Compile Include="Models\Group.cs" />
-    <Compile Include="Models\Location.cs" />
-    <Compile Include="Models\Message.cs" />
-    <Compile Include="Models\Page.cs" />
-    <Compile Include="Models\Plan.cs" />
-    <Compile Include="Models\Poll.cs" />
-    <Compile Include="Models\QuickReply.cs" />
-    <Compile Include="Models\State.cs" />
-    <Compile Include="Models\Sticker.cs" />
-    <Compile Include="Models\Thread.cs" />
-    <Compile Include="Models\User.cs" />
-    <Compile Include="Models\Utils.cs" />
     <Compile Include="Utils\Extensions.cs" />
     <Compile Include="MessengerClient.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

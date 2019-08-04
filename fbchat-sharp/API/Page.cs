@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace fbchat_sharp.API.Models
+namespace fbchat_sharp.API
 {
     /// <summary>
     /// Facebook messenger page class
@@ -30,6 +30,7 @@ namespace fbchat_sharp.API.Models
         /// <param name="photo"></param>
         /// <param name="name"></param>
         /// <param name="message_count"></param>
+        /// <param name="plan"></param>
         /// <param name="url"></param>
         /// <param name="city"></param>
         /// <param name="likes"></param>

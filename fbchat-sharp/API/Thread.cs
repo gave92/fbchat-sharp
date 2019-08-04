@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace fbchat_sharp.API.Models
+namespace fbchat_sharp.API
 {
     /// <summary>
     /// Used to specify what type of Facebook thread is being used
@@ -16,6 +16,7 @@ namespace fbchat_sharp.API.Models
         GROUP = 2,
         ROOM = 2,
         PAGE = 3,        
+        INVALID = 4
     }
 
     /// <summary>

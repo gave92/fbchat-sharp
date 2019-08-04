@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace fbchat_sharp.API.Models
+namespace fbchat_sharp.API
 {
     /// <summary>
     /// Facebook messenger file class

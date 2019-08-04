@@ -1,5 +1,6 @@
 ﻿using fbchat_sharp.API;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -39,7 +40,7 @@ namespace examples
                 var threads = await client.FetchThreadList();
                 threads.ForEach(v => Console.WriteLine(v));
 
-                var info = await client.fetchThreadInfo(new string[] { threads[0].uid });
+                var info = await client.fetchThreadInfo(new List<string> { threads[0].uid });
 
                 // Fetch own profile
                 var self = await client.FetchProfile();

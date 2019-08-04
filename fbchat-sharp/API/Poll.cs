@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace fbchat_sharp.API.Models
+namespace fbchat_sharp.API
 {
     /// <summary>
     /// Represents a poll

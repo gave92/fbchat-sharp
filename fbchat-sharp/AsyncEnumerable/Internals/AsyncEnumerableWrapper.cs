@@ -15,7 +15,7 @@ namespace System.Collections.Async.Internals
             _runSynchronously = runSynchronously;
         }
 
-        public Task<IAsyncEnumerator<T>> GetAsyncEnumeratorAsync(CancellationToken cancellationToken = default) => Task.FromResult(CreateAsyncEnumerator());
+        public Task<IAsyncEnumerator<T>> GetAsyncEnumeratorAsync(CancellationToken cancellationToken = default(CancellationToken)) => Task.FromResult(CreateAsyncEnumerator());
 
         Task<IAsyncEnumerator> IAsyncEnumerable.GetAsyncEnumeratorAsync(CancellationToken cancellationToken) => Task.FromResult<IAsyncEnumerator>(CreateAsyncEnumerator());
 

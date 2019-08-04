@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace fbchat_sharp.API.Models
+namespace fbchat_sharp.API
 {
     /// <summary>
     /// Custom exception thrown by fbchat-sharp. All exceptions in the fbchat-sharp module inherits this

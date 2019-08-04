@@ -40,7 +40,7 @@ namespace wpfapp
 
         private void MainPage_Unloaded(object sender, RoutedEventArgs e)
         {
-            Client.UpdateEvent -= Client_UpdateEvent;
+            //Client.UpdateEvent -= Client_UpdateEvent;
             Client.StopListening();
         }
 
@@ -48,10 +48,11 @@ namespace wpfapp
         {
             Profile.Value = await Client.FetchProfile();
             await UpdateThreadList();
-            Client.UpdateEvent += Client_UpdateEvent;
-            Client.StartListening();
+            //Client.UpdateEvent += Client_UpdateEvent;
+            await Client.StartListening();
         }
 
+        /*
         private void Client_UpdateEvent(object sender, UpdateEventArgs e)
         {
             if (e.EventType == UpdateStatus.NEW_MESSAGE)
@@ -64,6 +65,7 @@ namespace wpfapp
                 }
             }
         }
+        */
 
         private async void LogoutButton_Click(object sender, RoutedEventArgs e)
         {

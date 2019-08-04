@@ -27,22 +27,22 @@ namespace wpfapp.Xaml
             {
                 foreach (var image in Message.attachments.Where(x => x is FB_ImageAttachment))
                 {
-                    this.Content.Children.Add(new ContentControl() { ContentTemplate = (DataTemplate)this.Resources["ImageMessageTemplate"], Content = image });
+                    this.ContentPanel.Children.Add(new ContentControl() { ContentTemplate = (DataTemplate)this.Resources["ImageMessageTemplate"], Content = image });
                 }
             }            
             if (Message.sticker != null)
             {
-                this.Content.Children.Add(new ContentControl() { ContentTemplate = (DataTemplate)this.Resources["StickerMessageTemplate"], Content = Message.sticker });
+                this.ContentPanel.Children.Add(new ContentControl() { ContentTemplate = (DataTemplate)this.Resources["StickerMessageTemplate"], Content = Message.sticker });
             }
             if (Message.text.Any())
             {
                 if (Message.is_from_me)
                 {
-                    this.Content.Children.Add(new ContentControl() { ContentTemplate = (DataTemplate)this.Resources["OwnTextMessageTemplate"], Content = Message });
+                    this.ContentPanel.Children.Add(new ContentControl() { ContentTemplate = (DataTemplate)this.Resources["OwnTextMessageTemplate"], Content = Message });
                 }
                 else
                 {
-                    this.Content.Children.Add(new ContentControl() { ContentTemplate = (DataTemplate)this.Resources["UserTextMessageTemplate"], Content = Message });
+                    this.ContentPanel.Children.Add(new ContentControl() { ContentTemplate = (DataTemplate)this.Resources["UserTextMessageTemplate"], Content = Message });
                 }                
             }
         }

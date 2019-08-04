@@ -66,7 +66,7 @@ namespace System.Collections.Async
         /// </summary>
         /// <param name="cancellationToken">A cancellation token to cancel creation of the enumerator in case if it takes a lot of time</param>
         /// <returns>Returns a task with the created enumerator as result on completion</returns>
-        public virtual Task<IAsyncEnumerator<T>> GetAsyncEnumeratorAsync(CancellationToken cancellationToken = default)
+        public virtual Task<IAsyncEnumerator<T>> GetAsyncEnumeratorAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             var enumerator = new AsyncEnumerator<T>(_enumerationFunction);
             return Task.FromResult<IAsyncEnumerator<T>>(enumerator);
@@ -114,7 +114,7 @@ namespace System.Collections.Async
         /// </summary>
         /// <param name="cancellationToken">A cancellation token to cancel creation of the enumerator in case if it takes a lot of time</param>
         /// <returns>Returns a task with the created enumerator as result on completion</returns>
-        public virtual Task<IAsyncEnumerator<TItem>> GetAsyncEnumeratorAsync(CancellationToken cancellationToken = default)
+        public virtual Task<IAsyncEnumerator<TItem>> GetAsyncEnumeratorAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             var enumerator = new AsyncEnumeratorWithState<TItem, TState>(_enumerationFunction, State);
             return Task.FromResult<IAsyncEnumerator<TItem>>(enumerator);

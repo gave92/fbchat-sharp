@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace fbchat_sharp.API.Models
+namespace fbchat_sharp.API
 {
     /// <summary>
     /// Facebook messenger group class
@@ -42,6 +42,10 @@ namespace fbchat_sharp.API.Models
         /// <param name="nicknames"></param>
         /// <param name="color"></param>
         /// <param name="emoji"></param>
+        /// <param name="admins"></param>
+        /// <param name="approval_mode"></param>
+        /// <param name="approval_requests"></param>
+        /// <param name="join_link"></param>
         public FB_Group(string uid, string photo = null, string name = null, int message_count = 0, string last_message_timestamp = null, FB_Plan plan = null, ISet<string> participants = null, Dictionary<string, string> nicknames = null, string color = null, JToken emoji = null, ISet<string> admins = null, bool approval_mode = false, ISet<string> approval_requests = null, string join_link = null)
             : base(ThreadType.GROUP, uid, photo, name, message_count: message_count, last_message_timestamp: last_message_timestamp, plan: plan)
         {

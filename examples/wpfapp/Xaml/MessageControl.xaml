@@ -36,5 +36,5 @@
         </DataTemplate>
     </UserControl.Resources>
 
-    <StackPanel Name="Content" Orientation="Vertical"/>
+    <StackPanel Name="ContentPanel" Orientation="Vertical"/>
 </UserControl>

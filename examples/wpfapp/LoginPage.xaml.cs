@@ -23,6 +23,7 @@ namespace wpfapp
 
         private async Task<string> On2FACallback()
         {
+            await Task.Yield();
             return new InputBox("2FA code", "2FA code", "Insert 2FA code...").ShowDialog();
         }
 

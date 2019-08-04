@@ -18,6 +18,7 @@ namespace examples
         {
             try
             {
+                await Task.Yield();
                 var file = Path.Combine(UserDataFolder, sessionFile);
                 File.Delete(file);
             }
@@ -27,16 +28,17 @@ namespace examples
             }
         }      
 
-        protected override async Task<List<Cookie>> ReadCookiesFromDiskAsync()
+        protected override async Task<Dictionary<object, List<Cookie>>> ReadCookiesFromDiskAsync()
         {
             try
             {
                 var file = Path.Combine(UserDataFolder, sessionFile);
                 using (var fileStream = File.OpenRead(file))
                 {
+                    await Task.Yield();
                     var settings = new SharpSerializerBinarySettings(BinarySerializationMode.Burst);
                     var serializer = new SharpSerializer(settings);
-                    return (List<Cookie>)serializer.Deserialize(fileStream);
+                    return (Dictionary<object, List<Cookie>>)serializer.Deserialize(fileStream);
                 }
             }
             catch (Exception ex)
@@ -46,7 +48,7 @@ namespace examples
             }
         }
 
-        protected override async Task WriteCookiesToDiskAsync(List<Cookie> cookieJar)
+        protected override async Task WriteCookiesToDiskAsync(Dictionary<object, List<Cookie>> cookieJar)
         {
             var file = Path.Combine(UserDataFolder, sessionFile);
 

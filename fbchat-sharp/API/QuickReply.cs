@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace fbchat_sharp.API.Models
+namespace fbchat_sharp.API
 {
     /// <summary>
     /// Represents a quick reply 

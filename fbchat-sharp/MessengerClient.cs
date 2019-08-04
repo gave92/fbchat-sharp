@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace fbchat_sharp.API.Models
+namespace fbchat_sharp.API
 {
     /// <summary>
     /// Facebook Client wrapper class. Library users should use this class
@@ -80,16 +80,16 @@ namespace fbchat_sharp.API.Models
         /// <returns>Returns the user id or null if not logged in</returns>
         public string GetUserUid()
         {
-            return base.uid;
+            return base._uid;
         }
 
         /// <summary>
         /// Starts listening for messenger updates (e.g. a new message) on a background thread
         /// </summary>
-        public void StartListening(bool markAlive = false)
+        public async Task StartListening(bool markAlive = false)
         {
             base.startListening();
-            base.onListening();
+            await base.onListening();
 
             // Store this references as a private member, call Cancel() on it if UI wants to stop
             this._cancellationTokenSource = new CancellationTokenSource();
@@ -143,7 +143,7 @@ namespace fbchat_sharp.API.Models
         /// </summary>
         public async Task<FB_User> FetchProfile()
         {
-            return await this.SafeWrapper<FB_User>(async () => (await base.fetchUserInfo(new List<string>() { base.uid })).Single().Value);
+            return await this.SafeWrapper<FB_User>(async () => (await base.fetchUserInfo(new List<string>() { base._uid })).Single().Value);
         }
 
         /// <summary>

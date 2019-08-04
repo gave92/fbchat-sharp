@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 
-namespace fbchat_sharp.API.Models
+namespace fbchat_sharp.API
 {
     public enum GuestStatus
     {

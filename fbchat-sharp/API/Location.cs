@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
 
-namespace fbchat_sharp.API.Models
+namespace fbchat_sharp.API
 {
     /// <summary>
     /// Represents a user location
@@ -99,6 +99,14 @@ namespace fbchat_sharp.API.Models
         /// <summary>
         /// Represents a live user location
         /// </summary>
+        /// <param name="uid"></param>
+        /// <param name="latitude"></param>
+        /// <param name="longitude"></param>
+        /// <param name="image_url"></param>
+        /// <param name="image_width"></param>
+        /// <param name="image_height"></param>
+        /// <param name="url"></param>
+        /// <param name="address"></param>
         /// <param name="name"></param>
         /// <param name="expiration_time"></param>
         /// <param name="is_expired"></param>
@@ -121,7 +129,7 @@ namespace fbchat_sharp.API.Models
                 is_expired: data["stopReason"]?.Value<bool>() ?? false);
         }
 
-        public static FB_LiveLocationAttachment _from_graphql(JToken data)
+        public static new FB_LiveLocationAttachment _from_graphql(JToken data)
         {
             var target = data["target"];
             var rtn = new FB_LiveLocationAttachment(

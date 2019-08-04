@@ -12,7 +12,7 @@ namespace System.Collections.Async
     [ComponentModel.EditorBrowsable(ComponentModel.EditorBrowsableState.Never)]
     public static class IAsyncEnumeratorExtensions
     {
-        #region Single / SingleOrDefault
+        #region Single / SingleOrdefault
 
         /// <summary>
         /// Returns the only element of a sequence, and throws an exception if there is not exactly one element in the sequence.
@@ -23,7 +23,7 @@ namespace System.Collections.Async
         /// <param name="disposeSource">Flag to call the <see cref="IDisposable.Dispose"/> on input <paramref name="source"/> when this operation is complete</param>
         public static Task<TSource> SingleAsync<TSource>(
             this IAsyncEnumerator<TSource> source,
-            CancellationToken token = default,
+            CancellationToken token = default(CancellationToken),
             bool disposeSource = true)
         {
             return SingleAsync(source, PredicateCache<TSource>.True, null, null, token, disposeSource);
@@ -42,7 +42,7 @@ namespace System.Collections.Async
             this IAsyncEnumerator<TSource> source,
             string noneExceptionMessage,
             string manyExceptionMessage,
-            CancellationToken token = default,
+            CancellationToken token = default(CancellationToken),
             bool disposeSource = true)
         {
             return SingleAsync(source, PredicateCache<TSource>.True, noneExceptionMessage, manyExceptionMessage, token, disposeSource);
@@ -59,7 +59,7 @@ namespace System.Collections.Async
         public static Task<TSource> SingleAsync<TSource>(
             this IAsyncEnumerator<TSource> source,
             Func<TSource, bool> predicate,
-            CancellationToken token = default,
+            CancellationToken token = default(CancellationToken),
             bool disposeSource = true)
         {
             return SingleAsync(source, predicate, null, null, token, disposeSource);
@@ -80,7 +80,7 @@ namespace System.Collections.Async
             Func<TSource, bool> predicate,
             string noneExceptionMessage,
             string manyExceptionMessage,
-            CancellationToken token = default,
+            CancellationToken token = default(CancellationToken),
             bool disposeSource = true)
         {
             if (null == source)
@@ -118,32 +118,32 @@ namespace System.Collections.Async
         }
 
         /// <summary>
-        /// Returns the only element of a sequence, and returns a default value if there is not exactly one element in the sequence.
+        /// Returns the only element of a sequence, and returns a default(CancellationToken) value if there is not exactly one element in the sequence.
         /// </summary>
         /// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
         /// <param name="source">An <see cref="IAsyncEnumerable{T}"/> to return the single element of.</param>
         /// <param name="token">A <see cref="CancellationToken"/> that can halt enumeration of <paramref name="source"/>.</param>
         /// <param name="disposeSource">Flag to call the <see cref="IDisposable.Dispose"/> on input <paramref name="source"/> when this operation is complete</param>
-        public static Task<TSource> SingleOrDefaultAsync<TSource>(
+        public static Task<TSource> SingleOrdefaultAsync<TSource>(
             this IAsyncEnumerator<TSource> source,
-            CancellationToken token = default,
+            CancellationToken token = default(CancellationToken),
             bool disposeSource = true)
         {
-            return SingleOrDefaultAsync(source, PredicateCache<TSource>.True, token, disposeSource);
+            return SingleOrdefaultAsync(source, PredicateCache<TSource>.True, token, disposeSource);
         }
 
         /// <summary>
-        /// Returns the only element of a sequence, and returns a default value if there is not exactly one element in the sequence that matches the criteria.
+        /// Returns the only element of a sequence, and returns a default(CancellationToken) value if there is not exactly one element in the sequence that matches the criteria.
         /// </summary>
         /// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
         /// <param name="source">An <see cref="IAsyncEnumerable{T}"/> to return the single element of.</param>
         /// <param name="predicate">Criteria predicate to select the only element.</param>
         /// <param name="token">A <see cref="CancellationToken"/> that can halt enumeration of <paramref name="source"/>.</param>
         /// <param name="disposeSource">Flag to call the <see cref="IDisposable.Dispose"/> on input <paramref name="source"/> when this operation is complete</param>
-        public static async Task<TSource> SingleOrDefaultAsync<TSource>(
+        public static async Task<TSource> SingleOrdefaultAsync<TSource>(
             this IAsyncEnumerator<TSource> source,
             Func<TSource, bool> predicate,
-            CancellationToken token = default,
+            CancellationToken token = default(CancellationToken),
             bool disposeSource = true)
         {
             if (null == source)
@@ -178,14 +178,14 @@ namespace System.Collections.Async
             }
 
             if (!matchFound)
-                return default;
+                return default(TSource);
 
             return lastMatch;
         }
 
         #endregion
 
-        #region First / FirstOrDefault
+        #region First / FirstOrdefault
 
         /// <summary>
         /// Returns the first element in the <see cref="IAsyncEnumerator{T}"/>.
@@ -196,7 +196,7 @@ namespace System.Collections.Async
         /// <param name="disposeSource">Flag to call the <see cref="IDisposable.Dispose"/> on input <paramref name="source"/> when this operation is complete</param>
         public static Task<TSource> FirstAsync<TSource>(
             this IAsyncEnumerator<TSource> source,
-            CancellationToken token = default,
+            CancellationToken token = default(CancellationToken),
             bool disposeSource = true)
         {
             return FirstAsync(source, PredicateCache<TSource>.True, null, token, disposeSource);
@@ -213,7 +213,7 @@ namespace System.Collections.Async
         public static Task<TSource> FirstAsync<TSource>(
             this IAsyncEnumerator<TSource> source,
             string exceptionMessage,
-            CancellationToken token = default,
+            CancellationToken token = default(CancellationToken),
             bool disposeSource = true)
         {
             return FirstAsync(source, PredicateCache<TSource>.True, exceptionMessage, token, disposeSource);
@@ -230,7 +230,7 @@ namespace System.Collections.Async
         public static Task<TSource> FirstAsync<TSource>(
             this IAsyncEnumerator<TSource> source,
             Func<TSource, bool> predicate,
-            CancellationToken token = default,
+            CancellationToken token = default(CancellationToken),
             bool disposeSource = true)
         {
             return FirstAsync(source, predicate, null, token, disposeSource);
@@ -249,7 +249,7 @@ namespace System.Collections.Async
             this IAsyncEnumerator<TSource> source,
             Func<TSource, bool> predicate,
             string exceptionMessage,
-            CancellationToken token = default,
+            CancellationToken token = default(CancellationToken),
             bool disposeSource = true)
         {
             try
@@ -279,12 +279,12 @@ namespace System.Collections.Async
         /// <param name="source">An <see cref="IAsyncEnumerator{T}"/> to return an element from.</param>
         /// <param name="token">A <see cref="CancellationToken"/> that can halt enumeration of <paramref name="source"/></param>
         /// <param name="disposeSource">Flag to call the <see cref="IDisposable.Dispose"/> on input <paramref name="source"/> when this operation is complete</param>
-        public static Task<TSource> FirstOrDefaultAsync<TSource>(
+        public static Task<TSource> FirstOrdefaultAsync<TSource>(
             this IAsyncEnumerator<TSource> source,
-            CancellationToken token = default,
+            CancellationToken token = default(CancellationToken),
             bool disposeSource = true)
         {
-            return FirstOrDefaultAsync(source, PredicateCache<TSource>.True, token, disposeSource);
+            return FirstOrdefaultAsync(source, PredicateCache<TSource>.True, token, disposeSource);
         }
 
         /// <summary>
@@ -295,10 +295,10 @@ namespace System.Collections.Async
         /// <param name="predicate">A function to test each element for a condition.</param>
         /// <param name="token">A <see cref="CancellationToken"/> that can halt enumeration of <paramref name="source"/></param>
         /// <param name="disposeSource">Flag to call the <see cref="IDisposable.Dispose"/> on input <paramref name="source"/> when this operation is complete</param>
-        public static async Task<TSource> FirstOrDefaultAsync<TSource>(
+        public static async Task<TSource> FirstOrdefaultAsync<TSource>(
             this IAsyncEnumerator<TSource> source,
             Func<TSource, bool> predicate,
-            CancellationToken token = default,
+            CancellationToken token = default(CancellationToken),
             bool disposeSource = true)
         {
             try
@@ -312,7 +312,7 @@ namespace System.Collections.Async
                     if (predicate(source.Current))
                         return source.Current;
 
-                return default;
+                return default(TSource);
             }
             finally
             {
@@ -539,7 +539,7 @@ namespace System.Collections.Async
         /// <param name="disposeSource">Flag to call the <see cref="IDisposable.Dispose"/> on input <paramref name="source"/> when this operation is complete</param>
         public static async Task<List<T>> ToListAsync<T>(
             this IAsyncEnumerator<T> source,
-            CancellationToken cancellationToken = default,
+            CancellationToken cancellationToken = default(CancellationToken),
             bool disposeSource = true)
         {
             try
@@ -569,7 +569,7 @@ namespace System.Collections.Async
         /// <param name="disposeSource">Flag to call the <see cref="IDisposable.Dispose"/> on input <paramref name="source"/> when this operation is complete</param>
         public static async Task<T[]> ToArrayAsync<T>(
             this IAsyncEnumerator<T> source,
-            CancellationToken cancellationToken = default,
+            CancellationToken cancellationToken = default(CancellationToken),
             bool disposeSource = true)
         {
             try
@@ -837,7 +837,7 @@ namespace System.Collections.Async
 
         #endregion
 
-        #region DefaultIfEmpty
+        #region defaultIfEmpty
 
         /// <summary>
         /// Returns the elements of the specified sequence or the specified value in a singleton collection if the sequence is empty.
@@ -845,9 +845,9 @@ namespace System.Collections.Async
         /// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
         /// <param name="source">The sequence to return the specified value for if it is empty.</param>
         /// <param name="disposeSource">Flag to call the <see cref="IDisposable.Dispose"/> on input <paramref name="source"/> when enumeration is complete</param>
-        public static IAsyncEnumerator<TSource> DefaultIfEmpty<TSource>(this IAsyncEnumerator<TSource> source, bool disposeSource = true)
+        public static IAsyncEnumerator<TSource> defaultIfEmpty<TSource>(this IAsyncEnumerator<TSource> source, bool disposeSource = true)
         {
-            return DefaultIfEmpty(source, default, disposeSource);
+            return defaultIfEmpty(source, default(TSource), disposeSource);
         }
 
         /// <summary>
@@ -857,23 +857,23 @@ namespace System.Collections.Async
         /// <param name="source">The sequence to return the specified value for if it is empty.</param>
         /// <param name="defaultValue">The value to return if the sequence is empty.</param>
         /// <param name="disposeSource">Flag to call the <see cref="IDisposable.Dispose"/> on input <paramref name="source"/> when enumeration is complete</param>
-        public static IAsyncEnumerator<TSource> DefaultIfEmpty<TSource>(this IAsyncEnumerator<TSource> source, TSource defaultValue, bool disposeSource = true)
+        public static IAsyncEnumerator<TSource> defaultIfEmpty<TSource>(this IAsyncEnumerator<TSource> source, TSource defaultValue, bool disposeSource = true)
         {
             if (null == source)
                 throw new ArgumentNullException(nameof(source));
 
-            return new AsyncEnumeratorWithState<TSource, DefaultIfEmptyContext<TSource>>(
-                DefaultIfEmptyContext<TSource>.Enumerate,
-                new DefaultIfEmptyContext<TSource> { Source = source, DefaultValue = defaultValue, DisposeSource = disposeSource });
+            return new AsyncEnumeratorWithState<TSource, defaultIfEmptyContext<TSource>>(
+                defaultIfEmptyContext<TSource>.Enumerate,
+                new defaultIfEmptyContext<TSource> { Source = source, defaultValue = defaultValue, DisposeSource = disposeSource });
         }
 
-        private struct DefaultIfEmptyContext<TSource>
+        private struct defaultIfEmptyContext<TSource>
         {
             public IAsyncEnumerator<TSource> Source;
-            public TSource DefaultValue;
+            public TSource defaultValue;
             public bool DisposeSource;
 
-            private static async Task _enumerate(AsyncEnumerator<TSource>.Yield yield, DefaultIfEmptyContext<TSource> context)
+            private static async Task _enumerate(AsyncEnumerator<TSource>.Yield yield, defaultIfEmptyContext<TSource> context)
             {
                 try
                 {
@@ -886,7 +886,7 @@ namespace System.Collections.Async
                     }
 
                     if (isEmpty)
-                        await yield.ReturnAsync(context.DefaultValue).ConfigureAwait(false);
+                        await yield.ReturnAsync(context.defaultValue).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -895,7 +895,7 @@ namespace System.Collections.Async
                 }
             }
 
-            public static readonly Func<AsyncEnumerator<TSource>.Yield, DefaultIfEmptyContext<TSource>, Task> Enumerate = _enumerate;
+            public static readonly Func<AsyncEnumerator<TSource>.Yield, defaultIfEmptyContext<TSource>, Task> Enumerate = _enumerate;
         }
 
         #endregion
@@ -1106,7 +1106,7 @@ namespace System.Collections.Async
                         if (itemsInBatch > 0 && batchWeight + itemWeight > context.MaxBatchWeight)
                         {
                             await yield.ReturnAsync(batch).ConfigureAwait(false);
-                            batch = default;
+                            batch = default(TBatch);
                             itemsInBatch = 0;
                             batchWeight = 0;
                         }
@@ -1121,7 +1121,7 @@ namespace System.Collections.Async
                         if (itemsInBatch >= context.MaxItemsInBatch || batchWeight >= context.MaxBatchWeight)
                         {
                             await yield.ReturnAsync(batch).ConfigureAwait(false);
-                            batch = default;
+                            batch = default(TBatch);
                             itemsInBatch = 0;
                             batchWeight = 0;
                         }

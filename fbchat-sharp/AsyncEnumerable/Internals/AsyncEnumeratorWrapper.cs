@@ -19,7 +19,7 @@ namespace System.Collections.Async.Internals
 
         object IAsyncEnumerator.Current => Current;
 
-        public Task<bool> MoveNextAsync(CancellationToken cancellationToken = default)
+        public Task<bool> MoveNextAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             if (_runSynchronously) {
                 var result = _enumerator.MoveNext();
