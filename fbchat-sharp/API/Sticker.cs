@@ -47,7 +47,7 @@ namespace fbchat_sharp.API
                 return null;
             }
             var sticker = new FB_Sticker(uid: data["id"]?.Value<string>());
-            if (data["pack"] != null)
+            if (data["pack"] != null && data["pack"].Type != JTokenType.Null)
             {
                 sticker.pack = data["pack"]?["id"]?.Value<string>();
             }
@@ -63,7 +63,7 @@ namespace fbchat_sharp.API
             sticker.url = data["url"]?.Value<string>();
             sticker.width = data["width"]?.Value<int>() ?? 0;
             sticker.height = data["height"]?.Value<int>() ?? 0;
-            if (data["label"] != null)
+            if (data["label"] != null && data["label"].Type != JTokenType.Null)
             {
                 sticker.label = data["label"]?.Value<string>();
             }

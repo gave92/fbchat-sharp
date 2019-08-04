@@ -106,7 +106,7 @@ namespace fbchat_sharp.API
         /// <param name="plan"></param>
         public FB_Thread(ThreadType type, string uid, string photo = null, string name = null, string last_message_timestamp = null, int message_count = 0, FB_Plan plan = null)
         {
-            this.uid = uid.ToString();
+            this.uid = uid;
             this.type = type;
             this.photo = photo;
             this.name = name;
@@ -118,7 +118,7 @@ namespace fbchat_sharp.API
         public static Dictionary<string, object> _parse_customization_info(JToken data)
         {
             var rtn = new Dictionary<string, object>();
-            if (data == null || data["customization_info"] == null)
+            if (data == null || data["customization_info"] == null || data["customization_info"].Type == JTokenType.Null)
                 return rtn;
             var info = data["customization_info"];
             rtn["emoji"] = info["emoji"];
@@ -127,13 +127,13 @@ namespace fbchat_sharp.API
             if (
                 data["thread_type"]?.Value<string>() == "GROUP"
                 || (data["is_group_thread"]?.Value<bool>() ?? false)
-                || (data["thread_key"]?["thread_fbid"] != null))
+                || (data["thread_key"]?["thread_fbid"] != null && data["thread_key"]?["thread_fbid"].Type != JTokenType.Null))
             {
                 rtn["nicknames"] = new Dictionary<string, string>();
                 foreach (var k in info["participant_customizations"])
                     ((Dictionary<string, string>)rtn["nicknames"])[k["participant_id"]?.Value<string>()] = k["nickname"]?.Value<string>();
             }
-            else if (info["participant_customizations"] != null)
+            else if (info["participant_customizations"] != null && info["participant_customizations"].Type != JTokenType.Null)
             {
                 string uid = data["thread_key"]?["other_user_id"]?.Value<string>() ?? data["id"]?.Value<string>();
                 var pc = info["participant_customizations"];                

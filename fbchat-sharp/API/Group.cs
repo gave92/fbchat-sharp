@@ -65,8 +65,8 @@ namespace fbchat_sharp.API
                 data["image"] = new JObject(new JProperty("uri", ""));
             var c_info = FB_Group._parse_customization_info(data);
 
-            var last_message_timestamp = data["last_message"]?["nodes"]?[0]?["timestamp_precise"]?.Value<string>();
-            var plan = data["event_reminders"]?["nodes"]?[0] != null ? FB_Plan._from_graphql(data["event_reminders"]?["nodes"]?[0]) : null;
+            var last_message_timestamp = data["last_message"]?["nodes"]?.FirstOrDefault()?["timestamp_precise"]?.Value<string>();
+            var plan = data["event_reminders"]?["nodes"]?.FirstOrDefault() != null ? FB_Plan._from_graphql(data["event_reminders"]?["nodes"]?.FirstOrDefault()) : null;
 
             return new FB_Group(
                 uid: data["thread_key"]?["thread_fbid"]?.Value<string>(),

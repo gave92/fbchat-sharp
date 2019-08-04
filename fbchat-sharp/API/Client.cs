@@ -73,7 +73,7 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="session_cookies">Cookies from a previous session</param>
         /// <param name="user_agent"></param>
-        public async Task fromSession(Dictionary<object, List<Cookie>> session_cookies = null, string user_agent = null)
+        public async Task fromSession(Dictionary<string, List<Cookie>> session_cookies = null, string user_agent = null)
         {
             // If session cookies aren't set, not properly loaded or gives us an invalid session, then do the login
             if (
@@ -224,7 +224,7 @@ namespace fbchat_sharp.API
         /// Retrieves session cookies
         /// </summary>
         /// <returns>A dictionay containing session cookies</returns>
-        public Dictionary<object, List<Cookie>> getSession()
+        public Dictionary<string, List<Cookie>> getSession()
         {
             /*
              * Retrieves session cookies
@@ -240,7 +240,7 @@ namespace fbchat_sharp.API
         /// <param name="session_cookies"></param>
         /// <param name="user_agent"></param>
         /// <returns>false if ``session_cookies`` does not contain proper cookies</returns>
-        public async Task<bool> setSession(Dictionary<object, List<Cookie>> session_cookies, string user_agent = null)
+        public async Task<bool> setSession(Dictionary<string, List<Cookie>> session_cookies, string user_agent = null)
         {
             State state = null;
             try
@@ -911,7 +911,7 @@ namespace fbchat_sharp.API
             var queries = new List<GraphQL>();
             foreach (var thread_id in thread_ids)
             {
-                queries.Add(GraphQL.from_doc_id(doc_id: "1386147188135407", param: new Dictionary<string, object>() {
+                queries.Add(GraphQL.from_doc_id(doc_id: "2147762685294928", param: new Dictionary<string, object>() {
                     { "id", thread_id },
                     { "message_limit", 0.ToString() },
                     { "load_messages", false.ToString() },
@@ -1007,13 +1007,13 @@ namespace fbchat_sharp.API
 
             var dict = new Dictionary<string, object>() {
                 { "id", thread_id},
-                { "message_limit", limit.ToString()},
-                { "load_messages", true.ToString()},
-                { "load_read_receipts", false.ToString()},
+                { "message_limit", limit},
+                { "load_messages", true},
+                { "load_read_receipts", false},
                 { "before", before }
             };
 
-            var j = await this.graphql_request(GraphQL.from_doc_id(doc_id: "1386147188135407", param: dict));
+            var j = await this.graphql_request(GraphQL.from_doc_id(doc_id: "1860982147341344", param: dict));
 
             if (j["message_thread"] == null || j["message_thread"].Type == JTokenType.Null)
             {
@@ -1025,10 +1025,13 @@ namespace fbchat_sharp.API
             var read_receipts = j?["message_thread"]?["read_receipts"]?["nodes"];
             foreach (var message in messages)
             {
-                foreach (var receipt in read_receipts)
+                if (read_receipts != null)
                 {
-                    if (int.Parse(receipt["watermark"]?.Value<string>()) >= int.Parse(message.timestamp))
-                        message.read_by.Add(receipt["actor"]["id"]?.Value<string>());
+                    foreach (var receipt in read_receipts)
+                    {
+                        if (int.Parse(receipt["watermark"]?.Value<string>()) >= int.Parse(message.timestamp))
+                            message.read_by.Add(receipt["actor"]["id"]?.Value<string>());
+                    }
                 }
             }
 
@@ -1060,11 +1063,11 @@ namespace fbchat_sharp.API
             }
 
             var dict = new Dictionary<string, object>() {
-                { "limit", limit.ToString() },
+                { "limit", limit },
                 { "tags", new string[] { thread_location } },
                 { "before", before },
-                { "includeDeliveryReceipts", true.ToString() },
-                { "includeSeqID", false.ToString() }
+                { "includeDeliveryReceipts", true },
+                { "includeSeqID", false }
             };
 
             var j = await this.graphql_request(GraphQL.from_doc_id(doc_id: "1349387578499440", param: dict));
@@ -1105,7 +1108,7 @@ namespace fbchat_sharp.API
 
             var j = await this._payload_post("/ajax/mercury/unread_threads.php", form);
 
-            var result = j["unread_thread_fbids"]?[0];
+            var result = j["unread_thread_fbids"]?.FirstOrDefault();
             var rtn = new List<string>();
             rtn.AddRange(result?["thread_fbids"]?.Value<List<string>>());
             rtn.AddRange(result?["other_user_fbids"]?.Value<List<string>>());
@@ -1127,7 +1130,7 @@ namespace fbchat_sharp.API
 
             var j = await this._payload_post("/mercury/unseen_thread_ids/", null);
 
-            var result = j["unseen_thread_fbids"]?[0];
+            var result = j["unseen_thread_fbids"]?.FirstOrDefault();
             var rtn = new List<string>();
             rtn.AddRange(result?["thread_fbids"]?.Value<List<string>>());
             rtn.AddRange(result?["other_user_fbids"]?.Value<List<string>>());
@@ -1392,7 +1395,7 @@ namespace fbchat_sharp.API
 
             try
             {
-                var message_ids = j["payload"]["actions"].Where(action => action["message_id"] != null).Select(
+                var message_ids = j["payload"]["actions"].Where(action => action["message_id"] != null && action["message_id"].Type != JTokenType.Null).Select(
                     action => new { MSG = action["message_id"].Value<string>(), THR = action["thread_fbid"].Value<string>() }
                 ).ToList();
                 if (message_ids.Count != 1)
@@ -2326,7 +2329,7 @@ namespace fbchat_sharp.API
             };
 
             var j = await this._payload_post("/ajax/eventreminder/create", data);
-            if (j["error"] != null)
+            if (j["error"] != null && j["error"].Type != JTokenType.Null)
                 throw new FBchatFacebookError(
                         string.Format("Failed creating plan: {0}", j["error"]),
                         fb_error_message: j["error"]?.Value<string>());
@@ -2918,12 +2921,12 @@ namespace fbchat_sharp.API
             /*Returns a tuple consisting of thread ID and thread type*/
             string id_thread = null;
             ThreadType type_thread = ThreadType.USER;
-            if (msg_metadata["threadKey"]["threadFbId"] != null)
+            if (msg_metadata["threadKey"]["threadFbId"] != null && msg_metadata["threadKey"]["threadFbId"].Type != JTokenType.Null)
             {
                 id_thread = (msg_metadata["threadKey"]["threadFbId"].Value<string>());
                 type_thread = ThreadType.GROUP;
             }
-            else if (msg_metadata["threadKey"]["otherUserFbId"] != null)
+            else if (msg_metadata["threadKey"]["otherUserFbId"] != null && msg_metadata["threadKey"]["otherUserFbId"].Type != JTokenType.Null)
             {
                 id_thread = (msg_metadata["threadKey"]["otherUserFbId"].Value<string>());
                 type_thread = ThreadType.USER;
@@ -2943,7 +2946,7 @@ namespace fbchat_sharp.API
             var ts = int.Parse(metadata?["timestamp"]?.Value<string>());
 
             // Added participants
-            if (delta["addedParticipants"] != null)
+            if (delta["addedParticipants"] != null && delta["addedParticipants"].Type != JTokenType.Null)
             {
                 var added_ids = delta["addedParticipants"].Select(x => x["userFbId"]?.Value<string>()).ToList();
                 var thread_id = metadata?["threadKey"]?["threadFbId"]?.Value<string>();
@@ -2957,7 +2960,7 @@ namespace fbchat_sharp.API
                 );
             }
             // Left/removed participants
-            else if (delta["leftParticipantFbId"] != null)
+            else if (delta["leftParticipantFbId"] != null && delta["leftParticipantFbId"].Type != JTokenType.Null)
             {
                 var removed_id = delta["leftParticipantFbId"]?.Value<string>();
                 var thread_id = metadata?["threadKey"]?["threadFbId"]?.Value<string>();
@@ -2971,7 +2974,7 @@ namespace fbchat_sharp.API
                 );
             }
             // Color change
-            else if (delta["change_thread_theme"] != null)
+            else if (delta["change_thread_theme"] != null && delta["change_thread_theme"].Type != JTokenType.Null)
             {
                 var new_color = ThreadColor._from_graphql(delta["untypedData"]["theme_color"]);
                 var thread = getThreadIdAndThreadType(metadata);
@@ -3356,7 +3359,7 @@ namespace fbchat_sharp.API
                 foreach (var d in payload["deltas"] ?? new JObject())
                 {
                     // Message reaction
-                    if (d["deltaMessageReaction"] != null)
+                    if (d["deltaMessageReaction"] != null && d["deltaMessageReaction"].Type != JTokenType.Null)
                     {
                         var i = d["deltaMessageReaction"];
                         var thread = getThreadIdAndThreadType(i);
@@ -3387,7 +3390,7 @@ namespace fbchat_sharp.API
                             );
                     }
                     // Viewer status change
-                    else if (d["deltaChangeViewerStatus"] != null)
+                    else if (d["deltaChangeViewerStatus"] != null && d["deltaChangeViewerStatus"].Type != JTokenType.Null)
                     {
                         var i = d["deltaChangeViewerStatus"];
                         var thread = getThreadIdAndThreadType(i);
@@ -3413,7 +3416,7 @@ namespace fbchat_sharp.API
                                 );
                     }
                     // Live location info
-                    else if (d["liveLocationData"] != null)
+                    else if (d["liveLocationData"] != null && d["liveLocationData"].Type != JTokenType.Null)
                     {
                         var i = d["liveLocationData"];
                         var thread = getThreadIdAndThreadType(i);
@@ -3434,7 +3437,7 @@ namespace fbchat_sharp.API
                         }
                     }
                     // Message deletion
-                    else if (d["deltaRecallMessageData"] != null)
+                    else if (d["deltaRecallMessageData"] != null && d["deltaRecallMessageData"].Type != JTokenType.Null)
                     {
                         var i = d["deltaRecallMessageData"];
                         var thread = getThreadIdAndThreadType(i);
@@ -3450,7 +3453,7 @@ namespace fbchat_sharp.API
                             msg: m
                         );
                     }
-                    else if (d["deltaMessageReply"] != null)
+                    else if (d["deltaMessageReply"] != null && d["deltaMessageReply"].Type != JTokenType.Null)
                     {
                         var i = d["deltaMessageReply"];
                         metadata = i["message"]["messageMetadata"];
@@ -3504,13 +3507,13 @@ namespace fbchat_sharp.API
             /*Get message and author name from content. May contain multiple messages in the content.*/
             this._seq = content["seq"]?.Value<string>() ?? "0";
 
-            if (content["lb_info"] != null)
+            if (content["lb_info"] != null && content["lb_info"].Type != JTokenType.Null)
             {
                 this._sticky = content["lb_info"]["sticky"]?.Value<string>();
                 this._pool = content["lb_info"]["pool"]?.Value<string>();
             }
 
-            if (content["batches"] != null)
+            if (content["batches"] != null && content["batches"].Type != JTokenType.Null)
             {
                 foreach (var batch in content["batches"])
                     await this._parseMessage(batch);
@@ -3585,7 +3588,7 @@ namespace fbchat_sharp.API
                     else if (mtype == "chatproxy-presence")
                     {
                         var statuses = new Dictionary<string, FB_ActiveStatus>();
-                        if (m["buddyList"] != null)
+                        if (m["buddyList"] != null && m["buddyList"].Type != JTokenType.Null)
                         {
                             foreach (var payload in m["buddyList"].Value<JObject>().Properties())
                             {
@@ -3600,7 +3603,7 @@ namespace fbchat_sharp.API
                     else if (mtype == "buddylist_overlay")
                     {
                         var statuses = new Dictionary<string, FB_ActiveStatus>();
-                        if (m["overlay"] != null)
+                        if (m["overlay"] != null && m["overlay"].Type != JTokenType.Null)
                         {
                             foreach (var payload in m["overlay"].Value<JObject>().Properties())
                             {

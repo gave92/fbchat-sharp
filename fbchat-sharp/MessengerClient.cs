@@ -229,12 +229,12 @@ namespace fbchat_sharp.API
         /// How to save a list of cookies to disk
         /// </summary>
         /// <param name="cookieJar">List of session cookies</param>
-        protected abstract Task WriteCookiesToDiskAsync(Dictionary<object,List<Cookie>> cookieJar);
+        protected abstract Task WriteCookiesToDiskAsync(Dictionary<string,List<Cookie>> cookieJar);
 
         /// <summary>
         /// How to load a list of saved cookies
         /// </summary>
-        protected abstract Task<Dictionary<object,List<Cookie>>> ReadCookiesFromDiskAsync();
+        protected abstract Task<Dictionary<string, List<Cookie>>> ReadCookiesFromDiskAsync();
 
         #region PRIVATE
         private CancellationTokenSource _cancellationTokenSource;

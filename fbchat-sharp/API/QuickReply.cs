@@ -49,7 +49,7 @@ namespace fbchat_sharp.API
             data["is_response"] = is_response;            
             if (_type == FB_QuickReplyText._type)
             {
-                if (q["title"] != null)
+                if (q["title"] != null && q["title"].Type != JTokenType.Null)
                     data["title"] = q["title"];
                 rtn = new FB_QuickReplyText(
                     (JToken)data.GetValueOrDefault("payload"),

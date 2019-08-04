@@ -10,20 +10,24 @@ namespace fbchat_sharp
 {
     internal static class Extensions
     {
-        public static Dictionary<object, List<Cookie>> GetAllCookies(this CookieContainer container)
+        public static Dictionary<string, List<Cookie>> GetAllCookies(this CookieContainer container)
         {
-            var allCookies = new Dictionary<object, List<Cookie>>();
+            var allCookies = new Dictionary<string, List<Cookie>>();
             var domainTableField = container.GetType().GetRuntimeFields().FirstOrDefault(x => x.Name == "m_domainTable");
             var domains = (IDictionary)domainTableField.GetValue(container);
 
             foreach (var val in domains.Values)
             {
-                allCookies[val] = new List<Cookie>();
                 var type = val.GetType().GetRuntimeFields().First(x => x.Name == "m_list");
                 var values = (IDictionary)type.GetValue(val);
+
                 foreach (CookieCollection cookies in values.Values)
                 {
-                    allCookies[val].AddRange(cookies.Cast<Cookie>());
+                    var domain = cookies.Cast<Cookie>().FirstOrDefault()?.Domain;
+                    if (domain == null) continue;
+                    if (!allCookies.ContainsKey(domain))
+                        allCookies[domain] = new List<Cookie>();
+                    allCookies[domain].AddRange(cookies.Cast<Cookie>());
                 }
             }
             return allCookies;

@@ -170,7 +170,7 @@ namespace fbchat_sharp.API
             else
             {
                 request = new HttpRequestMessage(HttpMethod.Get, url);
-            }                        
+            }
             foreach (var header in this._headers) request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             var response = await this._http_client.SendAsync(request);
 
@@ -232,7 +232,7 @@ namespace fbchat_sharp.API
             }
         }
 
-        public Dictionary<object, List<Cookie>> get_cookies()
+        public Dictionary<string, List<Cookie>> get_cookies()
         {
             return this._session.GetAllCookies();
         }
@@ -340,7 +340,7 @@ namespace fbchat_sharp.API
         {
             // Send a request to the login url, to see if we're directed to the home page
             var r = await this._cleanGet("https://m.facebook.com/login.php?login_attempt=1");
-            return is_home(r.RequestMessage.RequestUri.ToString()) 
+            return is_home(r.RequestMessage.RequestUri.ToString())
                 || (r.Headers.Contains("Location") && is_home(r.Headers.Location.ToString()));
         }
 
@@ -349,7 +349,7 @@ namespace fbchat_sharp.API
             var url = Utils.prefix_url("/bluebar/modern_settings_menu/");
 
             if (this._logout_h == null)
-            {                
+            {
                 var h_r = await this._cleanPost(url, query: new Dictionary<string, string>() { { "pmid", "4" } });
                 Regex regex = new Regex("name=\\\"h\\\" value=\\\"(.*?)\\\"");
                 this._logout_h = regex.Match(await State.check_request(h_r)).Groups[1].Value;
@@ -365,21 +365,35 @@ namespace fbchat_sharp.API
             return r.IsSuccessStatusCode;
         }
 
-        public async static Task<State> from_cookies(Dictionary<object, List<Cookie>> session_cookies, string user_agent)
+        public async static Task<State> from_cookies(Dictionary<string, List<Cookie>> session_cookies, string user_agent)
         {
             var state = new State(user_agent: user_agent);
 
             try
             {
                 // Load cookies into current session
-                foreach (Uri url in session_cookies.Keys)
+                foreach (string rawurl in session_cookies.Keys)
                 {
-                    var current_cookies = state._session.GetCookies(url).Cast<Cookie>();
+                    var url = rawurl;
+                    url = string.Format("https://{0}/", url[0] == '.' ? url.Substring(1) : url);
 
-                    foreach (var cookie in session_cookies[url])
+                    var current_cookies = state._session.GetCookies(new Uri(url)).Cast<Cookie>();
+
+                    foreach (var cookie in session_cookies[rawurl])
                     {
                         if (!current_cookies.Any(c => c.Name.Equals(cookie.Name)))
-                            state._session.Add(url, new Cookie(cookie.Name, cookie.Value));
+                        {
+                            if (rawurl[0] == '.')
+                            {
+                                state._session.Add(new Uri(string.Format("https://{0}/", rawurl.Substring(1))), new Cookie(cookie.Name, cookie.Value));
+                                state._session.Add(new Uri(string.Format("https://www{0}/", rawurl)), new Cookie(cookie.Name, cookie.Value));
+                                state._session.Add(new Uri(string.Format("https://m{0}/", rawurl)), new Cookie(cookie.Name, cookie.Value));
+                            }
+                            else
+                            {
+                                state._session.Add(new Uri(url), new Cookie(cookie.Name, cookie.Value));
+                            }
+                        }
                     }
                 }
                 return await State.from_session(state);

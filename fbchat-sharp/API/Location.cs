@@ -71,7 +71,7 @@ namespace fbchat_sharp.API
                 address: address);
 
             var media = data["media"];
-            if (media != null && media["image"] != null)
+            if (media != null && media["image"] != null && media["image"].Type != JTokenType.Null)
             {
                 var image = media["image"];
                 rtn.image_url = image?["uri"]?.Value<string>();
@@ -141,7 +141,7 @@ namespace fbchat_sharp.API
                 is_expired: target["is_expired"]?.Value<bool>() ?? false);
 
             var media = data["media"];
-            if (media != null && media["image"] != null) {
+            if (media != null && media["image"] != null && media["image"].Type != JTokenType.Null) {
                 var image = media["image"];
                 rtn.image_url = image?["uri"]?.Value<string>();
                 rtn.image_width = image?["width"]?.Value<int>() ?? 0;

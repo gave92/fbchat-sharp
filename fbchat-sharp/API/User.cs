@@ -1,9 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace fbchat_sharp.API
 {
@@ -129,11 +126,25 @@ namespace fbchat_sharp.API
                 data["profile_picture"] = new JObject(new JProperty("uri", ""));
             }
             var c_info = FB_User._parse_customization_info(data);
-            var plan = data["event_reminders"]?["nodes"]?[0] != null ? FB_Plan._from_graphql(data["event_reminders"]?["nodes"]?[0]) : null;
+            var plan = data["event_reminders"]?["nodes"]?.FirstOrDefault() != null ? FB_Plan._from_graphql(data["event_reminders"]?["nodes"]?.FirstOrDefault()) : null;
 
             var name = data["name"]?.Value<string>();
             var first_name = data["first_name"]?.Value<string>() ?? data["short_name"]?.Value<string>();
             var last_name = first_name != null ? name?.Replace(first_name, "")?.Trim() : null;
+
+            var gender = GENDER.graphql_GENDERS["UNKNOWN"];
+            if (data["gender"]?.Type == JTokenType.Integer)
+            {
+                gender = GENDER.standard_GENDERS[data["gender"]?.Value<int>() ?? 0];
+            }
+            else
+            {
+                int gender_int = 0;
+                if (int.TryParse(data["gender"]?.Value<string>(), out gender_int))
+                    gender = GENDER.standard_GENDERS[gender_int];
+                else
+                    gender = GENDER.graphql_GENDERS[data["gender"]?.Value<string>() ?? "UNKNOWN"];
+            };
 
             return new FB_User(
                 uid: data["id"]?.Value<string>(),
@@ -142,7 +153,7 @@ namespace fbchat_sharp.API
                 first_name: first_name,
                 last_name: last_name,
                 is_friend: data["is_viewer_friend"]?.Value<bool>() ?? false,
-                gender: data["gender"]?.Type == JTokenType.Integer ? GENDER.standard_GENDERS[data["gender"]?.Value<int>() ?? 0] : GENDER.graphql_GENDERS[data["gender"]?.Value<string>() ?? "UNKNOWN"],
+                gender: gender,
                 affinity: data["viewer_affinity"]?.Value<float>() ?? 0,
                 nickname: (string)c_info.GetValueOrDefault("nickname"),
                 color: (string)c_info.GetValueOrDefault("color"),
@@ -155,35 +166,50 @@ namespace fbchat_sharp.API
 
         public static FB_User _from_thread_fetch(JToken data)
         {
-            if (data["big_image_src"] == null || data["big_image_src"].Type == JTokenType.Null)
-            {
-                data["big_image_src"] = new JObject(new JProperty("uri", ""));
-            }
             var c_info = FB_User._parse_customization_info(data);
             var participants = data["all_participants"]?["nodes"]?.Select(node => node["messaging_actor"]);
-            var user = participants.Where((p) => p["id"]?.Value<string>() == data["thread_key"]?["other_user_id"]?.Value<string>())?.Take(1);
-            var last_message_timestamp = data["last_message"]?["nodes"]?[0]?["timestamp_precise"]?.Value<string>();            
+            var user = participants.Where((p) => p["id"]?.Value<string>() == data["thread_key"]?["other_user_id"]?.Value<string>())?.FirstOrDefault();
+            var last_message_timestamp = data["last_message"]?["nodes"]?.FirstOrDefault()?["timestamp_precise"]?.Value<string>();
 
-            var name = data["name"]?.Value<string>();
-            var first_name = data["first_name"]?.Value<string>() ?? data["short_name"]?.Value<string>();
+            var name = user["name"]?.Value<string>();
+            var first_name = user["first_name"]?.Value<string>() ?? user["short_name"]?.Value<string>();
             var last_name = first_name != null ? name?.Replace(first_name, "")?.Trim() : null;
 
-            var plan = data["event_reminders"]?["nodes"]?[0] != null ? FB_Plan._from_graphql(data["event_reminders"]?["nodes"]?[0]) : null;
+            var gender = GENDER.graphql_GENDERS["UNKNOWN"];
+            if (data["gender"]?.Type == JTokenType.Integer)
+            {
+                gender = GENDER.standard_GENDERS[data["gender"]?.Value<int>() ?? 0];
+            }
+            else
+            {
+                int gender_int = 0;
+                if (int.TryParse(data["gender"]?.Value<string>(), out gender_int))
+                    gender = GENDER.standard_GENDERS[gender_int];
+                else
+                    gender = GENDER.graphql_GENDERS[data["gender"]?.Value<string>() ?? "UNKNOWN"];
+            };
+
+            if (user["big_image_src"] == null || user["big_image_src"].Type == JTokenType.Null)
+            {
+                user["big_image_src"] = new JObject(new JProperty("uri", ""));
+            }
+
+            var plan = data["event_reminders"]?["nodes"]?.FirstOrDefault() != null ? FB_Plan._from_graphql(data["event_reminders"]?["nodes"]?.FirstOrDefault()) : null;
 
             return new FB_User(
-                uid: data["id"]?.Value<string>(),
-                url: data["url"]?.Value<string>(),
+                uid: user["id"]?.Value<string>(),
+                url: user["url"]?.Value<string>(),
                 name: name,
                 first_name: first_name,
                 last_name: last_name,
-                is_friend: data["is_viewer_friend"]?.Value<bool>() ?? false,
-                gender: data["gender"]?.Type == JTokenType.Integer ? GENDER.standard_GENDERS[data["gender"]?.Value<int>() ?? 0] : GENDER.graphql_GENDERS[data["gender"]?.Value<string>() ?? "UNKNOWN"],
-                affinity: data["viewer_affinity"]?.Value<float>() ?? 0,
+                is_friend: user["is_viewer_friend"]?.Value<bool>() ?? false,
+                gender: gender,
+                affinity: user["viewer_affinity"]?.Value<float>() ?? 0,
                 nickname: (string)c_info.GetValueOrDefault("nickname"),
                 color: (string)c_info.GetValueOrDefault("color"),
                 emoji: (JToken)c_info.GetValueOrDefault("emoji"),
                 own_nickname: (string)c_info.GetValueOrDefault("own_nickname"),
-                photo: data["big_image_src"]?["uri"]?.Value<string>(),
+                photo: user["big_image_src"]?["uri"]?.Value<string>(),
                 message_count: data["messages_count"]?.Value<int>() ?? 0,
                 last_message_timestamp: last_message_timestamp,
                 plan: plan);
@@ -191,14 +217,29 @@ namespace fbchat_sharp.API
 
         public static FB_User _from_all_fetch(JToken data)
         {
+            var gender = GENDER.graphql_GENDERS["UNKNOWN"];
+            if (data["gender"]?.Type == JTokenType.Integer)
+            {
+                gender = GENDER.standard_GENDERS[data["gender"]?.Value<int>() ?? 0];
+            }
+            else
+            {
+                int gender_int = 0;
+                if (int.TryParse(data["gender"]?.Value<string>(), out gender_int))
+                    gender = GENDER.standard_GENDERS[gender_int];
+                else
+                    gender = GENDER.graphql_GENDERS[data["gender"]?.Value<string>() ?? "UNKNOWN"];
+            };
+
             return new FB_User(
-                uid: data["id"]?.Value<string>(),                
+                uid: data["id"]?.Value<string>(),
                 first_name: data["firstName"]?.Value<string>(),
                 url: data["uri"]?.Value<string>(),
                 photo: data["thumbSrc"]?.Value<string>(),
                 name: data["name"]?.Value<string>(),
                 is_friend: data["is_friend"]?.Value<bool>() ?? false,
-                gender: data["gender"]?.Type == JTokenType.Integer ? GENDER.standard_GENDERS[data["gender"]?.Value<int>() ?? 0] : GENDER.graphql_GENDERS[data["gender"]?.Value<string>() ?? "UNKNOWN"]);
+                gender: gender
+            );
         }
     }
 

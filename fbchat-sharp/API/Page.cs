@@ -55,7 +55,7 @@ namespace fbchat_sharp.API
                 data["city"] = new JObject(new JProperty("name", ""));
 
             FB_Plan plan = null;
-            if (data["event_reminders"] != null && data["event_reminders"]?["nodes"] != null)
+            if (data["event_reminders"] != null && data["event_reminders"].Type != JTokenType.Null && data["event_reminders"]?["nodes"] != null && data["event_reminders"]?["nodes"].Type != JTokenType.Null)
                 plan = FB_Plan._from_graphql(data["event_reminders"]["nodes"][0]);
 
             return new FB_Page(

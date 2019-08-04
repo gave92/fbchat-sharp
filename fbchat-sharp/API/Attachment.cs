@@ -154,7 +154,7 @@ public class FB_ShareAttachment : FB_Attachment
         string url = data["url"]?.Value<string>();
         FB_ShareAttachment rtn = new FB_ShareAttachment(
             uid: data["deduplication_key"]?.Value<string>(),
-            author: data["target"]["actors"]?[0]["id"]?.Value<string>(),
+            author: data["target"]["actors"]?.FirstOrDefault()?["id"]?.Value<string>(),
             url: url,
             original_url: (url?.Contains("/l.php?u=") ?? false) ? Utils.get_url_parameter(url, "u") : url,
             title: data["title_with_entities"]?["text"]?.Value<string>(),
@@ -165,7 +165,7 @@ public class FB_ShareAttachment : FB_Attachment
         rtn.attachments = data["subattachments"]?.Select(node => FB_Attachment.graphql_to_subattachment(node))?.ToList();
 
         JToken media = data["media"];
-        if (media != null && media["image"] != null)
+        if (media != null && media["image"] != null && media["image"].Type != JTokenType.Null)
         {
             JToken image = media["image"];
             rtn.image_url = image["uri"]?.Value<string>();

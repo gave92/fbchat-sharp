@@ -28,7 +28,7 @@ namespace examples
             }
         }      
 
-        protected override async Task<Dictionary<object, List<Cookie>>> ReadCookiesFromDiskAsync()
+        protected override async Task<Dictionary<string, List<Cookie>>> ReadCookiesFromDiskAsync()
         {
             try
             {
@@ -38,7 +38,7 @@ namespace examples
                     await Task.Yield();
                     var settings = new SharpSerializerBinarySettings(BinarySerializationMode.Burst);
                     var serializer = new SharpSerializer(settings);
-                    return (Dictionary<object, List<Cookie>>)serializer.Deserialize(fileStream);
+                    return (Dictionary<string, List<Cookie>>)serializer.Deserialize(fileStream);
                 }
             }
             catch (Exception ex)
@@ -48,7 +48,7 @@ namespace examples
             }
         }
 
-        protected override async Task WriteCookiesToDiskAsync(Dictionary<object, List<Cookie>> cookieJar)
+        protected override async Task WriteCookiesToDiskAsync(Dictionary<string, List<Cookie>> cookieJar)
         {
             var file = Path.Combine(UserDataFolder, sessionFile);
 

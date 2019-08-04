@@ -85,11 +85,11 @@ namespace fbchat_sharp.API
         public static void handle_graphql_errors(JToken j)
         {
             JToken errors = null;
-            if (j["error"] != null && j["error"].Type == JTokenType.Null)
+            if (j["error"] != null && j["error"].Type != JTokenType.Null)
             {
                 errors = j["error"];
             }
-            else if (j["errors"] != null && j["errors"].Type == JTokenType.Null)
+            else if (j["errors"] != null && j["errors"].Type != JTokenType.Null)
             {
                 errors = j["errors"];
             }
@@ -106,31 +106,6 @@ namespace fbchat_sharp.API
                     fb_error_message: errors["message"]?.Value<string>()
                 );
             }
-
-            var error = j["error"].Value<int>();
-            if (j["error"].Value<int>() == 1357001)
-            {
-                throw new FBchatNotLoggedIn(
-                    string.Format("Error #{0} when sending request: {1}", error, j["errorDescription"]),
-                    fb_error_code: error,
-                    fb_error_message: j["errorDescription"]?.Value<string>());
-            }
-            else if (j["error"].Value<int>() == 1357004)
-            {
-                throw new FBchatPleaseRefresh(
-                    string.Format("Error #{0} when sending request: {1}", error, j["errorDescription"]),
-                    fb_error_code: error,
-                    fb_error_message: j["errorDescription"]?.Value<string>());
-            }
-            else if (new int[] { 1357031, 1545010, 1545003 }.Contains(j["error"].Value<int>()))
-            {
-                throw new FBchatInvalidParameters(
-                    string.Format("Error #{0} when sending request: {1}", error, j["errorDescription"]),
-                    fb_error_code: error,
-                    fb_error_message: j["errorDescription"]?.Value<string>());
-            }
-            // TODO: Use j["errorSummary"]
-            // "errorDescription" is in the users own language!
         }
 
         public static string generateOfflineThreadingID()
@@ -152,7 +127,7 @@ namespace fbchat_sharp.API
 
         public static JToken get_jsmods_require(JToken j, int index)
         {
-            if (j["jsmods"] != null && j["jsmods"]["require"] != null)
+            if (j["jsmods"] != null && j["jsmods"].Type != JTokenType.Null && j["jsmods"]["require"] != null && j["jsmods"]["require"].Type != JTokenType.Null)
             {
                 try
                 {
