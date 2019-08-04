@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace fbchat_sharp.API
+namespace fbchat_sharp.API.Models
 {
     /// <summary>
     /// Facebook Client wrapper class. Library users should use this class
@@ -26,7 +26,7 @@ namespace fbchat_sharp.API
             try
             {
                 var session_cookies = await this.ReadCookiesFromDiskAsync();
-                await base.tryLogin(session_cookies);
+                await base.fromSession(session_cookies);
                 return true;
             }
             catch (Exception ex)
@@ -47,7 +47,7 @@ namespace fbchat_sharp.API
         {
             try
             {
-                await this.doLogin(email, password, max_tries);
+                await this.login(email, password, max_tries);
                 await this.WriteCookiesAsync();
                 return true;
             }
@@ -67,7 +67,7 @@ namespace fbchat_sharp.API
             try
             {
                 await this.DeleteCookiesAsync();
-                await base.doLogout();
+                await base.logout();
                 return true;
             }
             catch (Exception ex)
@@ -86,21 +86,24 @@ namespace fbchat_sharp.API
         /// <summary>
         /// Starts listening for messenger updates (e.g. a new message) on a background thread
         /// </summary>
-        public async void StartListening()
+        public void StartListening(bool markAlive = false)
         {
-            await base.startListening();
+            base.startListening();
             base.onListening();
 
             // Store this references as a private member, call Cancel() on it if UI wants to stop
             this._cancellationTokenSource = new CancellationTokenSource();
-            new Task(async () => await Listen(_cancellationTokenSource.Token), _cancellationTokenSource.Token, TaskCreationOptions.LongRunning).Start();
+            new Task(async () => await Listen(_cancellationTokenSource.Token, markAlive), _cancellationTokenSource.Token, TaskCreationOptions.LongRunning).Start();
         }
 
-        private async Task Listen(CancellationToken token)
+        private async Task Listen(CancellationToken token, bool markAlive = false)
         {
+            base.setActiveStatus(markAlive);
+
             while (!token.IsCancellationRequested)
             {
-                await base.doOneListen(false);
+                if (!await base.doOneListen(markAlive))
+                    break;
                 token.WaitHandle.WaitOne((int)(1 * 1000));
             }
 
@@ -120,7 +123,7 @@ namespace fbchat_sharp.API
         /// </summary>
         public async Task WriteCookiesAsync()
         {
-            var session_cookies = this.getSession(ReqUrl.BASE).ToList();
+            var session_cookies = this.getSession();
             await this.WriteCookiesToDiskAsync(session_cookies);
         }
 
@@ -140,7 +143,7 @@ namespace fbchat_sharp.API
         /// </summary>
         public async Task<FB_User> FetchProfile()
         {
-            return await this.SafeWrapper<FB_User>(async () => (await base.fetchUserInfo(new[] { base.uid })).Single().Value);
+            return await this.SafeWrapper<FB_User>(async () => (await base.fetchUserInfo(new List<string>() { base.uid })).Single().Value);
         }
 
         /// <summary>
@@ -226,12 +229,12 @@ namespace fbchat_sharp.API
         /// How to save a list of cookies to disk
         /// </summary>
         /// <param name="cookieJar">List of session cookies</param>
-        protected abstract Task WriteCookiesToDiskAsync(List<Cookie> cookieJar);
+        protected abstract Task WriteCookiesToDiskAsync(Dictionary<object,List<Cookie>> cookieJar);
 
         /// <summary>
         /// How to load a list of saved cookies
         /// </summary>
-        protected abstract Task<List<Cookie>> ReadCookiesFromDiskAsync();
+        protected abstract Task<Dictionary<object,List<Cookie>>> ReadCookiesFromDiskAsync();
 
         #region PRIVATE
         private CancellationTokenSource _cancellationTokenSource;

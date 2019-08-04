@@ -1,7 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Async;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -45,42 +44,35 @@ namespace fbchat_sharp.API.Models
         /// </summary>
         protected string uid { get; set; }
 
-        private Client()
+        public Client()
         {
-            this.sticky = null;
-            this.pool = null;
-            this.seq = "0";
+            this._sticky = null;
+            this._pool = null;
+            this._seq = "0";
             this._client_id = ((int)(new Random().NextDouble() * (2 ^ 31))).ToString("X4").Substring(2);
             this.default_thread_id = null;
             this.default_thread_type = null;
             this._pull_channel = 0;
             this._markAlive = true;
-            this._buddylist = new Dictionary<string, string>();
+            this._buddylist = new Dictionary<string, object>();
         }
 
         /// <summary>
-        /// Initialize and log in the client.
+        /// Tries to login using a list of provided cookies.
         /// </summary>
-        /// <param name="email">Facebook `email`, `id` or `phone number`</param>
-        /// <param name="password">Facebook account password</param>
-        /// <param name="user_agent">Optional custom user agent string</param>
-        /// <param name="max_tries">Maximum number of times to try logging in</param>
-        /// <param name="session_cookies">Optional Cookies from a previous session</param>
-        public static async Task<Client> Create(string email, string password, string user_agent = null, int max_tries = 5, Dictionary<object, CookieCollection> session_cookies = null)
+        /// <param name="session_cookies">Cookies from a previous session</param>
+        /// <param name="user_agent"></param>
+        public async Task fromSession(Dictionary<object, List<Cookie>> session_cookies = null, string user_agent = null)
         {
-            Client client = new Client();
-
             // If session cookies aren't set, not properly loaded or gives us an invalid session, then do the login
             if (
                 session_cookies == null ||
-                !await client.setSession(session_cookies, user_agent: user_agent) ||
-                !await client.isLoggedIn()
+                !await this.setSession(session_cookies, user_agent: user_agent) ||
+                !await this.isLoggedIn()
                 )
             {
-                await client.login(email, password, max_tries, user_agent: user_agent);
+                throw new FBchatException(message: "Login from session failed.");
             }
-
-            return client;
         }
 
         #region INTERNAL REQUEST METHODS
@@ -221,7 +213,7 @@ namespace fbchat_sharp.API.Models
         /// Retrieves session cookies
         /// </summary>
         /// <returns>A dictionay containing session cookies</returns>
-        public Dictionary<object, CookieCollection> getSession()
+        public Dictionary<object, List<Cookie>> getSession()
         {
             /*
              * Retrieves session cookies
@@ -237,7 +229,7 @@ namespace fbchat_sharp.API.Models
         /// <param name="session_cookies"></param>
         /// <param name="user_agent"></param>
         /// <returns>false if ``session_cookies`` does not contain proper cookies</returns>
-        public async Task<bool> setSession(Dictionary<object, CookieCollection> session_cookies, string user_agent = null)
+        public async Task<bool> setSession(Dictionary<object, List<Cookie>> session_cookies, string user_agent = null)
         {
             State state = null;
             try
@@ -270,7 +262,7 @@ namespace fbchat_sharp.API.Models
         /// <param name="user_agent"></param>
         public async Task login(string email, string password, int max_tries = 5, string user_agent = null)
         {
-            this.onLoggingIn(email: email);
+            await this.onLoggingIn(email: email);
 
             if (max_tries < 1)
                 throw new FBchatUserError("Cannot login: max_tries should be at least one");
@@ -292,7 +284,7 @@ namespace fbchat_sharp.API.Models
 
                     this._state = state;
                     this._uid = uid;
-                    this.onLoggedIn(email: email);
+                    await this.onLoggedIn(email: email);
                     break;
                 }
                 catch (Exception ex)
@@ -2876,7 +2868,7 @@ namespace fbchat_sharp.API.Models
 
         #region LISTEN METHODS
 
-        private async Task _ping(string sticky, string pool)
+        private async Task _ping()
         {
             var data = new Dictionary<string, object>() {
                 { "seq", this._seq},
@@ -2942,9 +2934,9 @@ namespace fbchat_sharp.API.Models
             // Added participants
             if (delta["addedParticipants"] != null)
             {
-                var added_ids = delta["addedParticipants"].Select(x => x["userFbId"]?.Value<string>());
+                var added_ids = delta["addedParticipants"].Select(x => x["userFbId"]?.Value<string>()).ToList();
                 var thread_id = metadata?["threadKey"]?["threadFbId"]?.Value<string>();
-                this.onPeopleAdded(
+                await this.onPeopleAdded(
                     mid: mid,
                     added_ids: added_ids,
                     author_id: author_id,
@@ -2958,7 +2950,7 @@ namespace fbchat_sharp.API.Models
             {
                 var removed_id = delta["leftParticipantFbId"]?.Value<string>();
                 var thread_id = metadata?["threadKey"]?["threadFbId"]?.Value<string>();
-                this.onPersonRemoved(
+                await this.onPersonRemoved(
                     mid: mid,
                     removed_id: removed_id,
                     author_id: author_id,
@@ -2972,7 +2964,7 @@ namespace fbchat_sharp.API.Models
             {
                 var new_color = ThreadColor._from_graphql(delta["untypedData"]["theme_color"]);
                 var thread = getThreadIdAndThreadType(metadata);
-                this.onColorChange(
+                await this.onColorChange(
                     mid: mid,
                     author_id: author_id,
                     new_color: new_color,
@@ -2986,9 +2978,9 @@ namespace fbchat_sharp.API.Models
             // Emoji change
             else if (delta_type == "change_thread_icon")
             {
-                var new_emoji = delta["untypedData"]["thread_icon"];
+                var new_emoji = delta["untypedData"]["thread_icon"]?.Value<string>();
                 var thread = getThreadIdAndThreadType(metadata);
-                this.onEmojiChange(
+                await this.onEmojiChange(
                     mid: mid,
                     author_id: author_id,
                     new_emoji: new_emoji,
@@ -3004,7 +2996,7 @@ namespace fbchat_sharp.API.Models
             {
                 var new_title = delta["name"]?.Value<string>();
                 var thread = getThreadIdAndThreadType(metadata);
-                this.onTitleChange(
+                await this.onTitleChange(
                     mid: mid,
                     author_id: author_id,
                     new_title: new_title,
@@ -3020,7 +3012,7 @@ namespace fbchat_sharp.API.Models
             {
                 mid = delta["messageId"]?.Value<string>();
                 if (mid == null)
-                    this.onUnknownMesssageType(msg: m);
+                    await this.onUnknownMesssageType(msg: m);
                 else
                 {
                     var thread_id = delta["threadKey"]?["threadFbId"]?.Value<string>();
@@ -3033,7 +3025,7 @@ namespace fbchat_sharp.API.Models
                         // Thread image change
                         var image_metadata = fetch_data["image_with_metadata"];
                         var image_id = image_metadata != null ? (int?)int.Parse(image_metadata["legacy_attachment_id"]?.Value<string>()) : null;
-                        this.onImageChange(
+                        await this.onImageChange(
                             mid: mid,
                             author_id: author_id,
                             new_image: image_id,
@@ -3049,9 +3041,9 @@ namespace fbchat_sharp.API.Models
             else if (delta_type == "change_thread_nickname")
             {
                 var changed_for = delta["untypedData"]["participant_id"]?.Value<string>();
-                var new_nickname = delta["untypedData"]["nickname"];
+                var new_nickname = delta["untypedData"]["nickname"]?.Value<string>();
                 var thread = getThreadIdAndThreadType(metadata);
-                this.onNicknameChange(
+                await this.onNicknameChange(
                     mid: mid,
                     author_id: author_id,
                     changed_for: changed_for,
@@ -3070,7 +3062,7 @@ namespace fbchat_sharp.API.Models
                 var target_id = delta["untypedData"]["TARGET_ID"]?.Value<string>();
                 var admin_event = delta["untypedData"]["ADMIN_EVENT"]?.Value<string>();
                 if (admin_event == "add_admin")
-                    this.onAdminAdded(
+                    await this.onAdminAdded(
                         mid: mid,
                         added_id: target_id,
                         author_id: author_id,
@@ -3080,7 +3072,7 @@ namespace fbchat_sharp.API.Models
                         msg: m
                     );
                 else if (admin_event == "remove_admin")
-                    this.onAdminRemoved(
+                    await this.onAdminRemoved(
                     mid: mid,
                     removed_id: target_id,
                     author_id: author_id,
@@ -3094,8 +3086,8 @@ namespace fbchat_sharp.API.Models
             else if (delta_type == "change_thread_approval_mode")
             {
                 var thread = getThreadIdAndThreadType(metadata);
-                var approval_mode = int.Parse(delta["untypedData"]["APPROVAL_MODE"]?.Value<string>()) != 0 ? true : false;
-                this.onApprovalModeChange(
+                var approval_mode = int.Parse(delta["untypedData"]["APPROVAL_MODE"]?.Value<string>()) != 0;
+                await this.onApprovalModeChange(
                     mid: mid,
                     approval_mode: approval_mode,
                     author_id: author_id,
@@ -3113,7 +3105,7 @@ namespace fbchat_sharp.API.Models
                     delta["actorFbId"]?.Value<string>() ?? delta["threadKey"]["otherUserFbId"]?.Value<string>();
                 ts = int.Parse(delta["deliveredWatermarkTimestampMs"]?.Value<string>());
                 var thread = getThreadIdAndThreadType(delta);
-                this.onMessageDelivered(
+                await this.onMessageDelivered(
                     msg_ids: message_ids,
                     delivered_for: delivered_for,
                     thread_id: thread.Item1,
@@ -3130,7 +3122,7 @@ namespace fbchat_sharp.API.Models
                 var seen_ts = int.Parse(delta["actionTimestampMs"]?.Value<string>());
                 var delivered_ts = int.Parse(delta["watermarkTimestampMs"]?.Value<string>());
                 var thread = getThreadIdAndThreadType(delta);
-                this.onMessageSeen(
+                await this.onMessageSeen(
                     seen_by: seen_by,
                     thread_id: thread.Item1,
                     thread_type: thread.Item2,
@@ -3158,7 +3150,7 @@ namespace fbchat_sharp.API.Models
                 }
 
                 // var thread = getThreadIdAndThreadType(delta);
-                this.onMarkedSeen(
+                await this.onMarkedSeen(
                     threads: threads, seen_ts: seen_ts, ts: delivered_ts, metadata: delta, msg: m
                 );
             }
@@ -3170,7 +3162,7 @@ namespace fbchat_sharp.API.Models
                 var score = delta["untypedData"]?["score"] != null ? (int?)int.Parse(delta["untypedData"]?["score"]?.Value<string>()) : null;
                 var leaderboard = delta["untypedData"]?["leaderboard"] != null ? JToken.Parse(delta["untypedData"]?["leaderboard"]?.Value<string>())["scores"] : null;
                 var thread = getThreadIdAndThreadType(metadata);
-                this.onGamePlayed(
+                await this.onGamePlayed(
                     mid: mid,
                     author_id: author_id,
                     game_id: game_id,
@@ -3184,8 +3176,1483 @@ namespace fbchat_sharp.API.Models
                     msg: m
                 );
             }
+            // Group call started/ended
+            else if (delta_type == "rtc_call_log")
+            {
+                var thread = getThreadIdAndThreadType(metadata);
+                var call_status = delta["untypedData"]["event"]?.Value<string>();
+                int call_duration = int.Parse(delta["untypedData"]["call_duration"]?.Value<string>());
+                var is_video_call = int.Parse(delta["untypedData"]["is_video_call"]?.Value<string>()) != 0;
+                if (call_status == "call_started")
+                    await this.onCallStarted(
+                        mid: mid,
+                        caller_id: author_id,
+                        is_video_call: is_video_call,
+                        thread_id: thread.Item1,
+                        thread_type: thread.Item2,
+                        ts: ts,
+                        metadata: metadata,
+                        msg: m
+                    );
+                else if (call_status == "call_ended")
+                    await this.onCallEnded(
+                        mid: mid,
+                        caller_id: author_id,
+                        is_video_call: is_video_call,
+                        call_duration: call_duration,
+                        thread_id: thread.Item1,
+                        thread_type: thread.Item2,
+                        ts: ts,
+                        metadata: metadata,
+                        msg: m
+                    );
+            }
+            // User joined to group call
+            else if (delta_type == "participant_joined_group_call")
+            {
+                var thread = getThreadIdAndThreadType(metadata);
+                var is_video_call = int.Parse(delta["untypedData"]["group_call_type"]?.Value<string>()) != 0;
+                await this.onUserJoinedCall(
+                    mid: mid,
+                    joined_id: author_id,
+                    is_video_call: is_video_call,
+                    thread_id: thread.Item1,
+                    thread_type: thread.Item2,
+                    ts: ts,
+                    metadata: metadata,
+                    msg: m
+                );
+            }
+            // Group poll event
+            else if (delta_type == "group_poll")
+            {
+                var thread = getThreadIdAndThreadType(metadata);
+                var event_type = delta["untypedData"]["event_type"]?.Value<string>();
+                var poll_json = JToken.Parse(delta["untypedData"]["question_json"]?.Value<string>());
+                var poll = FB_Poll._from_graphql(poll_json);
+                if (event_type == "question_creation")
+                    // User created group poll
+                    await this.onPollCreated(
+                        mid: mid,
+                        poll: poll,
+                        author_id: author_id,
+                        thread_id: thread.Item1,
+                        thread_type: thread.Item2,
+                        ts: ts,
+                        metadata: metadata,
+                        msg: m
+                    );
+                else if (event_type == "update_vote")
+                {
+                    // User voted on group poll
+                    var added_options = JToken.Parse(delta["untypedData"]["added_option_ids"]?.Value<string>());
+                    var removed_options = JToken.Parse(delta["untypedData"]["removed_option_ids"]?.Value<string>());
+                    await this.onPollVoted(
+                        mid: mid,
+                        poll: poll,
+                        added_options: added_options,
+                        removed_options: removed_options,
+                        author_id: author_id,
+                        thread_id: thread.Item1,
+                        thread_type: thread.Item2,
+                        ts: ts,
+                        metadata: metadata,
+                        msg: m
+                    );
+                }
+            }
+            // Plan created
+            else if (delta_type == "lightweight_event_create")
+            {
+                var thread = getThreadIdAndThreadType(metadata);
+                await this.onPlanCreated(
+                    mid: mid,
+                    plan: FB_Plan._from_pull(delta["untypedData"]),
+                    author_id: author_id,
+                    thread_id: thread.Item1,
+                    thread_type: thread.Item2,
+                    ts: ts,
+                    metadata: metadata,
+                    msg: m
+                );
+            }
+            // Plan ended
+            else if (delta_type == "lightweight_event_notify")
+            {
+                var thread = getThreadIdAndThreadType(metadata);
+                await this.onPlanEnded(
+                    mid: mid,
+                    plan: FB_Plan._from_pull(delta["untypedData"]),
+                    thread_id: thread.Item1,
+                    thread_type: thread.Item2,
+                    ts: ts,
+                    metadata: metadata,
+                    msg: m
+                );
+            }
+            // Plan edited
+            else if (delta_type == "lightweight_event_update")
+            {
+                var thread = getThreadIdAndThreadType(metadata);
+                await this.onPlanEdited(
+                    mid: mid,
+                    plan: FB_Plan._from_pull(delta["untypedData"]),
+                    author_id: author_id,
+                    thread_id: thread.Item1,
+                    thread_type: thread.Item2,
+                    ts: ts,
+                    metadata: metadata,
+                    msg: m
+                );
+            }
+            // Plan deleted
+            else if (delta_type == "lightweight_event_delete")
+            {
+                var thread = getThreadIdAndThreadType(metadata);
+                await this.onPlanDeleted(
+                    mid: mid,
+                    plan: FB_Plan._from_pull(delta["untypedData"]),
+                    author_id: author_id,
+                    thread_id: thread.Item1,
+                    thread_type: thread.Item2,
+                    ts: ts,
+                    metadata: metadata,
+                    msg: m
+                );
+            }
+            // Plan participation change
+            else if (delta_type == "lightweight_event_rsvp")
+            {
+                var thread = getThreadIdAndThreadType(metadata);
+                var take_part = delta["untypedData"]["guest_status"]?.Value<string>() == "GOING";
+                await this.onPlanParticipation(
+                    mid: mid,
+                    plan: FB_Plan._from_pull(delta["untypedData"]),
+                    take_part: take_part,
+                    author_id: author_id,
+                    thread_id: thread.Item1,
+                    thread_type: thread.Item2,
+                    ts: ts,
+                    metadata: metadata,
+                    msg: m
+                );
+            }
+            // Client payload (that weird numbers)
+            else if (delta_class == "ClientPayload")
+            {
+                var payload = JToken.Parse(string.Join("", delta["payload"]?.Value<string>()));
+                ts = m["ofd_ts"]?.Value<int>() ?? 0;
+                foreach (var d in payload["deltas"] ?? new JObject())
+                {
+                    // Message reaction
+                    if (d["deltaMessageReaction"] != null)
+                    {
+                        var i = d["deltaMessageReaction"];
+                        var thread = getThreadIdAndThreadType(i);
+                        mid = i["messageId"]?.Value<string>();
+                        author_id = i["userId"]?.Value<string>();
+                        var reaction = (
+                            i["reaction"] != null ? (MessageReaction?)(i["reaction"]?.Value<int>()) : null
+                        );
+                        var add_reaction = !(i["action"]?.Value<bool>() ?? false);
+                        if (add_reaction)
+                            await this.onReactionAdded(
+                                mid: mid,
+                                reaction: reaction,
+                                author_id: author_id,
+                                thread_id: thread.Item1,
+                                thread_type: thread.Item2,
+                                ts: ts,
+                                msg: m
+                            );
+                        else
+                            await this.onReactionRemoved(
+                                mid: mid,
+                                author_id: author_id,
+                                thread_id: thread.Item1,
+                                thread_type: thread.Item2,
+                                ts: ts,
+                                msg: m
+                            );
+                    }
+                    // Viewer status change
+                    else if (d["deltaChangeViewerStatus"] != null)
+                    {
+                        var i = d["deltaChangeViewerStatus"];
+                        var thread = getThreadIdAndThreadType(i);
+                        author_id = i["actorFbid"]?.Value<string>();
+                        var reason = i["reason"]?.Value<int>();
+                        var can_reply = i["canViewerReply"]?.Value<bool>() ?? false;
+                        if (reason == 2)
+                            if (can_reply)
+                                await this.onUnblock(
+                                    author_id: author_id,
+                                    thread_id: thread.Item1,
+                                    thread_type: thread.Item2,
+                                    ts: ts,
+                                    msg: m
+                                );
+                            else
+                                await this.onBlock(
+                                    author_id: author_id,
+                                    thread_id: thread.Item1,
+                                    thread_type: thread.Item2,
+                                    ts: ts,
+                                    msg: m
+                                );
+                    }
+                    // Live location info
+                    else if (d["liveLocationData") != null)
+                    {
+                        var i = d["liveLocationData"];
+                        var thread = getThreadIdAndThreadType(i);
+                        foreach (var l in i["messageLiveLocations"])
+                        {
+                            mid = l["messageId"]?.Value<string>();
+                            author_id = l["senderId"]?.Value<string>();
+                            var location = FB_LiveLocationAttachment._from_pull(l);
+                            await this.onLiveLocation(
+                                mid: mid,
+                                location: location,
+                                author_id: author_id,
+                                thread_id: thread.Item1,
+                                thread_type: thread.Item2,
+                                ts: ts,
+                                msg: m
+                            );
+                        }
+                    }
+                    // Message deletion
+                    else if (d["deltaRecallMessageData"] != null)
+                    {
+                        var i = d["deltaRecallMessageData"];
+                        var thread = getThreadIdAndThreadType(i);
+                        mid = i["messageID"]?.Value<string>();
+                        ts = i["deletionTimestamp"]?.Value<int>() ?? 0;
+                        author_id = i["senderID"]?.Value<string>();
+                        await this.onMessageUnsent(
+                            mid: mid,
+                            author_id: author_id,
+                            thread_id: thread.Item1,
+                            thread_type: thread.Item2,
+                            ts: ts,
+                            msg: m
+                        );
+                    }
+                    else if (d["deltaMessageReply"] != null)
+                    {
+                        var i = d["deltaMessageReply"];
+                        metadata = i["message"]["messageMetadata"];
+                        var thread = getThreadIdAndThreadType(metadata);
+                        var message = FB_Message._from_reply(i["message"]);
+                        message.replied_to = FB_Message._from_reply(i["repliedToMessage"]);
+                        message.reply_to_id = message.replied_to.uid;
+                        await this.onMessage(
+                            mid: message.uid,
+                            author_id: message.author,
+                            message: message.text,
+                            message_object: message,
+                            thread_id: thread.Item1,
+                            thread_type: thread.Item2,
+                            ts: int.Parse(message.timestamp),
+                            metadata: metadata,
+                            msg: m
+                        );
+                    }
+                }
+            }
+            // New message
+            else if (delta["class"]?.Value<string>() == "NewMessage")
+            {
+                var thread = getThreadIdAndThreadType(metadata);
+                await this.onMessage(
+                    mid: mid,
+                    author_id: author_id,
+                    message: delta["body"]?.Value<string>() ?? "",
+                    message_object: FB_Message._from_pull(
+                        delta,
+                        mid: mid,
+                        tags: metadata["tags"]?.Value<List<string>>(),
+                        author: author_id,
+                        timestamp: ts.ToString()
+                    ),
+                    thread_id: thread.Item1,
+                    thread_type: thread.Item2,
+                    ts: ts,
+                    metadata: metadata,
+                    msg: m
+                );
+            }
+            // Unknown message type
+            else
+                await this.onUnknownMesssageType(msg: m);
         }
+
+        private async Task _parseMessage(JToken content)
+        {
+            /*Get message and author name from content. May contain multiple messages in the content.*/
+            this._seq = content["seq"]?.Value<string>() ?? "0";
+
+            if (content["lb_info"] != null)
+            {
+                this._sticky = content["lb_info"]["sticky"];
+                this._pool = content["lb_info"]["pool"];
+            }
+
+            if (content["batches"] != null)
+            {
+                foreach (var batch in content["batches"])
+                    await this._parseMessage(batch);
+            }
+
+            if (content["ms"] == null) return;
+
+            foreach (var m in content["ms"])
+            {
+                var mtype = m["type"].Value<string>();
+                try
+                {
+                    // Things that directly change chat
+                    if (mtype == "delta")
+                    {
+                        await this._parseDelta(m);
+                    }
+                    // Inbox
+                    else if (mtype == "inbox")
+                    {
+                        await this.onInbox(unseen: m["unseen"].Value<int>(), unread: m["unread"].Value<int>(), recent_unread: m["recent_unread"].Value<int>(), msg: m);
+                    }
+                    // Typing
+                    else if (mtype == "typ" || mtype == "ttyp")
+                    {
+                        var author_id = m["from"]?.Value<string>();
+                        var thread_id = m["thread_fbid"]?.Value<string>();
+                        var thread_type = ThreadType.USER;
+                        if (thread_id != null)
+                        {
+                            thread_type = ThreadType.GROUP;
+                        }
+                        else
+                        {
+                            thread_type = ThreadType.USER;
+                            if (author_id == this._uid)
+                                thread_id = m["to"]?.Value<string>();
+                            else
+                                thread_id = author_id;
+                        }
+                        var typing_status = (TypingStatus)(m["st"]?.Value<int>());
+                        await this.onTyping(
+                            author_id: author_id,
+                            status: typing_status,
+                            thread_id: thread_id,
+                            thread_type: thread_type,
+                            msg: m
+                        );
+                    }
+                    // Delivered
+
+                    // Seen
+                    //else if (mtype == "m_read_receipt":
+                    //
+                    // this.onSeen(m.get('realtime_viewer_fbid'), m.get('reader'), m.get('time'))
+
+                    else if (mtype == "jewel_requests_add")
+                    {
+                        var from_id = m["from"]?.Value<string>();
+                        await this.onFriendRequest(from_id: from_id, msg: m);
+                    }
+
+                    // Happens on every login
+                    else if (mtype == "qprimer")
+                        await this.onQprimer(ts: m["made"]?.Value<int>() ?? 0, msg: m);
+
+                    // Is sent before any other message
+                    else if (mtype == "deltaflow")
+                    { }
+
+                    // Chat timestamp
+                    else if (mtype == "chatproxy-presence")
+                    {
+                        var statuses = new Dictionary<string, object>();
+                        if (m["buddyList"] != null)
+                        {
+                            foreach (var payload in m["buddyList"].Value<JObject>().Properties())
+                            {
+                                statuses[payload.Name] = FB_ActiveStatus._from_chatproxy_presence(payload.Name, payload.Value);
+                                this._buddylist[payload.Name] = statuses[payload.Name];
+                            }
+                            await this.onChatTimestamp(buddylist: statuses, msg: m);
+                        }
+                    }
+
+                    // Buddylist overlay
+                    else if (mtype == "buddylist_overlay")
+                    {
+                        var statuses = new Dictionary<string, object>();
+                        if (m["overlay"] != null)
+                        {
+                            foreach (var payload in m["overlay"].Value<JObject>().Properties())
+                            {
+                                bool old_in_game = false;
+                                if (this._buddylist.Contains(payload.Name))
+                                    old_in_game = this._buddylist[payload.Name].in_game;
+
+                                statuses[payload.Name] = FB_ActiveStatus._from_buddylist_overlay(
+                                    payload.Value, old_in_game
+                                );
+                                this._buddylist[payload.Name] = statuses[payload.Name];
+                            }
+                            await this.onBuddylistOverlay(statuses: statuses, msg: m);
+                        }
+                        // Unknown message type
+                        else
+                        {
+                            await this.onUnknownMesssageType(ms: m);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await this.onMessageError(exception: ex, msg: m);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Start listening from an external event loop
+        /// </summary>
+        public void startListening()
+        {
+            /*
+             * Start listening from an external event loop
+             * :raises: Exception if request failed
+             */
+            this.listening = true;
+        }
+
+        /// <summary>
+        /// Does one cycle of the listening loop.
+        /// This method is useful if you want to control fbchat from an external event loop
+        /// </summary>
+        /// <param name="markAlive">Whether this should ping the Facebook server before running</param>
+        /// <returns>Whether the loop should keep running</returns>
+        public async Task<bool> doOneListen(bool markAlive = true)
+        {
+            /*
+             * Does one cycle of the listening loop.
+             * This method is useful if you want to control fbchat from an external event loop
+             * :param markAlive: Whether this should ping the Facebook server before running
+             * :type markAlive: bool
+             * :return: Whether the loop should keep running
+             * :rtype: bool
+             */
+
+            this._markAlive = markAlive;
+            try
+            {
+                if (this._markAlive) await this._ping();
+                var content = await this._pullMessage();
+                if (content != null) await this._parseMessage(content);
+            }
+            catch (FBchatFacebookError ex)
+            {
+                if (new int[] { 502, 503 }.Contains(ex.request_status_code))
+                {
+                    // Bump pull channel, while contraining withing 0-4
+                    this._pull_channel = (this._pull_channel + 1) % 5;
+                    this.startListening();
+                }
+                else
+                {
+                    throw (ex);
+                }
+            }
+            catch (Exception ex)
+            {
+                return await this.onListenError(exception: ex);
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Cleans up the variables from startListening
+        /// </summary>
+        public void stopListening()
+        {
+            /*Cleans up the variables from startListening*/
+            this.listening = false;
+            this._sticky = null;
+            this._pool = null;
+        }
+
+        /// <summary>
+        /// Changes client active status while listening
+        /// </summary>
+        /// <param name="markAlive">Whether to show if client is active</param>
+        public void setActiveStatus(bool markAlive)
+        {
+            /*
+             * Changes client active status while listening
+             * :param markAlive: Whether to show if client is active
+             * :type markAlive: bool
+             * */
+            this._markAlive = markAlive;
+        }
+        #endregion
+
+        #region EVENTS
+        /// <summary>
+        /// Called when the client is logging in
+        /// </summary>
+        /// <param name="email">The email of the client</param>
+        protected virtual async Task onLoggingIn(string email = null)
+        {
+            /*
+             * Called when the client is logging in
+             * :param email: The email of the client
+             * */
+            Debug.WriteLine(string.Format("Logging in {0}...", email));
+            await Task.Yield();
+        }
+
+        /// <summary>
+        /// Called when a 2FA code is requested
+        /// </summary>
+        protected virtual async Task<string> on2FACode()
+        {
+            /*
+             * Called when a 2FA code is requested
+             */
+            await Task.Yield();
+            throw new NotImplementedException("You should override this.");
+        }
+
+        /// <summary>
+        /// Called when the client is successfully logged in
+        /// </summary>
+        /// <param name="email">The email of the client</param>
+        protected virtual async Task onLoggedIn(string email = null)
+        {
+            /*
+             * Called when the client is successfully logged in
+             * :param email: The email of the client
+             * */
+            Debug.WriteLine(string.Format("Login of {0} successful.", email));
+            await Task.Yield();
+        }
+
+        /// <summary>
+        /// Called when the client is listening
+        /// </summary>
+        protected virtual async Task onListening()
+        {
+            /*
+             * Called when the client is listening
+             * */
+            Debug.WriteLine("Listening...");
+            await Task.Yield();
+        }
+
+        /// <summary>
+        /// Called when an error was encountered while listening
+        /// </summary>
+        /// <param name="exception">The exception that was encountered</param>
+        protected virtual async Task<bool> onListenError(Exception exception = null)
+        {
+            /*
+             * Called when an error was encountered while listening
+             * :param exception: The exception that was encountered
+             */
+            Debug.WriteLine(string.Format("Got exception while listening: {0}", exception));
+            return await Task.FromResult(true);
+        }
+
+        /// <summary>
+        /// Called when the client is listening, and somebody sends a message
+        /// </summary>
+        /// <param name="mid">The message ID</param>
+        /// <param name="author_id">The ID of the author</param>
+        /// <param name="message">The message content</param>
+        /// <param name="message_object">The message object</param>
+        /// <param name="thread_id">Thread ID that the message was sent to</param>
+        /// <param name="thread_type">Type of thread that the message was sent to</param>
+        /// <param name="ts">The timestamp of the message</param>
+        /// <param name="metadata">Extra metadata about the message</param>
+        /// <param name="msg">A full set of the data received</param>
+        protected virtual async Task onMessage(string mid = null, string author_id = null, string message = null, FB_Message message_object = null, string thread_id = null, ThreadType thread_type = ThreadType.USER, int ts = 0, JToken metadata = null, JToken msg = null)
+        {
+            /*
+            Called when the client is listening, and somebody sends a message
+            :param mid: The message ID
+            :param author_id: The ID of the author
+            :param message: (deprecated. Use `message_object.text` instead)
+            :param message_object: The message (As a `Message` object)
+            :param thread_id: Thread ID that the message was sent to.See :ref:`intro_threads`
+            :param thread_type: Type of thread that the message was sent to.See :ref:`intro_threads`
+            :param ts: The timestamp of the message
+            :param metadata: Extra metadata about the message
+            :param msg: A full set of the data received
+            :type thread_type: models.ThreadType
+            */
+            Debug.WriteLine(string.Format("Message from {0} in {1} ({2}): {3}", author_id, thread_id, thread_type.ToString(), message));
+            await Task.Yield();
+        }
+
+        /// <summary>
+        /// Called when the client is listening, and somebody changes a thread's color
+        /// </summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="author_id">The ID of the person who changed the color</param>
+        /// <param name="new_color">The new color</param>
+        /// <param name="thread_id">Thread ID that the action was sent to</param>
+        /// <param name="thread_type">Type of thread that the action was sent to</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="metadata">Extra metadata about the action</param>
+        /// <param name="msg">A full set of the data received</param>
+        protected virtual async Task onColorChange(string mid = null, string author_id = null, string new_color = null, string thread_id = null, ThreadType thread_type = ThreadType.USER, int ts = 0, JToken metadata = null, JToken msg = null)
+        {
+            /*
+             * Called when the client is listening, and somebody changes a thread's color
+             * :param mid: The action ID
+             * : param author_id: The ID of the person who changed the color
+             * : param new_color: The new color
+             * :param thread_id: Thread ID that the action was sent to. See: ref:`intro_threads`
+             * :param thread_type: Type of thread that the action was sent to.See :ref:`intro_threads`
+             * :param ts: A timestamp of the action
+             * : param metadata: Extra metadata about the action
+             * : param msg: A full set of the data recieved
+             * : type new_color: ThreadColor
+             * : type thread_type: ThreadType
+             * */
+            Debug.WriteLine(string.Format("Color change from {0} in {1} ({2}): {3}", author_id, thread_id, thread_type.ToString(), new_color));
+            await Task.Yield();
+        }
+
+        /// <summary>
+        /// Called when the client is listening, and somebody changes a thread's emoji
+        /// </summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="author_id">The ID of the person who changed the emoji</param>
+        /// <param name="new_emoji">The new emoji</param>
+        /// <param name="thread_id">Thread ID that the action was sent to</param>
+        /// <param name="thread_type">Type of thread that the action was sent to</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="metadata">Extra metadata about the action</param>
+        /// <param name="msg">A full set of the data received</param>
+        protected virtual async Task onEmojiChange(string mid = null, string author_id = null, string new_emoji = null, string thread_id = null, ThreadType thread_type = ThreadType.USER, int ts = 0, JToken metadata = null, JToken msg = null)
+        {
+            /*
+             * Called when the client is listening, and somebody changes a thread's emoji
+             * :param mid: The action ID
+             * : param author_id: The ID of the person who changed the emoji
+             * : param new_emoji: The new emoji
+             * :param thread_id: Thread ID that the action was sent to. See: ref:`intro_threads`
+             * :param thread_type: Type of thread that the action was sent to.See :ref:`intro_threads`
+             * :param ts: A timestamp of the action
+             * : param metadata: Extra metadata about the action
+             * : param msg: A full set of the data recieved
+             * : type thread_type: ThreadType
+             * */
+            Debug.WriteLine(string.Format("Emoji change from {0} in {1} ({2}): {3}", author_id, thread_id, thread_type.ToString(), new_emoji));
+            await Task.Yield();
+        }
+
+        /// <summary>
+        /// Called when the client is listening, and somebody changes a thread's title
+        /// </summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="author_id">The ID of the person who changed the title</param>
+        /// <param name="new_title">The new title</param>
+        /// <param name="thread_id">Thread ID that the action was sent to</param>
+        /// <param name="thread_type">Type of thread that the action was sent to</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="metadata">Extra metadata about the action</param>
+        /// <param name="msg">A full set of the data received</param>
+        protected virtual async Task onTitleChange(string mid = null, string author_id = null, string new_title = null, string thread_id = null, ThreadType thread_type = ThreadType.USER, int ts = 0, JToken metadata = null, JToken msg = null)
+        {
+            /*
+             * Called when the client is listening, and somebody changes a thread's title
+             * :param mid: The action ID
+             * : param author_id: The ID of the person who changed the title
+             * : param new_title: The new title
+             * :param thread_id: Thread ID that the action was sent to. See: ref:`intro_threads`
+             * :param thread_type: Type of thread that the action was sent to.See :ref:`intro_threads`
+             * :param ts: A timestamp of the action
+             * : param metadata: Extra metadata about the action
+             * : param msg: A full set of the data recieved
+             * : type thread_type: ThreadType
+             * */
+            Debug.WriteLine(string.Format("Title change from {0} in {1} ({2}): {3}", author_id, thread_id, thread_type.ToString(), new_title));
+            await Task.Yield();
+        }
+
+        /// <summary>
+        /// Called when the client is listening, and somebody changes a thread's image
+        /// </summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="author_id">The ID of the person who changed the image</param>
+        /// <param name="new_image">The new image</param>
+        /// <param name="thread_id">Thread ID that the action was sent to</param>
+        /// <param name="thread_type">Type of thread that the action was sent to</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="msg">A full set of the data received</param>
+        protected virtual async Task onImageChange(string mid = null, string author_id = null, int? new_image = null, string thread_id = null, ThreadType thread_type = ThreadType.USER, int ts = 0, JToken msg = null)
+        {
+            /*
+             * Called when the client is listening, and somebody changes a thread's image
+             * :param mid: The action ID
+             * : param author_id: The ID of the person who changed the image
+             * : param new_color: The new image
+             * :param thread_id: Thread ID that the action was sent to. See: ref:`intro_threads`
+             * :param thread_type: Type of thread that the action was sent to.See :ref:`intro_threads`
+             * :param ts: A timestamp of the action
+             * : param msg: A full set of the data received
+             * : type thread_type: ThreadType
+             * */
+            Debug.WriteLine(string.Format("Image change from {0} in {1}", author_id, thread_id));
+            await Task.Yield();
+        }
+
+        /// <summary>
+        /// Called when the client is listening, and somebody changes the nickname of a person
+        /// </summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="author_id">The ID of the person who changed the nickname</param>
+        /// <param name="changed_for">The ID of the person whom got their nickname changed</param>
+        /// <param name="new_nickname">The new nickname</param>
+        /// <param name="thread_id">Thread ID that the action was sent to</param>
+        /// <param name="thread_type">Type of thread that the action was sent to</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="metadata">Extra metadata about the action</param>
+        /// <param name="msg">A full set of the data received</param>
+        protected virtual async Task onNicknameChange(string mid = null, string author_id = null, string changed_for = null, string new_nickname = null, string thread_id = null, ThreadType thread_type = ThreadType.USER, int ts = 0, JToken metadata = null, JToken msg = null)
+        {
+            /*
+             * Called when the client is listening, and somebody changes the nickname of a person
+             * :param mid: The action ID
+             * : param author_id: The ID of the person who changed the nickname
+             * : param changed_for: The ID of the person whom got their nickname changed
+             * :param new_nickname: The new nickname
+             * :param thread_id: Thread ID that the action was sent to. See: ref:`intro_threads`
+             * :param thread_type: Type of thread that the action was sent to.See :ref:`intro_threads`
+             * :param ts: A timestamp of the action
+             * : param metadata: Extra metadata about the action
+             * : param msg: A full set of the data recieved
+             * : type thread_type: ThreadType
+             * */
+            Debug.WriteLine(string.Format("Nickname change from {0} in {1} ({2}) for {3}: {4}", author_id, thread_id, thread_type.ToString(), changed_for, new_nickname));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody adds an admin to a group thread
+        ///<summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="added_id">The ID of the admin who got added</param>
+        /// <param name="author_id">The ID of the person who added the admins</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onAdminAdded(
+            string mid = null,
+            string added_id = null,
+            string author_id = null,
+            string thread_id = null,
+            ThreadType thread_type = ThreadType.GROUP,
+            int ts = 0,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("{0} added admin: {1} in {2}", author_id, added_id, thread_id));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody removes an admin from a group thread
+        ///<summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="removed_id">The ID of the admin who got removed</param>
+        /// <param name="author_id">The ID of the person who removed the admins</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onAdminRemoved(
+            string mid = null,
+            string removed_id = null,
+            string author_id = null,
+            string thread_id = null,
+            ThreadType thread_type = ThreadType.GROUP,
+            int ts = 0,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("{0} removed admin: {1} in {2}", author_id, removed_id, thread_id));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody changes approval mode in a group thread
+        ///<summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="approval_mode">True if approval mode is activated</param>
+        /// <param name="author_id">The ID of the person who changed approval mode</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onApprovalModeChange(
+            string mid = null,
+            bool approval_mode = false,
+            string author_id = null,
+            string thread_id = null,
+            ThreadType thread_type = ThreadType.GROUP,
+            int ts = 0,
+            JToken msg = null)
+        {
+            if (approval_mode)
+            {
+                Debug.WriteLine(string.Format("{0} activated approval mode in {1}", author_id, thread_id));
+            }
+            else
+            {
+                Debug.WriteLine(string.Format("{0} disabled approval mode in {1}", author_id, thread_id));
+            }
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody marks a message as seen
+        ///<summary>
+        /// <param name="seen_by">The ID of the person who marked the message as seen</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="seen_ts">A timestamp of when the person saw the message</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="metadata">Extra metadata about the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onMessageSeen(
+            object seen_by = null,
+            string thread_id = null,
+            ThreadType thread_type = ThreadType.USER,
+            int seen_ts = 0,
+            int ts = 0,
+            JToken metadata = null,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("Messages seen by {0} in {1} ({2}) at {3}s", seen_by, thread_id, thread_type.ToString(), seen_ts / 1000));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody marks messages as delivered
+        ///<summary>
+        /// <param name="msg_ids">The messages that are marked as delivered</param>
+        /// <param name="delivered_for">The person that marked the messages as delivered</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="metadata">Extra metadata about the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onMessageDelivered(
+            JToken msg_ids = null,
+            object delivered_for = null,
+            string thread_id = null,
+            ThreadType thread_type = ThreadType.USER,
+            int ts = 0,
+            JToken metadata = null,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("Messages {0} delivered to {1} in {2} ({3}) at {4}s", msg_ids, delivered_for, thread_id, thread_type.ToString(), ts / 1000));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and the client has successfully marked threads as seen
+        ///<summary>
+        /// <param name="threads">The threads that were marked</param>
+        /// <param name="author_id">The ID of the person who changed the emoji</param>
+        /// <param name="seen_ts">A timestamp of when the threads were seen</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="metadata">Extra metadata about the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onMarkedSeen(
+            List<Tuple<string, ThreadType>> threads = null,
+            int seen_ts = 0,
+            int ts = 0,
+            JToken metadata = null,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("Marked messages as seen in threads {0} at {1}s", 
+                string.Join(",",from x in threads
+                 select Tuple.Create(x.Item1, x.Item2.ToString())), seen_ts / 1000));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and someone unsends (deletes for everyone) a message
+        ///<summary>
+        /// <param name="mid">ID of the unsent message</param>
+        /// <param name="author_id">The ID of the person who unsent the message</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onMessageUnsent(
+            string mid = null,
+            string author_id = null,
+            string thread_id = null,
+            ThreadType? thread_type = null,
+            int ts = 0,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("{0} unsent the message {1} in {2} ({3}) at {4}s", author_id, mid, thread_id, thread_type.ToString(), ts / 1000));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody adds people to a group thread
+        ///<summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="added_ids">The IDs of the people who got added</param>
+        /// <param name="author_id">The ID of the person who added the people</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onPeopleAdded(
+            string mid = null,
+            List<string> added_ids = null,
+            string author_id = null,
+            string thread_id = null,
+            int ts = 0,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("{0} added: {1} in {2}", author_id, string.Join(", ",added_ids), thread_id));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody removes a person from a group thread
+        ///<summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="removed_id">The ID of the person who got removed</param>
+        /// <param name="author_id">The ID of the person who removed the person</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onPersonRemoved(
+            string mid = null,
+            string removed_id = null,
+            string author_id = null,
+            string thread_id = null,
+            int ts = 0,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("{0} removed: {1} in {2}", author_id, removed_id, thread_id));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody sends a friend request
+        ///<summary>
+        /// <param name="from_id">The ID of the person that sent the request</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onFriendRequest(object from_id = null, JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("Friend request from {0}", from_id));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// .. todo::
+        /// Documenting this
+        ///<summary>
+        /// <param name="unseen">--</param>
+        /// <param name="unread">--</param>
+        /// <param name="recent_unread">--</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onInbox(
+            object unseen = null,
+            object unread = null,
+            object recent_unread = null,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("Inbox event: {0}, {1}, {2}", unseen, unread, recent_unread));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody starts or stops typing into a chat
+        ///<summary>
+        /// <param name="author_id">The ID of the person who sent the action</param>
+        /// <param name="status">The typing status</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onTyping(
+            string author_id = null,
+            object status = null,
+            string thread_id = null,
+            ThreadType? thread_type = null,
+            JToken msg = null)
+        {
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody plays a game
+        ///<summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="author_id">The ID of the person who played the game</param>
+        /// <param name="game_id">The ID of the game</param>
+        /// <param name="game_name">Name of the game</param>
+        /// <param name="score">Score obtained in the game</param>
+        /// <param name="leaderboard">Actual leaderboard of the game in the thread</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="metadata">Extra metadata about the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onGamePlayed(
+            string mid = null,
+            string author_id = null,
+            object game_id = null,
+            object game_name = null,
+            object score = null,
+            object leaderboard = null,
+            string thread_id = null,
+            ThreadType? thread_type = null,
+            int ts = 0,
+            JToken metadata = null,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("{0} played \"{1}\" in {2} ({3})", author_id, game_name, thread_id, thread_type.ToString()));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody reacts to a message
+        ///<summary>
+        /// <param name="mid">Message ID, that user reacted to</param>
+        /// <param name="reaction">Reaction</param>
+        /// <param name="add_reaction">Whether user added or removed reaction</param>
+        /// <param name="author_id">The ID of the person who reacted to the message</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onReactionAdded(
+            string mid = null,
+            object reaction = null,
+            string author_id = null,
+            string thread_id = null,
+            ThreadType? thread_type = null,
+            int ts = 0,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("{0} reacted to message {1} with {2} in {3} ({4})", author_id, mid, reaction.ToString(), thread_id, thread_type.ToString()));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody removes reaction from a message
+        ///<summary>
+        /// <param name="mid">Message ID, that user reacted to</param>
+        /// <param name="author_id">The ID of the person who removed reaction</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onReactionRemoved(
+            string mid = null,
+            string author_id = null,
+            string thread_id = null,
+            ThreadType? thread_type = null,
+            int ts = 0,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("{0} removed reaction from {1} message in {2} ({3})", author_id, mid, thread_id, thread_type));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody blocks client
+        ///<summary>
+        /// <param name="author_id">The ID of the person who blocked</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onBlock(
+            string author_id = null,
+            string thread_id = null,
+            ThreadType? thread_type = null,
+            int ts = 0,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("{0} blocked {1} ({2}) thread", author_id, thread_id, thread_type.ToString()));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody blocks client
+        ///<summary>
+        /// <param name="author_id">The ID of the person who unblocked</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onUnblock(
+            string author_id = null,
+            string thread_id = null,
+            ThreadType? thread_type = null,
+            int ts = 0,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("{0} unblocked {1} ({2}) thread", author_id, thread_id, thread_type.ToString()));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening and somebody sends live location info
+        ///<summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="location">Sent location info</param>
+        /// <param name="author_id">The ID of the person who sent location info</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onLiveLocation(
+            string mid = null,
+            FB_LiveLocationAttachment location = null,
+            string author_id = null,
+            string thread_id = null,
+            ThreadType? thread_type = null,
+            int ts = 0,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("{0} sent live location info in {1} ({2}) with latitude {3} and longitude {4}", author_id, thread_id, thread_type, location.latitude, location.longitude));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// .. todo::
+        /// Make this work with private calls
+        ///<summary>
+        /// Called when the client is listening, and somebody starts a call in a group
+        ///<summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="caller_id">The ID of the person who started the call</param>
+        /// <param name="is_video_call">True if it's video call</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="metadata">Extra metadata about the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onCallStarted(
+            string mid = null,
+            object caller_id = null,
+            object is_video_call = null,
+            string thread_id = null,
+            ThreadType? thread_type = null,
+            int ts = 0,
+            JToken metadata = null,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("{0} started call in {1} ({2})", caller_id, thread_id, thread_type.ToString()));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// .. todo::
+        /// Make this work with private calls
+        ///<summary>
+        /// Called when the client is listening, and somebody ends a call in a group
+        ///<summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="caller_id">The ID of the person who ended the call</param>
+        /// <param name="is_video_call">True if it was video call</param>
+        /// <param name="call_duration">Call duration in seconds</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="metadata">Extra metadata about the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onCallEnded(
+            string mid = null,
+            object caller_id = null,
+            object is_video_call = null,
+            object call_duration = null,
+            string thread_id = null,
+            ThreadType? thread_type = null,
+            int ts = 0,
+            JToken metadata = null,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("{0} ended call in {1} ({2})", caller_id, thread_id, thread_type.ToString()));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody joins a group call
+        ///<summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="joined_id">The ID of the person who joined the call</param>
+        /// <param name="is_video_call">True if it's video call</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="metadata">Extra metadata about the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onUserJoinedCall(
+            string mid = null,
+            object joined_id = null,
+            object is_video_call = null,
+            string thread_id = null,
+            ThreadType? thread_type = null,
+            int ts = 0,
+            JToken metadata = null,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("{0} joined call in {1} ({2})", joined_id, thread_id, thread_type.ToString()));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody creates a group poll
+        ///<summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="poll">Created poll</param>
+        /// <param name="author_id">The ID of the person who created the poll</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="metadata">Extra metadata about the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onPollCreated(
+            string mid = null,
+            object poll = null,
+            string author_id = null,
+            string thread_id = null,
+            ThreadType? thread_type = null,
+            int ts = 0,
+            JToken metadata = null,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("{0} created poll {1} in {2} ({3})", author_id, poll, thread_id, thread_type.ToString()));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody votes in a group poll
+        ///<summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="poll">Poll, that user voted in</param>
+        /// <param name="author_id">The ID of the person who voted in the poll</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="metadata">Extra metadata about the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onPollVoted(
+            string mid = null,
+            object poll = null,
+            object added_options = null,
+            object removed_options = null,
+            string author_id = null,
+            string thread_id = null,
+            ThreadType? thread_type = null,
+            int ts = 0,
+            JToken metadata = null,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("{0} voted in poll {1} in {2} ({3})", author_id, poll, thread_id, thread_type.ToString()));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody creates a plan
+        ///<summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="plan">Created plan</param>
+        /// <param name="author_id">The ID of the person who created the plan</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="metadata">Extra metadata about the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onPlanCreated(
+            string mid = null,
+            object plan = null,
+            string author_id = null,
+            string thread_id = null,
+            ThreadType? thread_type = null,
+            int ts = 0,
+            JToken metadata = null,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("{0} created plan {1} in {2} ({3})", author_id, plan, thread_id, thread_type.ToString()));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and a plan ends
+        ///<summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="plan">Ended plan</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="metadata">Extra metadata about the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onPlanEnded(
+            string mid = null,
+            object plan = null,
+            string thread_id = null,
+            ThreadType? thread_type = null,
+            int ts = 0,
+            JToken metadata = null,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("Plan {0} has ended in {1} ({2})", plan, thread_id, thread_type.ToString()));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody edits a plan
+        ///<summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="plan">Edited plan</param>
+        /// <param name="author_id">The ID of the person who edited the plan</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="metadata">Extra metadata about the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onPlanEdited(
+            string mid = null,
+            object plan = null,
+            string author_id = null,
+            string thread_id = null,
+            ThreadType? thread_type = null,
+            int ts = 0,
+            JToken metadata = null,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("{0} edited plan {1} in {2} ({3})", author_id, plan, thread_id, thread_type.ToString()));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody deletes a plan
+        ///<summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="plan">Deleted plan</param>
+        /// <param name="author_id">The ID of the person who deleted the plan</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="metadata">Extra metadata about the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onPlanDeleted(
+            string mid = null,
+            object plan = null,
+            string author_id = null,
+            string thread_id = null,
+            ThreadType? thread_type = null,
+            int ts = 0,
+            JToken metadata = null,
+            JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("{0} deleted plan {1} in {2} ({3})", author_id, plan, thread_id, thread_type.ToString()));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and somebody takes part in a plan or not
+        ///<summary>
+        /// <param name="mid">The action ID</param>
+        /// <param name="plan">Plan</param>
+        /// <param name="take_part">Whether the person takes part in the plan or not</param>
+        /// <param name="author_id">The ID of the person who will participate in the plan or not</param>
+        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="metadata">Extra metadata about the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onPlanParticipation(
+            string mid = null,
+            FB_Plan plan = null,
+            bool take_part = false,
+            string author_id = null,
+            string thread_id = null,
+            ThreadType? thread_type = null,
+            int ts = 0,
+            JToken metadata = null,
+            JToken msg = null)
+        {
+            if (take_part)
+            {
+                Debug.WriteLine(string.Format("{0} will take part in {1} in {2} ({3})", author_id, plan, thread_id, thread_type.ToString()));
+            }
+            else
+            {
+                Debug.WriteLine(string.Format("{0} won't take part in {1} in {2} ({3})", author_id, plan, thread_id, thread_type.ToString()));
+            }
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client just started listening
+        ///<summary>
+        /// <param name="ts">A timestamp of the action</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onQprimer(int ts = 0, JToken msg = null)
+        {
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client receives chat online presence update
+        ///<summary>
+        /// <param name="buddylist">A list of dicts with friend id and last seen timestamp</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onChatTimestamp(object buddylist = null, JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("Chat Timestamps received: {0}", buddylist));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening and client receives information about friend active status
+        ///<summary>
+        /// <param name="statuses">Dictionary with user IDs as keys and :class:`ActiveStatus` as values</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onBuddylistOverlay(object statuses = null, JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("Buddylist overlay received: {0}", statuses));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when the client is listening, and some unknown data was recieved
+        ///<summary>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onUnknownMesssageType(JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("Unknown message received: {0}", msg));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// Called when an error was encountered while parsing recieved data
+        ///<summary>
+        /// <param name="exception">The exception that was encountered</param>
+        /// <param name="msg">A full set of the data recieved</param>
+        protected virtual async Task onMessageError(object exception = null, JToken msg = null)
+        {
+            Debug.WriteLine(string.Format("Exception in parsing of {0}", msg));
+            await Task.Yield();
+        }
+
         #endregion
     }
 }
-

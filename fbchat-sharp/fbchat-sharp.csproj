@@ -68,6 +68,7 @@
     <Compile Include="Models\Plan.cs" />
     <Compile Include="Models\Poll.cs" />
     <Compile Include="Models\QuickReply.cs" />
+    <Compile Include="Models\State.cs" />
     <Compile Include="Models\Sticker.cs" />
     <Compile Include="Models\Thread.cs" />
     <Compile Include="Models\User.cs" />
