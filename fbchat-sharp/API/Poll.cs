@@ -91,7 +91,7 @@ namespace fbchat_sharp.API
                 text: data["text"]?.Value<string>(),
                 vote: vote,
                 voters: (data["voters"]?.Type == JTokenType.Object ?
-                    data["voters"]?["edges"].Select((m) => m["node"]?["id"]?.Value<string>()) : data["voters"]?.Value<List<string>>()).ToList(),
+                    data["voters"]?["edges"].Select((m) => m["node"]?["id"]?.Value<string>()) : data["voters"]?.ToObject<List<string>>()).ToList(),
                 votes_count: (data["voters"]?.Type == JTokenType.Object ?
                     data["voters"]?["count"]?.Value<int>() : data["total_count"]?.Value<int>()) ?? 0
             );

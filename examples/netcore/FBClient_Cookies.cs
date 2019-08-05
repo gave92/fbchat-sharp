@@ -12,7 +12,7 @@ namespace examples
     public class FBClient_Cookies : MessengerClient
     {
         private static readonly string appName = "FBChat-Sharp";
-        private static readonly string sessionFile = "SESSION_COOKIES.dat";
+        private static readonly string sessionFile = "SESSION_COOKIES_core.dat";
 
         public FBClient_Cookies()
         {

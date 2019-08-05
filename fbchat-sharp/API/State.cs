@@ -388,6 +388,9 @@ namespace fbchat_sharp.API
                                 state._session.Add(new Uri(string.Format("https://{0}/", rawurl.Substring(1))), new Cookie(cookie.Name, cookie.Value));
                                 state._session.Add(new Uri(string.Format("https://www{0}/", rawurl)), new Cookie(cookie.Name, cookie.Value));
                                 state._session.Add(new Uri(string.Format("https://m{0}/", rawurl)), new Cookie(cookie.Name, cookie.Value));
+                                state._session.Add(new Uri(string.Format("https://0-edge-chat{0}/", rawurl)), new Cookie(cookie.Name, cookie.Value)); // yuck!!
+                                state._session.Add(new Uri(string.Format("https://1-edge-chat{0}/", rawurl)), new Cookie(cookie.Name, cookie.Value)); // yuck!!
+                                state._session.Add(new Uri(string.Format("https://2-edge-chat{0}/", rawurl)), new Cookie(cookie.Name, cookie.Value)); // yuck!!
                             }
                             else
                             {

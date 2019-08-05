@@ -300,7 +300,7 @@ namespace fbchat_sharp.API
 
         public static FB_Message _from_reply(JToken data)
         {
-            var tags = data["messageMetadata"]?["tags"]?.Value<List<string>>();
+            var tags = data["messageMetadata"]?["tags"]?.ToObject<List<string>>();
 
             var rtn = new FB_Message(
                 text: data["body"]?.Value<string>(),

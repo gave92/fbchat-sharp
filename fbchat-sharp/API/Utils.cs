@@ -56,22 +56,22 @@ namespace fbchat_sharp.API
         {
             if (j["error"] == null || j["error"].Type == JTokenType.Null)
                 return;
-            var error = j["error"].Value<int>();
-            if (j["error"].Value<int>() == 1357001)
+            var error = j["error"].Value<long>();
+            if (j["error"].Value<long>() == 1357001)
             {
                 throw new FBchatNotLoggedIn(
                     string.Format("Error #{0} when sending request: {1}", error, j["errorDescription"]),
                     fb_error_code: error,
                     fb_error_message: j["errorDescription"]?.Value<string>());
             }
-            else if (j["error"].Value<int>() == 1357004)
+            else if (j["error"].Value<long>() == 1357004)
             {
                 throw new FBchatPleaseRefresh(
                     string.Format("Error #{0} when sending request: {1}", error, j["errorDescription"]),
                     fb_error_code: error,
                     fb_error_message: j["errorDescription"]?.Value<string>());
             }
-            else if (new int[] { 1357031, 1545010, 1545003 }.Contains(j["error"].Value<int>()))
+            else if (new long[] { 1357031, 1545010, 1545003 }.Contains(j["error"].Value<long>()))
             {
                 throw new FBchatInvalidParameters(
                     string.Format("Error #{0} when sending request: {1}", error, j["errorDescription"]),
@@ -100,9 +100,9 @@ namespace fbchat_sharp.API
                                         // TODO: Use `summary`, `severity` and `description`
                 throw new FBchatFacebookError(
                     string.Format("GraphQL error #{0}: {1} / {2}",
-                        errors["code"]?.Value<int>(), errors["message"]?.Value<string>(), errors["debug_info"]?.Value<string>()
+                        errors["code"]?.Value<long>(), errors["message"]?.Value<string>(), errors["debug_info"]?.Value<string>()
                     ),
-                    fb_error_code: errors["code"]?.Value<int>() ?? 0,
+                    fb_error_code: errors["code"]?.Value<long>() ?? 0,
                     fb_error_message: errors["message"]?.Value<string>()
                 );
             }

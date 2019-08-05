@@ -22,7 +22,7 @@ namespace fbchat_sharp.API
     public class FBchatFacebookError : FBchatException
     {
         /// The error code that Facebook returned
-        public int fb_error_code { get; set; }
+        public long fb_error_code { get; set; }
         /// The error message that Facebook returned (In the user's own language)
         public string fb_error_message { get; set; }
         /// The status code that was sent in the http response (eg. 404) (Usually only set if not successful, aka. not 200)
@@ -35,7 +35,7 @@ namespace fbchat_sharp.API
         /// <param name="fb_error_code"></param>
         /// <param name="fb_error_message"></param>
         /// <param name="request_status_code"></param>
-        public FBchatFacebookError(string message, int fb_error_code = 0, string fb_error_message = null, int request_status_code = 0) 
+        public FBchatFacebookError(string message, long fb_error_code = 0, string fb_error_message = null, int request_status_code = 0) 
             : base(message)
         {
             this.fb_error_code = fb_error_code;
@@ -62,7 +62,7 @@ namespace fbchat_sharp.API
         /// <param name="fb_error_code"></param>
         /// <param name="fb_error_message"></param>
         /// <param name="request_status_code"></param>
-        public FBchatInvalidParameters(string message, int fb_error_code = 0, string fb_error_message = null, int request_status_code = 0) 
+        public FBchatInvalidParameters(string message, long fb_error_code = 0, string fb_error_message = null, int request_status_code = 0) 
             : base(message, fb_error_code, fb_error_message, request_status_code)
         {
         }
@@ -80,7 +80,7 @@ namespace fbchat_sharp.API
         /// <param name="fb_error_code"></param>
         /// <param name="fb_error_message"></param>
         /// <param name="request_status_code"></param>
-        public FBchatNotLoggedIn(string message, int fb_error_code = 1357001, string fb_error_message = null, int request_status_code = 0)
+        public FBchatNotLoggedIn(string message, long fb_error_code = 1357001, string fb_error_message = null, int request_status_code = 0)
             : base(message, fb_error_code, fb_error_message)
         {
         }
@@ -100,7 +100,7 @@ namespace fbchat_sharp.API
         /// <param name="fb_error_code"></param>
         /// <param name="fb_error_message"></param>
         /// <param name="request_status_code"></param>
-        public FBchatPleaseRefresh(string message, int fb_error_code = 1357004, string fb_error_message = null, int request_status_code = 0)
+        public FBchatPleaseRefresh(string message, long fb_error_code = 1357004, string fb_error_message = null, int request_status_code = 0)
             : base(message, fb_error_code, fb_error_message)
         {
         }

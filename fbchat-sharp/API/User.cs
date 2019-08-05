@@ -273,7 +273,7 @@ namespace fbchat_sharp.API
             return new FB_ActiveStatus(
                 active: new int[] { 2, 3 }.Contains(data["p"]?.Value<int>() ?? 0),
                 last_active: data["lat"]?.Value<string>(),
-                in_game: data["gamers"]?.Value<List<string>>()?.Contains(id_) ?? false);
+                in_game: data["gamers"]?.ToObject<List<string>>()?.Contains(id_) ?? false);
         }
 
         public static FB_ActiveStatus _from_buddylist_overlay(JToken data, bool in_game = false)
