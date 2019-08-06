@@ -34,13 +34,13 @@ public class FBClient : MessengerClient
         await Task.Yield();
     }    
         
-    protected override async Task<List<Cookie>> ReadCookiesFromDiskAsync()
+    protected override async Task<Dictionary<string, List<Cookie>>> ReadCookiesFromDiskAsync()
     {
         await Task.Yield();
         return null;
     }
 
-    protected override async Task WriteCookiesToDiskAsync(List<Cookie> cookieJar)
+    protected override async Task WriteCookiesToDiskAsync(Dictionary<string, List<Cookie>> cookieJar)
     {
         await Task.Yield();
     }
