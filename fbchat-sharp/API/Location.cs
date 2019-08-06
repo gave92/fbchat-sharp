@@ -74,9 +74,9 @@ namespace fbchat_sharp.API
             if (media != null && media["image"] != null && media["image"].Type != JTokenType.Null)
             {
                 var image = media["image"];
-                rtn.image_url = image?["uri"]?.Value<string>();
-                rtn.image_width = image?["width"]?.Value<int>() ?? 0;
-                rtn.image_height = image?["height"]?.Value<int>() ?? 0;
+                rtn.image_url = image?.get("uri")?.Value<string>();
+                rtn.image_width = image?.get("width")?.Value<int>() ?? 0;
+                rtn.image_height = image?.get("height")?.Value<int>() ?? 0;
             }
             rtn.url = url;
 
@@ -122,8 +122,8 @@ namespace fbchat_sharp.API
         {
             return new FB_LiveLocationAttachment(
                 uid: data["id"]?.Value<string>(),
-                latitude: ((data["stopReason"] == null || data["stopReason"].Type == JTokenType.Null) ? data["coordinate"]?["latitude"]?.Value<double>() ?? 0 : 0) / (10 ^ 8),
-                longitude: ((data["stopReason"] == null || data["stopReason"].Type == JTokenType.Null) ? data["coordinate"]?["longitude"]?.Value<double>() ?? 0 : 0) / (10 ^ 8),
+                latitude: ((data["stopReason"] == null || data["stopReason"].Type == JTokenType.Null) ? data["coordinate"]?.get("latitude")?.Value<double>() ?? 0 : 0) / (10 ^ 8),
+                longitude: ((data["stopReason"] == null || data["stopReason"].Type == JTokenType.Null) ? data["coordinate"]?.get("longitude")?.Value<double>() ?? 0 : 0) / (10 ^ 8),
                 name: data["locationTitle"]?.Value<string>(),
                 expiration_time: data["expirationTime"]?.Value<string>(),
                 is_expired: data["stopReason"]?.Value<bool>() ?? false);
@@ -134,18 +134,18 @@ namespace fbchat_sharp.API
             var target = data["target"];
             var rtn = new FB_LiveLocationAttachment(
                 uid: target["live_location_id"]?.Value<string>(),
-                latitude: target["coordinate"]?["latitude"]?.Value<double>() ?? 0,
-                longitude: target["coordinate"]?["longitude"]?.Value<double>() ?? 0,
-                name: data["title_with_entities"]?["text"]?.Value<string>(),
+                latitude: target["coordinate"]?.get("latitude")?.Value<double>() ?? 0,
+                longitude: target["coordinate"]?.get("longitude")?.Value<double>() ?? 0,
+                name: data["title_with_entities"]?.get("text")?.Value<string>(),
                 expiration_time: target["expiration_time"]?.Value<string>(),
                 is_expired: target["is_expired"]?.Value<bool>() ?? false);
 
             var media = data["media"];
             if (media != null && media["image"] != null && media["image"].Type != JTokenType.Null) {
                 var image = media["image"];
-                rtn.image_url = image?["uri"]?.Value<string>();
-                rtn.image_width = image?["width"]?.Value<int>() ?? 0;
-                rtn.image_height = image?["height"]?.Value<int>() ?? 0;
+                rtn.image_url = image?.get("uri")?.Value<string>();
+                rtn.image_width = image?.get("width")?.Value<int>() ?? 0;
+                rtn.image_height = image?.get("height")?.Value<int>() ?? 0;
             }                
             rtn.url = data["url"]?.Value<string>();
 

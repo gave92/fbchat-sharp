@@ -541,7 +541,7 @@ namespace fbchat_sharp.API
              };
             var j = await this.graphql_request(GraphQL.from_query(GraphQL.SEARCH_USER, param));
 
-            return j[name]["users"]["nodes"].Select(node => FB_User._from_graphql(node)).ToList();
+            return j[name]?.get("users")?.get("nodes").Select(node => FB_User._from_graphql(node)).ToList();
         }
 
         /// <summary>
@@ -565,7 +565,7 @@ namespace fbchat_sharp.API
             };
             var j = await this.graphql_request(GraphQL.from_query(GraphQL.SEARCH_PAGE, param));
 
-            return j[name]["pages"]["nodes"].Select(node => FB_Page._from_graphql(node)).ToList();
+            return j[name]?.get("pages")?.get("nodes").Select(node => FB_Page._from_graphql(node)).ToList();
         }
 
         /// <summary>
@@ -590,7 +590,7 @@ namespace fbchat_sharp.API
             };
             var j = await this.graphql_request(GraphQL.from_query(GraphQL.SEARCH_GROUP, param));
 
-            return j["viewer"]["groups"]["nodes"].Select(node => FB_Group._from_graphql(node)).ToList();
+            return j["viewer"]?.get("groups")?.get("nodes").Select(node => FB_Group._from_graphql(node)).ToList();
         }
 
         /// <summary>
@@ -616,7 +616,7 @@ namespace fbchat_sharp.API
             var j = await this.graphql_request(GraphQL.from_query(GraphQL.SEARCH_THREAD, param));
 
             List<FB_Thread> rtn = new List<FB_Thread>();
-            foreach (var node in j[name]["threads"]["nodes"])
+            foreach (var node in j[name]?.get("threads")?.get("nodes"))
             {
                 if (node["__typename"].Value<string>().Equals("User"))
                 {
@@ -668,8 +668,8 @@ namespace fbchat_sharp.API
                     { "thread_fbid", thread_id} };
                 var j = await this._payload_post("/ajax/mercury/search_snippets.php?dpr=1", data);
 
-                var result = j["search_snippets"][query];
-                foreach (var snippet in result[thread_id]?["snippets"])
+                var result = j["search_snippets"]?.get(query);
+                foreach (var snippet in result[thread_id]?.get("snippets"))
                     await yield.ReturnAsync(snippet["message_id"]?.Value<string>());
             });
         }
@@ -724,7 +724,7 @@ namespace fbchat_sharp.API
                 { "snippetLimit", thread_limit.ToString() }
             };
             var j = await this._payload_post("/ajax/mercury/search_snippets.php?dpr=1", data);
-            var result = j["search_snippets"][query].ToObject<List<string>>();
+            var result = j["search_snippets"]?.get(query).ToObject<List<string>>();
 
             if (result == null)
                 return null;
@@ -928,15 +928,15 @@ namespace fbchat_sharp.API
                 {
                     // If you don't have an existing thread with this person, attempt to retrieve user data anyways
                     j[obj.i]["message_thread"] = new JObject(
-                                                    new JProperty("thread_key",
-                                                        new JObject(
-                                                            new JProperty("other_user_id", thread_ids[obj.i]))),
-                                                    new JProperty("thread_type", "ONE_TO_ONE"));
+                        new JProperty("thread_key",
+                            new JObject(
+                                new JProperty("other_user_id", thread_ids[obj.i]))),
+                        new JProperty("thread_type", "ONE_TO_ONE"));
                 }
             }
 
-            var pages_and_user_ids = j.Where(k => k["message_thread"]?["thread_type"]?.Value<string>()?.Equals("ONE_TO_ONE") ?? false)
-                .Select(k => k["message_thread"]?["thread_key"]?["other_user_id"]?.Value<string>());
+            var pages_and_user_ids = j.Where(k => k["message_thread"]?.get("thread_type")?.Value<string>()?.Equals("ONE_TO_ONE") ?? false)
+                .Select(k => k["message_thread"]?.get("thread_key")?.get("other_user_id")?.Value<string>());
             JObject pages_and_users = null;
             if (pages_and_user_ids.Count() != 0)
             {
@@ -949,12 +949,12 @@ namespace fbchat_sharp.API
                 var entry = obj.entry["message_thread"];
                 if (entry["thread_type"]?.Value<string>()?.Equals("GROUP") ?? false)
                 {
-                    var _id = entry["thread_key"]["thread_fbid"].Value<string>();
+                    var _id = entry["thread_key"]?.get("thread_fbid").Value<string>();
                     rtn[_id] = FB_Group._from_graphql(entry);
                 }
                 else if (entry["thread_type"]?.Value<string>()?.Equals("ONE_TO_ONE") ?? false)
                 {
-                    var _id = entry["thread_key"]?["other_user_id"]?.Value<string>();
+                    var _id = entry["thread_key"]?.get("other_user_id")?.Value<string>();
                     if (pages_and_users[_id] == null)
                     {
                         throw new FBchatException(string.Format("Could not fetch thread {0}", _id));
@@ -1020,9 +1020,9 @@ namespace fbchat_sharp.API
                 throw new FBchatException(string.Format("Could not fetch thread {0}", thread_id));
             }
 
-            var messages = j?["message_thread"]?["messages"]?["nodes"]?.Select(message => FB_Message._from_graphql(message, thread_id))?.Reverse()?.ToList();
+            var messages = j?.get("message_thread")?.get("messages")?.get("nodes")?.Select(message => FB_Message._from_graphql(message, thread_id))?.Reverse()?.ToList();
 
-            var read_receipts = j?["message_thread"]?["read_receipts"]?["nodes"];
+            var read_receipts = j?.get("message_thread")?.get("read_receipts")?.get("nodes");
             foreach (var message in messages)
             {
                 if (read_receipts != null)
@@ -1030,7 +1030,7 @@ namespace fbchat_sharp.API
                     foreach (var receipt in read_receipts)
                     {
                         if (long.Parse(receipt["watermark"]?.Value<string>()) >= long.Parse(message.timestamp))
-                            message.read_by.Add(receipt["actor"]["id"]?.Value<string>());
+                            message.read_by.Add(receipt["actor"]?.get("id")?.Value<string>());
                     }
                 }
             }
@@ -1073,7 +1073,7 @@ namespace fbchat_sharp.API
             var j = await this.graphql_request(GraphQL.from_doc_id(doc_id: "1349387578499440", param: dict));
 
             var rtn = new List<FB_Thread>();
-            foreach (var node in j["viewer"]?["message_threads"]?["nodes"])
+            foreach (var node in j["viewer"]?.get("message_threads")?.get("nodes"))
             {
                 var _type = node["thread_type"]?.Value<string>();
                 if (_type == "GROUP")
@@ -1110,8 +1110,8 @@ namespace fbchat_sharp.API
 
             var result = j["unread_thread_fbids"]?.FirstOrDefault();
             var rtn = new List<string>();
-            rtn.AddRange(result?["thread_fbids"]?.ToObject<List<string>>());
-            rtn.AddRange(result?["other_user_fbids"]?.ToObject<List<string>>());
+            rtn.AddRange(result?.get("thread_fbids")?.ToObject<List<string>>());
+            rtn.AddRange(result?.get("other_user_fbids")?.ToObject<List<string>>());
             return rtn;
         }
 
@@ -1132,8 +1132,8 @@ namespace fbchat_sharp.API
 
             var result = j["unseen_thread_fbids"]?.FirstOrDefault();
             var rtn = new List<string>();
-            rtn.AddRange(result?["thread_fbids"]?.ToObject<List<string>>());
-            rtn.AddRange(result?["other_user_fbids"]?.ToObject<List<string>>());
+            rtn.AddRange(result?.get("thread_fbids")?.ToObject<List<string>>());
+            rtn.AddRange(result?.get("other_user_fbids")?.ToObject<List<string>>());
             return rtn;
         }
 
@@ -1181,7 +1181,7 @@ namespace fbchat_sharp.API
              * */
             var thread = this._getThread(thread_id, null);
             thread_id = thread.Item1;
-            var message_info = ((JToken)await this._forcedFetch(thread_id, mid))?["message"];
+            var message_info = ((JToken)await this._forcedFetch(thread_id, mid))?.get("message");
             return FB_Message._from_graphql(message_info, thread_id);
         }
 
@@ -1248,8 +1248,8 @@ namespace fbchat_sharp.API
              * :rtype: list
              * */
             var data = await this._getPrivateData();
-            return data?["user"]?["all_phones"]?.Select((j) =>
-                j["phone_number"]?["universal_number"]?.Value<string>()).ToList();
+            return data?.get("user")?.get("all_phones")?.Select((j) =>
+                j["phone_number"]?.get("universal_number")?.Value<string>()).ToList();
         }
 
         /// <summary>
@@ -1264,7 +1264,7 @@ namespace fbchat_sharp.API
              * :rtype: list
              * */
             var data = await this._getPrivateData();
-            return data?["all_emails"]?.Select((j) =>
+            return data?.get("all_emails")?.Select((j) =>
                 j["display_email"]?.Value<string>()).ToList();
         }
 
@@ -1395,7 +1395,7 @@ namespace fbchat_sharp.API
 
             try
             {
-                var message_ids = j["payload"]["actions"].Where(action => action["message_id"] != null && action["message_id"].Type != JTokenType.Null).Select(
+                var message_ids = j["payload"]?.get("actions").Where(action => action["message_id"] != null && action["message_id"].Type != JTokenType.Null).Select(
                     action => new { MSG = action["message_id"].Value<string>(), THR = action["thread_fbid"].Value<string>() }
                 ).ToList();
                 if (message_ids.Count != 1)
@@ -2921,14 +2921,14 @@ namespace fbchat_sharp.API
             /*Returns a tuple consisting of thread ID and thread type*/
             string id_thread = null;
             ThreadType type_thread = ThreadType.USER;
-            if (msg_metadata["threadKey"]["threadFbId"] != null && msg_metadata["threadKey"]["threadFbId"].Type != JTokenType.Null)
+            if (msg_metadata["threadKey"]?.get("threadFbId") != null && msg_metadata["threadKey"]?.get("threadFbId").Type != JTokenType.Null)
             {
-                id_thread = (msg_metadata["threadKey"]["threadFbId"].Value<string>());
+                id_thread = (msg_metadata["threadKey"]?.get("threadFbId").Value<string>());
                 type_thread = ThreadType.GROUP;
             }
-            else if (msg_metadata["threadKey"]["otherUserFbId"] != null && msg_metadata["threadKey"]["otherUserFbId"].Type != JTokenType.Null)
+            else if (msg_metadata["threadKey"]?.get("otherUserFbId") != null && msg_metadata["threadKey"]?.get("otherUserFbId").Type != JTokenType.Null)
             {
-                id_thread = (msg_metadata["threadKey"]["otherUserFbId"].Value<string>());
+                id_thread = (msg_metadata["threadKey"]?.get("otherUserFbId").Value<string>());
                 type_thread = ThreadType.USER;
             }
             return Tuple.Create(id_thread, type_thread);
@@ -2941,15 +2941,15 @@ namespace fbchat_sharp.API
             var delta_class = delta["class"]?.Value<string>();
             var metadata = delta["messageMetadata"];
 
-            var mid = metadata?["messageId"]?.Value<string>();
-            var author_id = metadata?["actorFbId"]?.Value<string>();
-            var ts = long.Parse(metadata?["timestamp"]?.Value<string>());
+            var mid = metadata?.get("messageId")?.Value<string>();
+            var author_id = metadata?.get("actorFbId")?.Value<string>();
+            var ts = long.Parse(metadata?.get("timestamp")?.Value<string>());
 
             // Added participants
             if (delta["addedParticipants"] != null && delta["addedParticipants"].Type != JTokenType.Null)
             {
                 var added_ids = delta["addedParticipants"].Select(x => x["userFbId"]?.Value<string>()).ToList();
-                var thread_id = metadata?["threadKey"]?["threadFbId"]?.Value<string>();
+                var thread_id = metadata?.get("threadKey")?.get("threadFbId")?.Value<string>();
                 await this.onPeopleAdded(
                     mid: mid,
                     added_ids: added_ids,
@@ -2963,7 +2963,7 @@ namespace fbchat_sharp.API
             else if (delta["leftParticipantFbId"] != null && delta["leftParticipantFbId"].Type != JTokenType.Null)
             {
                 var removed_id = delta["leftParticipantFbId"]?.Value<string>();
-                var thread_id = metadata?["threadKey"]?["threadFbId"]?.Value<string>();
+                var thread_id = metadata?.get("threadKey")?.get("threadFbId")?.Value<string>();
                 await this.onPersonRemoved(
                     mid: mid,
                     removed_id: removed_id,
@@ -2976,7 +2976,7 @@ namespace fbchat_sharp.API
             // Color change
             else if (delta["change_thread_theme"] != null && delta["change_thread_theme"].Type != JTokenType.Null)
             {
-                var new_color = ThreadColor._from_graphql(delta["untypedData"]["theme_color"]);
+                var new_color = ThreadColor._from_graphql(delta["untypedData"]?.get("theme_color"));
                 var thread = getThreadIdAndThreadType(metadata);
                 await this.onColorChange(
                     mid: mid,
@@ -2992,7 +2992,7 @@ namespace fbchat_sharp.API
             // Emoji change
             else if (delta_type == "change_thread_icon")
             {
-                var new_emoji = delta["untypedData"]["thread_icon"]?.Value<string>();
+                var new_emoji = delta["untypedData"]?.get("thread_icon")?.Value<string>();
                 var thread = getThreadIdAndThreadType(metadata);
                 await this.onEmojiChange(
                     mid: mid,
@@ -3029,10 +3029,10 @@ namespace fbchat_sharp.API
                     await this.onUnknownMesssageType(msg: m);
                 else
                 {
-                    var thread_id = delta["threadKey"]?["threadFbId"]?.Value<string>();
+                    var thread_id = delta["threadKey"]?.get("threadFbId")?.Value<string>();
                     var fetch_info = await this._forcedFetch(thread_id, mid);
                     var fetch_data = fetch_info["message"];
-                    author_id = fetch_data["message_sender"]["id"]?.Value<string>();
+                    author_id = fetch_data["message_sender"]?.get("id")?.Value<string>();
                     ts = long.Parse(fetch_data["timestamp_precise"]?.Value<string>());
                     if (fetch_data["__typename"]?.Value<string>() == "ThreadImageMessage")
                     {
@@ -3054,8 +3054,8 @@ namespace fbchat_sharp.API
             // Nickname change
             else if (delta_type == "change_thread_nickname")
             {
-                var changed_for = delta["untypedData"]["participant_id"]?.Value<string>();
-                var new_nickname = delta["untypedData"]["nickname"]?.Value<string>();
+                var changed_for = delta["untypedData"]?.get("participant_id")?.Value<string>();
+                var new_nickname = delta["untypedData"]?.get("nickname")?.Value<string>();
                 var thread = getThreadIdAndThreadType(metadata);
                 await this.onNicknameChange(
                     mid: mid,
@@ -3073,8 +3073,8 @@ namespace fbchat_sharp.API
             else if (delta_type == "change_thread_admins")
             {
                 var thread = getThreadIdAndThreadType(metadata);
-                var target_id = delta["untypedData"]["TARGET_ID"]?.Value<string>();
-                var admin_event = delta["untypedData"]["ADMIN_EVENT"]?.Value<string>();
+                var target_id = delta["untypedData"]?.get("TARGET_ID")?.Value<string>();
+                var admin_event = delta["untypedData"]?.get("ADMIN_EVENT")?.Value<string>();
                 if (admin_event == "add_admin")
                     await this.onAdminAdded(
                         mid: mid,
@@ -3100,7 +3100,7 @@ namespace fbchat_sharp.API
             else if (delta_type == "change_thread_approval_mode")
             {
                 var thread = getThreadIdAndThreadType(metadata);
-                var approval_mode = long.Parse(delta["untypedData"]["APPROVAL_MODE"]?.Value<string>()) != 0;
+                var approval_mode = long.Parse(delta["untypedData"]?.get("APPROVAL_MODE")?.Value<string>()) != 0;
                 await this.onApprovalModeChange(
                     mid: mid,
                     approval_mode: approval_mode,
@@ -3116,7 +3116,7 @@ namespace fbchat_sharp.API
             {
                 var message_ids = delta["messageIds"];
                 var delivered_for =
-                    delta["actorFbId"]?.Value<string>() ?? delta["threadKey"]["otherUserFbId"]?.Value<string>();
+                    delta["actorFbId"]?.Value<string>() ?? delta["threadKey"]?.get("otherUserFbId")?.Value<string>();
                 ts = long.Parse(delta["deliveredWatermarkTimestampMs"]?.Value<string>());
                 var thread = getThreadIdAndThreadType(delta);
                 await this.onMessageDelivered(
@@ -3132,7 +3132,7 @@ namespace fbchat_sharp.API
             // Message seen
             else if (delta_class == "ReadReceipt")
             {
-                var seen_by = delta["actorFbId"]?.Value<string>() ?? delta["threadKey"]["otherUserFbId"]?.Value<string>();
+                var seen_by = delta["actorFbId"]?.Value<string>() ?? delta["threadKey"]?.get("otherUserFbId")?.Value<string>();
                 var seen_ts = long.Parse(delta["actionTimestampMs"]?.Value<string>());
                 var delivered_ts = long.Parse(delta["watermarkTimestampMs"]?.Value<string>());
                 var thread = getThreadIdAndThreadType(delta);
@@ -3171,10 +3171,10 @@ namespace fbchat_sharp.API
             // Game played
             else if (delta_type == "instant_game_update")
             {
-                var game_id = delta["untypedData"]["game_id"];
-                var game_name = delta["untypedData"]["game_name"];
-                var score = delta["untypedData"]?["score"] != null ? (int?)long.Parse(delta["untypedData"]?["score"]?.Value<string>()) : null;
-                var leaderboard = delta["untypedData"]?["leaderboard"] != null ? JToken.Parse(delta["untypedData"]?["leaderboard"]?.Value<string>())["scores"] : null;
+                var game_id = delta["untypedData"]?.get("game_id");
+                var game_name = delta["untypedData"]?.get("game_name");
+                var score = delta["untypedData"]?.get("score") != null ? (int?)long.Parse(delta["untypedData"]?.get("score")?.Value<string>()) : null;
+                var leaderboard = delta["untypedData"]?.get("leaderboard") != null ? JToken.Parse(delta["untypedData"]?.get("leaderboard")?.Value<string>())["scores"] : null;
                 var thread = getThreadIdAndThreadType(metadata);
                 await this.onGamePlayed(
                     mid: mid,
@@ -3194,9 +3194,9 @@ namespace fbchat_sharp.API
             else if (delta_type == "rtc_call_log")
             {
                 var thread = getThreadIdAndThreadType(metadata);
-                var call_status = delta["untypedData"]["event"]?.Value<string>();
-                int call_duration = int.Parse(delta["untypedData"]["call_duration"]?.Value<string>());
-                var is_video_call = int.Parse(delta["untypedData"]["is_video_call"]?.Value<string>()) != 0;
+                var call_status = delta["untypedData"]?.get("event")?.Value<string>();
+                int call_duration = int.Parse(delta["untypedData"]?.get("call_duration")?.Value<string>());
+                var is_video_call = int.Parse(delta["untypedData"]?.get("is_video_call")?.Value<string>()) != 0;
                 if (call_status == "call_started")
                     await this.onCallStarted(
                         mid: mid,
@@ -3225,7 +3225,7 @@ namespace fbchat_sharp.API
             else if (delta_type == "participant_joined_group_call")
             {
                 var thread = getThreadIdAndThreadType(metadata);
-                var is_video_call = long.Parse(delta["untypedData"]["group_call_type"]?.Value<string>()) != 0;
+                var is_video_call = long.Parse(delta["untypedData"]?.get("group_call_type")?.Value<string>()) != 0;
                 await this.onUserJoinedCall(
                     mid: mid,
                     joined_id: author_id,
@@ -3241,8 +3241,8 @@ namespace fbchat_sharp.API
             else if (delta_type == "group_poll")
             {
                 var thread = getThreadIdAndThreadType(metadata);
-                var event_type = delta["untypedData"]["event_type"]?.Value<string>();
-                var poll_json = JToken.Parse(delta["untypedData"]["question_json"]?.Value<string>());
+                var event_type = delta["untypedData"]?.get("event_type")?.Value<string>();
+                var poll_json = JToken.Parse(delta["untypedData"]?.get("question_json")?.Value<string>());
                 var poll = FB_Poll._from_graphql(poll_json);
                 if (event_type == "question_creation")
                     // User created group poll
@@ -3259,8 +3259,8 @@ namespace fbchat_sharp.API
                 else if (event_type == "update_vote")
                 {
                     // User voted on group poll
-                    var added_options = JToken.Parse(delta["untypedData"]["added_option_ids"]?.Value<string>());
-                    var removed_options = JToken.Parse(delta["untypedData"]["removed_option_ids"]?.Value<string>());
+                    var added_options = JToken.Parse(delta["untypedData"]?.get("added_option_ids")?.Value<string>());
+                    var removed_options = JToken.Parse(delta["untypedData"]?.get("removed_option_ids")?.Value<string>());
                     await this.onPollVoted(
                         mid: mid,
                         poll: poll,
@@ -3338,7 +3338,7 @@ namespace fbchat_sharp.API
             else if (delta_type == "lightweight_event_rsvp")
             {
                 var thread = getThreadIdAndThreadType(metadata);
-                var take_part = delta["untypedData"]["guest_status"]?.Value<string>() == "GOING";
+                var take_part = delta["untypedData"]?.get("guest_status")?.Value<string>() == "GOING";
                 await this.onPlanParticipation(
                     mid: mid,
                     plan: FB_Plan._from_pull(delta["untypedData"]),
@@ -3456,7 +3456,7 @@ namespace fbchat_sharp.API
                     else if (d["deltaMessageReply"] != null && d["deltaMessageReply"].Type != JTokenType.Null)
                     {
                         var i = d["deltaMessageReply"];
-                        metadata = i["message"]["messageMetadata"];
+                        metadata = i["message"]?.get("messageMetadata");
                         var thread = getThreadIdAndThreadType(metadata);
                         var message = FB_Message._from_reply(i["message"],thread.Item1);
                         message.replied_to = FB_Message._from_reply(i["repliedToMessage"], thread.Item1);
@@ -3510,8 +3510,8 @@ namespace fbchat_sharp.API
 
             if (content["lb_info"] != null && content["lb_info"].Type != JTokenType.Null)
             {
-                this._sticky = content["lb_info"]["sticky"]?.Value<string>();
-                this._pool = content["lb_info"]["pool"]?.Value<string>();
+                this._sticky = content["lb_info"]?.get("sticky")?.Value<string>();
+                this._pool = content["lb_info"]?.get("pool")?.Value<string>();
             }
 
             if (content["batches"] != null && content["batches"].Type != JTokenType.Null)

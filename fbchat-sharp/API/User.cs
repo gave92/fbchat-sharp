@@ -126,7 +126,7 @@ namespace fbchat_sharp.API
                 data["profile_picture"] = new JObject(new JProperty("uri", ""));
             }
             var c_info = FB_User._parse_customization_info(data);
-            var plan = data["event_reminders"]?["nodes"]?.FirstOrDefault() != null ? FB_Plan._from_graphql(data["event_reminders"]?["nodes"]?.FirstOrDefault()) : null;
+            var plan = data["event_reminders"]?.get("nodes")?.FirstOrDefault() != null ? FB_Plan._from_graphql(data["event_reminders"]?.get("nodes")?.FirstOrDefault()) : null;
 
             var name = data["name"]?.Value<string>();
             var first_name = data["first_name"]?.Value<string>() ?? data["short_name"]?.Value<string>();
@@ -159,7 +159,7 @@ namespace fbchat_sharp.API
                 color: (string)c_info.GetValueOrDefault("color"),
                 emoji: (JToken)c_info.GetValueOrDefault("emoji"),
                 own_nickname: (string)c_info.GetValueOrDefault("own_nickname"),
-                photo: data["profile_picture"]?["uri"]?.Value<string>(),
+                photo: data["profile_picture"]?.get("uri")?.Value<string>(),
                 message_count: data["messages_count"]?.Value<int>() ?? 0,
                 plan: plan);
         }
@@ -167,9 +167,9 @@ namespace fbchat_sharp.API
         public static FB_User _from_thread_fetch(JToken data)
         {
             var c_info = FB_User._parse_customization_info(data);
-            var participants = data["all_participants"]?["nodes"]?.Select(node => node["messaging_actor"]);
-            var user = participants.Where((p) => p["id"]?.Value<string>() == data["thread_key"]?["other_user_id"]?.Value<string>())?.FirstOrDefault();
-            var last_message_timestamp = data["last_message"]?["nodes"]?.FirstOrDefault()?["timestamp_precise"]?.Value<string>();
+            var participants = data["all_participants"]?.get("nodes")?.Select(node => node["messaging_actor"]);
+            var user = participants.Where((p) => p["id"]?.Value<string>() == data["thread_key"]?.get("other_user_id")?.Value<string>())?.FirstOrDefault();
+            var last_message_timestamp = data["last_message"]?.get("nodes")?.FirstOrDefault()?.get("timestamp_precise")?.Value<string>();
 
             var name = user["name"]?.Value<string>();
             var first_name = user["first_name"]?.Value<string>() ?? user["short_name"]?.Value<string>();
@@ -194,7 +194,7 @@ namespace fbchat_sharp.API
                 user["big_image_src"] = new JObject(new JProperty("uri", ""));
             }
 
-            var plan = data["event_reminders"]?["nodes"]?.FirstOrDefault() != null ? FB_Plan._from_graphql(data["event_reminders"]?["nodes"]?.FirstOrDefault()) : null;
+            var plan = data["event_reminders"]?.get("nodes")?.FirstOrDefault() != null ? FB_Plan._from_graphql(data["event_reminders"]?.get("nodes")?.FirstOrDefault()) : null;
 
             return new FB_User(
                 uid: user["id"]?.Value<string>(),
@@ -209,7 +209,7 @@ namespace fbchat_sharp.API
                 color: (string)c_info.GetValueOrDefault("color"),
                 emoji: (JToken)c_info.GetValueOrDefault("emoji"),
                 own_nickname: (string)c_info.GetValueOrDefault("own_nickname"),
-                photo: user["big_image_src"]?["uri"]?.Value<string>(),
+                photo: user["big_image_src"]?.get("uri")?.Value<string>(),
                 message_count: data["messages_count"]?.Value<int>() ?? 0,
                 last_message_timestamp: last_message_timestamp,
                 plan: plan);

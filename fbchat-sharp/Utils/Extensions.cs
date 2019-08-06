@@ -11,10 +11,14 @@ namespace fbchat_sharp
 {
     internal static class Extensions
     {
-        public static JToken get(this JToken token, string key)
+        public static JToken get(this JToken token, string key = null)
         {
-            return token.Type != JTokenType.Null && token[key] != null && token[key].Type != JTokenType.Null ? 
-                token[key] : null;
+            if (key != null)
+            {
+                return token.Type != JTokenType.Null && token[key] != null && token[key].Type != JTokenType.Null ?
+                    token[key] : null;
+            }
+            return token.Type != JTokenType.Null ? token : null;
         }
 
         public static Dictionary<string, List<Cookie>> GetAllCookies(this CookieContainer container)

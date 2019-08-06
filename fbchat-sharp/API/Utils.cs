@@ -127,11 +127,11 @@ namespace fbchat_sharp.API
 
         public static JToken get_jsmods_require(JToken j, int index)
         {
-            if (j["jsmods"] != null && j["jsmods"].Type != JTokenType.Null && j["jsmods"]["require"] != null && j["jsmods"]["require"].Type != JTokenType.Null)
+            if (j["jsmods"] != null && j["jsmods"].Type != JTokenType.Null && j["jsmods"]?.get("require") != null && j["jsmods"]?.get("require").Type != JTokenType.Null)
             {
                 try
                 {
-                    return j["jsmods"]["require"][0][index][0];
+                    return j["jsmods"]?.get("require")?.FirstOrDefault()?[index]?.FirstOrDefault();
                 }
                 catch (Exception)
                 {

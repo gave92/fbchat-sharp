@@ -192,10 +192,10 @@ namespace fbchat_sharp.API
         {
             return new FB_ImageAttachment(
                     original_extension: data["original_extension"]?.Value<string>() ?? data["filename"]?.Value<string>()?.Split('-')[0],
-                    width: data["original_dimensions"]?["width"]?.Value<int>() ?? 0,
-                    height: data["original_dimensions"]?["height"]?.Value<int>() ?? 0,
+                    width: data["original_dimensions"]?.get("width")?.Value<int>() ?? 0,
+                    height: data["original_dimensions"]?.get("height")?.Value<int>() ?? 0,
                     is_animated: data["__typename"]?.Value<String>() == "MessageAnimatedImage",
-                    thumbnail_url: data["thumbnail"]?["uri"]?.Value<string>(),
+                    thumbnail_url: data["thumbnail"]?.get("uri")?.Value<string>(),
                     preview: data["preview"] ?? data["preview_image"],
                     large_preview: data["large_preview"],
                     animated_preview: data["animated_image"],
@@ -281,8 +281,8 @@ namespace fbchat_sharp.API
         public static FB_VideoAttachment _from_graphql(JToken data)
         {
             return new FB_VideoAttachment(
-                    width: data["original_dimensions"]?["width"]?.Value<int>() ?? 0,
-                    height: data["original_dimensions"]?["height"]?.Value<int>() ?? 0,
+                    width: data["original_dimensions"]?.get("width")?.Value<int>() ?? 0,
+                    height: data["original_dimensions"]?.get("height")?.Value<int>() ?? 0,
                     duration: data["playable_duration_in_ms"]?.Value<int>() ?? 0,
                     preview_url: data["playable_url"]?.Value<string>(),
                     small_image: data["chat_image"],
@@ -298,7 +298,7 @@ namespace fbchat_sharp.API
                 duration: media["playable_duration_in_ms"]?.Value<int>() ?? 0,
                 preview_url: media["playable_url"]?.Value<string>(),
                 medium_image: media["image"],
-                uid: data["target"]?["video_id"]?.Value<string>());
+                uid: data["target"]?.get("video_id")?.Value<string>());
         }
     }
 }

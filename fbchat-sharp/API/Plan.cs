@@ -105,7 +105,7 @@ namespace fbchat_sharp.API
             rtn.uid = data["event_id"]?.Value<string>();
             rtn.author_id = data["event_creator_id"]?.Value<string>();
             rtn.guests = JToken.Parse(data["guest_state_list"]?.Value<string>()).Select((x) => {
-                return new { Key = x["node"]?["id"]?.Value<string>(), Value = FB_Plan_Constants.GUESTS[x["guest_list_state"]?.Value<string>()] };
+                return new { Key = x["node"]?.get("id")?.Value<string>(), Value = FB_Plan_Constants.GUESTS[x["guest_list_state"]?.Value<string>()] };
             }).ToDictionary(t => t.Key, t => t.Value);
             return rtn;
         }
@@ -134,9 +134,9 @@ namespace fbchat_sharp.API
                 location: data["location_name"]?.Value<string>()
             );
             rtn.uid = data["id"]?.Value<string>();
-            rtn.author_id = data["lightweight_event_creator"]?["id"]?.Value<string>();
-            rtn.guests = data["event_reminder_members"]?["edges"]?.Select((x) => {
-                return new { Key = x["node"]?["id"] ?.Value<string>(), Value = FB_Plan_Constants.GUESTS[x["guest_list_state"]?.Value<string>()] };
+            rtn.author_id = data["lightweight_event_creator"]?.get("id")?.Value<string>();
+            rtn.guests = data["event_reminder_members"]?.get("edges")?.Select((x) => {
+                return new { Key = x["node"]?.get("id") ?.Value<string>(), Value = FB_Plan_Constants.GUESTS[x["guest_list_state"]?.Value<string>()] };
             }).ToDictionary(t => t.Key, t => t.Value);
             return rtn;
         }

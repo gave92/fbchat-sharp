@@ -49,13 +49,13 @@ namespace fbchat_sharp.API
             var sticker = new FB_Sticker(uid: data["id"]?.Value<string>());
             if (data["pack"] != null && data["pack"].Type != JTokenType.Null)
             {
-                sticker.pack = data["pack"]?["id"]?.Value<string>();
+                sticker.pack = data["pack"]?.get("id")?.Value<string>();
             }
             if (data["sprite_image"] != null && data["sprite_image"].Type != JTokenType.Null)
             {
                 sticker.is_animated = true;
-                sticker.medium_sprite_image = data["sprite_image"]?["uri"]?.Value<string>();
-                sticker.large_sprite_image = data["sprite_image_2x"]?["uri"]?.Value<string>();
+                sticker.medium_sprite_image = data["sprite_image"]?.get("uri")?.Value<string>();
+                sticker.large_sprite_image = data["sprite_image_2x"]?.get("uri")?.Value<string>();
                 sticker.frames_per_row = data["frames_per_row"]?.Value<int>() ?? 0;
                 sticker.frames_per_col = data["frames_per_column"]?.Value<int>() ?? 0;
                 sticker.frame_rate = data["frame_rate"]?.Value<float>() ?? 0;

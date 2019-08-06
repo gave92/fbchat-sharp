@@ -127,7 +127,7 @@ namespace fbchat_sharp.API
             if (
                 data["thread_type"]?.Value<string>() == "GROUP"
                 || (data["is_group_thread"]?.Value<bool>() ?? false)
-                || (data["thread_key"]?["thread_fbid"] != null && data["thread_key"]?["thread_fbid"].Type != JTokenType.Null))
+                || (data["thread_key"]?.get("thread_fbid") != null && data["thread_key"]?.get("thread_fbid").Type != JTokenType.Null))
             {
                 rtn["nicknames"] = new Dictionary<string, string>();
                 foreach (var k in info["participant_customizations"])
@@ -135,21 +135,21 @@ namespace fbchat_sharp.API
             }
             else if (info["participant_customizations"] != null && info["participant_customizations"].Type != JTokenType.Null)
             {
-                string uid = data["thread_key"]?["other_user_id"]?.Value<string>() ?? data["id"]?.Value<string>();
+                string uid = data["thread_key"]?.get("other_user_id")?.Value<string>() ?? data["id"]?.Value<string>();
                 var pc = info["participant_customizations"];                
                 if (pc.Type == JTokenType.Array && pc.Value<JArray>().Count > 0)
                 {
-                    if (pc[0]?["participant_id"]?.Value<string>() == uid)
-                        rtn["nickname"] = pc[0]?["nickname"]?.Value<string>();
+                    if (pc[0]?.get("participant_id")?.Value<string>() == uid)
+                        rtn["nickname"] = pc[0]?.get("nickname")?.Value<string>();
                     else
-                        rtn["own_nickname"] = pc[0]?["nickname"]?.Value<string>();
+                        rtn["own_nickname"] = pc[0]?.get("nickname")?.Value<string>();
                 }
                 if (pc.Type == JTokenType.Array && pc.Value<JArray>().Count > 1)
                 {
-                    if (pc[1]?["participant_id"]?.Value<string>() == uid)
-                        rtn["nickname"] = pc[1]?["nickname"]?.Value<string>();
+                    if (pc[1]?.get("participant_id")?.Value<string>() == uid)
+                        rtn["nickname"] = pc[1]?.get("nickname")?.Value<string>();
                     else
-                        rtn["own_nickname"] = pc[1]?["nickname"]?.Value<string>();
+                        rtn["own_nickname"] = pc[1]?.get("nickname")?.Value<string>();
                 }
             }
 

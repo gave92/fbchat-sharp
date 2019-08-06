@@ -154,12 +154,12 @@ namespace fbchat_sharp.API
             string url = data["url"]?.Value<string>();
             FB_ShareAttachment rtn = new FB_ShareAttachment(
                 uid: data["deduplication_key"]?.Value<string>(),
-                author: data["target"]["actors"]?.FirstOrDefault()?["id"]?.Value<string>(),
+                author: data["target"]?.get("actors")?.FirstOrDefault()?.get("id")?.Value<string>(),
                 url: url,
                 original_url: (url?.Contains("/l.php?u=") ?? false) ? Utils.get_url_parameter(url, "u") : url,
-                title: data["title_with_entities"]?["text"]?.Value<string>(),
+                title: data["title_with_entities"]?.get("text")?.Value<string>(),
                 description: data.get("description")?.get("text")?.Value<string>(),
-                source: data["source"]?["text"]?.Value<string>()
+                source: data["source"]?.get("text")?.Value<string>()
                 );
 
             rtn.attachments = data["subattachments"]?.Select(node => FB_Attachment.graphql_to_subattachment(node))?.ToList();

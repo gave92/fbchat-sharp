@@ -55,15 +55,15 @@ namespace fbchat_sharp.API
                 data["city"] = new JObject(new JProperty("name", ""));
 
             FB_Plan plan = null;
-            if (data["event_reminders"] != null && data["event_reminders"].Type != JTokenType.Null && data["event_reminders"]?["nodes"] != null && data["event_reminders"]?["nodes"].Type != JTokenType.Null)
-                plan = FB_Plan._from_graphql(data["event_reminders"]["nodes"][0]);
+            if (data["event_reminders"] != null && data["event_reminders"].Type != JTokenType.Null && data["event_reminders"]?.get("nodes") != null && data["event_reminders"]?.get("nodes").Type != JTokenType.Null)
+                plan = FB_Plan._from_graphql(data["event_reminders"]?.get("nodes")?.FirstOrDefault());
 
             return new FB_Page(
                 uid: data["id"]?.Value<string>(),
                 url: data["url"]?.Value<string>(),
-                city: data["city"]?["name"]?.Value<string>(),
+                city: data["city"]?.get("name")?.Value<string>(),
                 category: data["category_type"]?.Value<string>(),
-                photo: data["profile_picture"]?["uri"]?.Value<string>(),
+                photo: data["profile_picture"]?.get("uri")?.Value<string>(),
                 name: data["name"]?.Value<string>(),
                 message_count: data["messages_count"]?.Value<int>() ?? 0,
                 plan: plan

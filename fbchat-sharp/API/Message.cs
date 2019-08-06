@@ -244,10 +244,10 @@ namespace fbchat_sharp.API
             var tags = data["tags_list"]?.ToObject<List<string>>();
 
             var rtn = new FB_Message(
-                text: data["message"]?["text"]?.Value<string>(),
-                mentions: data["message"]?["ranges"]?.Select((m) => 
+                text: data["message"]?.get("text")?.Value<string>(),
+                mentions: data["message"]?.get("ranges")?.Select((m) => 
                     new FB_Mention(
-                        thread_id: m["entity"]?["id"]?.Value<string>(),
+                        thread_id: m["entity"]?.get("id")?.Value<string>(),
                         offset: data["offset"]?.Value<int>() ?? 0,
                         length: data["length"]?.Value<int>() ?? 0)
                 ).ToList(),
@@ -257,7 +257,7 @@ namespace fbchat_sharp.API
             rtn.forwarded = FB_Message._get_forwarded_from_tags(tags);
             rtn.uid = data["message_id"]?.Value<string>();
             rtn.thread_id = thread_id; // Added
-            rtn.author = data["message_sender"]?["id"]?.Value<string>();
+            rtn.author = data["message_sender"]?.get("id")?.Value<string>();
             rtn.timestamp = data["timestamp_precise"]?.Value<string>();
             rtn.unsent = false;
 
@@ -266,7 +266,7 @@ namespace fbchat_sharp.API
             rtn.reactions = new Dictionary<string, MessageReaction>();
             foreach (var r in data["message_reactions"])
             {
-                rtn.reactions.Add(r["user"]?["id"]?.Value<string>(), FB_Message_Constants.REACTIONS[r["reaction"].Value<string>()]);
+                rtn.reactions.Add(r["user"]?.get("id")?.Value<string>(), FB_Message_Constants.REACTIONS[r["reaction"].Value<string>()]);
             }
             if (data["blob_attachments"] != null && data["blob_attachments"].Type != JTokenType.Null)
             {
@@ -296,7 +296,7 @@ namespace fbchat_sharp.API
             }
             if (data["replied_to_message"] != null && data["replied_to_message"].Type != JTokenType.Null)
             {
-                rtn.replied_to = FB_Message._from_graphql(data["replied_to_message"]["message"],thread_id);
+                rtn.replied_to = FB_Message._from_graphql(data["replied_to_message"]?.get("message"),thread_id);
                 rtn.reply_to_id = rtn.replied_to.uid;
             }
 
@@ -305,11 +305,11 @@ namespace fbchat_sharp.API
 
         public static FB_Message _from_reply(JToken data, string thread_id)
         {
-            var tags = data["messageMetadata"]?["tags"]?.ToObject<List<string>>();
+            var tags = data["messageMetadata"]?.get("tags")?.ToObject<List<string>>();
 
             var rtn = new FB_Message(
                 text: data["body"]?.Value<string>(),
-                mentions: JToken.Parse(data["data"]?["prng"]?.Value<string>() ?? "{}")?.Select((m) =>
+                mentions: JToken.Parse(data["data"]?.get("prng")?.Value<string>() ?? "{}")?.Select((m) =>
                     new FB_Mention(
                         thread_id: m["i"]?.Value<string>(),
                         offset: data["o"]?.Value<int>() ?? 0,
@@ -319,15 +319,15 @@ namespace fbchat_sharp.API
 
             var metadata = data["messageMetadata"];
             rtn.forwarded = FB_Message._get_forwarded_from_tags(tags);
-            rtn.uid = metadata?["messageId"]?.Value<string>();
+            rtn.uid = metadata?.get("messageId")?.Value<string>();
             rtn.thread_id = thread_id; // Added
-            rtn.author = metadata?["actorFbId"]?.Value<string>();
-            rtn.timestamp = metadata?["timestamp"]?.Value<string>();
+            rtn.author = metadata?.get("actorFbId")?.Value<string>();
+            rtn.timestamp = metadata?.get("timestamp")?.Value<string>();
             rtn.unsent = false;
 
-            if (data["data"]?["platform_xmd"] != null && data["data"]?["platform_xmd"].Type != JTokenType.Null)
+            if (data["data"]?.get("platform_xmd") != null && data["data"]?.get("platform_xmd").Type != JTokenType.Null)
             {
-                var quick_replies = JToken.Parse(data["data"]["platform_xmd"].Value<string>())["quick_replies"];
+                var quick_replies = JToken.Parse(data["data"]?.get("platform_xmd").Value<string>())["quick_replies"];
                 if (quick_replies.Type == JTokenType.Array)
                     rtn.quick_replies = quick_replies.Select((q) => FB_QuickReply.graphql_to_quick_reply(q)).ToList();
                 else
@@ -368,7 +368,7 @@ namespace fbchat_sharp.API
             rtn.author = author;
             rtn.timestamp = timestamp;
 
-            rtn.mentions = JToken.Parse(data["data"]?["prng"]?.Value<string>() ?? "{}")?.Select((m) =>
+            rtn.mentions = JToken.Parse(data["data"]?.get("prng")?.Value<string>() ?? "{}")?.Select((m) =>
                     new FB_Mention(
                         thread_id: m["i"]?.Value<string>(),
                         offset: data["o"]?.Value<int>() ?? 0,
@@ -385,7 +385,7 @@ namespace fbchat_sharp.API
                         if (mercury["blob_attachment"] != null && mercury["blob_attachment"].Type != JTokenType.Null)
                         {
                             var image_metadata = a["imageMetadata"];
-                            var attach_type = mercury["blob_attachment"]?["__typename"]?.Value<string>();
+                            var attach_type = mercury["blob_attachment"]?.get("__typename")?.Value<string>();
                             var attachment = FB_Attachment.graphql_to_attachment(
                                 mercury["blob_attachment"]
                             );
@@ -393,9 +393,9 @@ namespace fbchat_sharp.API
                             if (new string[] { "MessageFile", "MessageVideo", "MessageAudio" }.Contains(attach_type)) {
                                 // TODO: Add more data here for audio files
                                 if (attachment is FB_FileAttachment)
-                                    ((FB_FileAttachment)attachment).size = a?["fileSize"]?.Value<int>() ?? 0;
+                                    ((FB_FileAttachment)attachment).size = a?.get("fileSize")?.Value<int>() ?? 0;
                                 if (attachment is FB_VideoAttachment)
-                                    ((FB_VideoAttachment)attachment).size = a?["fileSize"]?.Value<int>() ?? 0;
+                                    ((FB_VideoAttachment)attachment).size = a?.get("fileSize")?.Value<int>() ?? 0;
                             }
                             rtn.attachments.Add(attachment);
                         }
