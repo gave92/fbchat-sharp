@@ -30,7 +30,6 @@ namespace examples
             // Check login was successful
             if (logged_in)
             {
-                // client.UpdateEvent += (e,d) => { if (d.EventType == UpdateStatus.NEW_MESSAGE) Console.WriteLine(d.Payload); };
                 // client.StartListening();
 
                 // Save session cookies
