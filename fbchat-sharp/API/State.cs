@@ -374,8 +374,8 @@ namespace fbchat_sharp.API
                 // Load cookies into current session
                 foreach (string rawurl in session_cookies.Keys)
                 {
-                    var url = rawurl;
-                    url = string.Format("https://{0}/", url[0] == '.' ? url.Substring(1) : url);
+                    // Need this because of new Uri(...)
+                    var url = string.Format("https://{0}/", rawurl[0] == '.' ? rawurl.Substring(1) : rawurl);
 
                     var current_cookies = state._session.GetCookies(new Uri(url)).Cast<Cookie>();
 
@@ -383,14 +383,17 @@ namespace fbchat_sharp.API
                     {
                         if (!current_cookies.Any(c => c.Name.Equals(cookie.Name)))
                         {
-                            if (rawurl[0] == '.')
+                            // Check if this is a domain cookie
+                            var domain = rawurl[0] == '.' ? rawurl.Substring(1) : rawurl;
+                            if (domain.StartsWith("facebook.com"))
                             {
-                                state._session.Add(new Uri(string.Format("https://{0}/", rawurl.Substring(1))), new Cookie(cookie.Name, cookie.Value));
-                                state._session.Add(new Uri(string.Format("https://www{0}/", rawurl)), new Cookie(cookie.Name, cookie.Value));
-                                state._session.Add(new Uri(string.Format("https://m{0}/", rawurl)), new Cookie(cookie.Name, cookie.Value));
-                                state._session.Add(new Uri(string.Format("https://0-edge-chat{0}/", rawurl)), new Cookie(cookie.Name, cookie.Value)); // yuck!!
-                                state._session.Add(new Uri(string.Format("https://1-edge-chat{0}/", rawurl)), new Cookie(cookie.Name, cookie.Value)); // yuck!!
-                                state._session.Add(new Uri(string.Format("https://2-edge-chat{0}/", rawurl)), new Cookie(cookie.Name, cookie.Value)); // yuck!!
+                                // Add cookie to every subdomain
+                                state._session.Add(new Uri(string.Format("https://{0}/", domain)), new Cookie(cookie.Name, cookie.Value));
+                                state._session.Add(new Uri(string.Format("https://www.{0}/", domain)), new Cookie(cookie.Name, cookie.Value));
+                                state._session.Add(new Uri(string.Format("https://m.{0}/", domain)), new Cookie(cookie.Name, cookie.Value));
+                                state._session.Add(new Uri(string.Format("https://upload.{0}/", domain)), new Cookie(cookie.Name, cookie.Value));
+                                foreach (var i in Enumerable.Range(0, 10))
+                                    state._session.Add(new Uri(string.Format("https://{0}-edge-chat.{1}/", i, domain)), new Cookie(cookie.Name, cookie.Value)); // yuck!!
                             }
                             else
                             {
