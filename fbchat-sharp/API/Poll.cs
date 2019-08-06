@@ -36,10 +36,10 @@ namespace fbchat_sharp.API
         public static FB_Poll _from_graphql(JToken data)
         {
             return new FB_Poll(
-                uid: data["id"]?.Value<string>(),
-                title: data["title"]?.Value<string>() ?? data["text"]?.Value<string>(),
-                options: data["options"]?.Select((m) => FB_PollOption._from_graphql(m))?.ToList(),
-                options_count: data["total_count"]?.Value<int>() ?? 0);
+                uid: data.get("id")?.Value<string>(),
+                title: data.get("title")?.Value<string>() ?? data.get("text")?.Value<string>(),
+                options: data.get("options")?.Select((m) => FB_PollOption._from_graphql(m))?.ToList(),
+                options_count: data.get("total_count")?.Value<int>() ?? 0);
         }
     }
 
@@ -79,21 +79,21 @@ namespace fbchat_sharp.API
         public static FB_PollOption _from_graphql(JToken data)
         {
             bool vote = false;
-            if (data["viewer_has_voted"] == null || data["viewer_has_voted"].Type == JTokenType.Null)
+            if (data.get("viewer_has_voted") == null || data.get("viewer_has_voted").Type == JTokenType.Null)
                 vote = false;
-            else if (data["viewer_has_voted"]?.Type == JTokenType.Boolean)
-                vote = data["viewer_has_voted"]?.Value<bool>() ?? false;
+            else if (data.get("viewer_has_voted")?.Type == JTokenType.Boolean)
+                vote = data.get("viewer_has_voted")?.Value<bool>() ?? false;
             else
-                vote = data["viewer_has_voted"]?.Value<string>() == "true";
+                vote = data.get("viewer_has_voted")?.Value<string>() == "true";
 
             return new FB_PollOption(
-                uid: data["id"]?.Value<string>(),
-                text: data["text"]?.Value<string>(),
+                uid: data.get("id")?.Value<string>(),
+                text: data.get("text")?.Value<string>(),
                 vote: vote,
-                voters: (data["voters"]?.Type == JTokenType.Object ?
-                    data["voters"]?.get("edges").Select((m) => m["node"]?.get("id")?.Value<string>()) : data["voters"]?.ToObject<List<string>>()).ToList(),
-                votes_count: (data["voters"]?.Type == JTokenType.Object ?
-                    data["voters"]?.get("count")?.Value<int>() : data["total_count"]?.Value<int>()) ?? 0
+                voters: (data.get("voters")?.Type == JTokenType.Object ?
+                    data.get("voters")?.get("edges").Select((m) => m.get("node")?.get("id")?.Value<string>()) : data.get("voters")?.ToObject<List<string>>()).ToList(),
+                votes_count: (data.get("voters")?.Type == JTokenType.Object ?
+                    data.get("voters")?.get("count")?.Value<int>() : data.get("total_count")?.Value<int>()) ?? 0
             );
         }
     }

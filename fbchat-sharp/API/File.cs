@@ -61,10 +61,10 @@ namespace fbchat_sharp.API
         public static FB_FileAttachment _from_graphql(JToken data)
         {
             return new FB_FileAttachment(
-                url: data["url"]?.Value<string>(),
-                uid: data["message_file_fbid"]?.Value<string>(),
-                is_malicious: data["is_malicious"]?.Value<bool>() ?? false,
-                name: data["filename"].Value<String>()
+                url: data.get("url")?.Value<string>(),
+                uid: data.get("message_file_fbid")?.Value<string>(),
+                is_malicious: data.get("is_malicious")?.Value<bool>() ?? false,
+                name: data.get("filename").Value<String>()
                 );
         }        
     }
@@ -103,11 +103,11 @@ namespace fbchat_sharp.API
         public static FB_AudioAttachment _from_graphql(JToken data)
         {
             return new FB_AudioAttachment(
-                filename: data["filename"]?.Value<string>(),
-                url: data["playable_url"]?.Value<string>(),
+                filename: data.get("filename")?.Value<string>(),
+                url: data.get("playable_url")?.Value<string>(),
                 uid: null,
-                duration: data["playable_duration_in_ms"]?.Value<int>() ?? 0,
-                audio_type: data["audio_type"]?.Value<string>()
+                duration: data.get("playable_duration_in_ms")?.Value<int>() ?? 0,
+                audio_type: data.get("audio_type")?.Value<string>()
                 );
         }
     }
@@ -170,36 +170,36 @@ namespace fbchat_sharp.API
 
             if (preview != null)
             {
-                this.preview_url = preview["uri"]?.Value<String>();
-                this.preview_width = preview["width"]?.Value<int>() ?? 0;
-                this.preview_height = preview["height"]?.Value<int>() ?? 0;
+                this.preview_url = preview.get("uri")?.Value<String>();
+                this.preview_width = preview.get("width")?.Value<int>() ?? 0;
+                this.preview_height = preview.get("height")?.Value<int>() ?? 0;
             }
             if (large_preview != null)
             {
-                this.large_preview_url = large_preview["uri"]?.Value<String>();
-                this.large_preview_width = large_preview["width"]?.Value<int>() ?? 0;
-                this.large_preview_height = large_preview["height"]?.Value<int>() ?? 0;
+                this.large_preview_url = large_preview.get("uri")?.Value<String>();
+                this.large_preview_width = large_preview.get("width")?.Value<int>() ?? 0;
+                this.large_preview_height = large_preview.get("height")?.Value<int>() ?? 0;
             }
             if (animated_preview != null)
             {
-                this.animated_preview_url = animated_preview["uri"]?.Value<String>();
-                this.animated_preview_width = animated_preview["width"]?.Value<int>() ?? 0;
-                this.animated_preview_height = animated_preview["height"]?.Value<int>() ?? 0;
+                this.animated_preview_url = animated_preview.get("uri")?.Value<String>();
+                this.animated_preview_width = animated_preview.get("width")?.Value<int>() ?? 0;
+                this.animated_preview_height = animated_preview.get("height")?.Value<int>() ?? 0;
             }                
         }
 
         public static FB_ImageAttachment _from_graphql(JToken data)
         {
             return new FB_ImageAttachment(
-                    original_extension: data["original_extension"]?.Value<string>() ?? data["filename"]?.Value<string>()?.Split('-')[0],
-                    width: data["original_dimensions"]?.get("width")?.Value<int>() ?? 0,
-                    height: data["original_dimensions"]?.get("height")?.Value<int>() ?? 0,
-                    is_animated: data["__typename"]?.Value<String>() == "MessageAnimatedImage",
-                    thumbnail_url: data["thumbnail"]?.get("uri")?.Value<string>(),
-                    preview: data["preview"] ?? data["preview_image"],
-                    large_preview: data["large_preview"],
-                    animated_preview: data["animated_image"],
-                    uid: data["legacy_attachment_id"]?.Value<string>());
+                    original_extension: data.get("original_extension")?.Value<string>() ?? data.get("filename")?.Value<string>()?.Split('-')[0],
+                    width: data.get("original_dimensions")?.get("width")?.Value<int>() ?? 0,
+                    height: data.get("original_dimensions")?.get("height")?.Value<int>() ?? 0,
+                    is_animated: data.get("__typename")?.Value<String>() == "MessageAnimatedImage",
+                    thumbnail_url: data.get("thumbnail")?.get("uri")?.Value<string>(),
+                    preview: data.get("preview") ?? data.get("preview_image"),
+                    large_preview: data.get("large_preview"),
+                    animated_preview: data.get("animated_image"),
+                    uid: data.get("legacy_attachment_id")?.Value<string>());
         }
     }
 
@@ -260,45 +260,45 @@ namespace fbchat_sharp.API
 
             if (small_image != null)
             {
-                this.small_image_url = small_image["uri"]?.Value<string>();
-                this.small_image_width = small_image["width"]?.Value<int>() ?? 0;
-                this.small_image_height = small_image["height"]?.Value<int>() ?? 0;
+                this.small_image_url = small_image.get("uri")?.Value<string>();
+                this.small_image_width = small_image.get("width")?.Value<int>() ?? 0;
+                this.small_image_height = small_image.get("height")?.Value<int>() ?? 0;
             }
             if (medium_image != null)
             {
-                this.medium_image_url = medium_image["uri"]?.Value<string>();
-                this.medium_image_width = medium_image["width"]?.Value<int>() ?? 0;
-                this.medium_image_height = medium_image["height"]?.Value<int>() ?? 0;
+                this.medium_image_url = medium_image.get("uri")?.Value<string>();
+                this.medium_image_width = medium_image.get("width")?.Value<int>() ?? 0;
+                this.medium_image_height = medium_image.get("height")?.Value<int>() ?? 0;
             }
             if (large_image != null)
             {
-                this.large_image_url = large_image["uri"]?.Value<string>();
-                this.large_image_width = large_image["width"]?.Value<int>() ?? 0;
-                this.large_image_height = large_image["height"]?.Value<int>() ?? 0;
+                this.large_image_url = large_image.get("uri")?.Value<string>();
+                this.large_image_width = large_image.get("width")?.Value<int>() ?? 0;
+                this.large_image_height = large_image.get("height")?.Value<int>() ?? 0;
             }
         }
 
         public static FB_VideoAttachment _from_graphql(JToken data)
         {
             return new FB_VideoAttachment(
-                    width: data["original_dimensions"]?.get("width")?.Value<int>() ?? 0,
-                    height: data["original_dimensions"]?.get("height")?.Value<int>() ?? 0,
-                    duration: data["playable_duration_in_ms"]?.Value<int>() ?? 0,
-                    preview_url: data["playable_url"]?.Value<string>(),
-                    small_image: data["chat_image"],
-                    medium_image: data["inbox_image"],
-                    large_image: data["large_image"],
-                    uid: data["legacy_attachment_id"]?.Value<string>());
+                    width: data.get("original_dimensions")?.get("width")?.Value<int>() ?? 0,
+                    height: data.get("original_dimensions")?.get("height")?.Value<int>() ?? 0,
+                    duration: data.get("playable_duration_in_ms")?.Value<int>() ?? 0,
+                    preview_url: data.get("playable_url")?.Value<string>(),
+                    small_image: data.get("chat_image"),
+                    medium_image: data.get("inbox_image"),
+                    large_image: data.get("large_image"),
+                    uid: data.get("legacy_attachment_id")?.Value<string>());
         }
 
         public static FB_VideoAttachment _from_subattachment(JToken data)
         {
-            JToken media = data["media"];
+            JToken media = data.get("media");
             return new FB_VideoAttachment(
-                duration: media["playable_duration_in_ms"]?.Value<int>() ?? 0,
-                preview_url: media["playable_url"]?.Value<string>(),
-                medium_image: media["image"],
-                uid: data["target"]?.get("video_id")?.Value<string>());
+                duration: media.get("playable_duration_in_ms")?.Value<int>() ?? 0,
+                preview_url: media.get("playable_url")?.Value<string>(),
+                medium_image: media.get("image"),
+                uid: data.get("target")?.get("video_id")?.Value<string>());
         }
     }
 }

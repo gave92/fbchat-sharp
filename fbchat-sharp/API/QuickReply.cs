@@ -41,16 +41,16 @@ namespace fbchat_sharp.API
         {
             FB_QuickReply rtn = null;
             var data = new Dictionary<string, object>();
-            var _type = q["content_type"]?.Value<string>()?.ToLower();
-            data["payload"] = q["payload"];
-            data["data"] = q["data"];
+            var _type = q.get("content_type")?.Value<string>()?.ToLower();
+            data["payload"] = q.get("payload");
+            data["data"] = q.get("data");
             if (q["image_url"] != null && _type != FB_QuickReplyLocation._type)
-                data["image_url"] = q["image_url"]?.Value<string>();
+                data["image_url"] = q.get("image_url")?.Value<string>();
             data["is_response"] = is_response;            
             if (_type == FB_QuickReplyText._type)
             {
-                if (q["title"] != null && q["title"].Type != JTokenType.Null)
-                    data["title"] = q["title"];
+                if (q.get("title") != null && q.get("title").Type != JTokenType.Null)
+                    data["title"] = q.get("title");
                 rtn = new FB_QuickReplyText(
                     (JToken)data.GetValueOrDefault("payload"),
                     (JToken)data.GetValueOrDefault("external_payload"),

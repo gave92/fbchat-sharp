@@ -54,44 +54,44 @@ namespace fbchat_sharp.API
 
         public static void handle_payload_error(JToken j)
         {
-            if (j["error"] == null || j["error"].Type == JTokenType.Null)
+            if (j.get("error") == null || j.get("error").Type == JTokenType.Null)
                 return;
-            var error = j["error"].Value<long>();
-            if (j["error"].Value<long>() == 1357001)
+            var error = j.get("error").Value<long>();
+            if (j.get("error").Value<long>() == 1357001)
             {
                 throw new FBchatNotLoggedIn(
-                    string.Format("Error #{0} when sending request: {1}", error, j["errorDescription"]),
+                    string.Format("Error #{0} when sending request: {1}", error, j.get("errorDescription")),
                     fb_error_code: error,
-                    fb_error_message: j["errorDescription"]?.Value<string>());
+                    fb_error_message: j.get("errorDescription")?.Value<string>());
             }
-            else if (j["error"].Value<long>() == 1357004)
+            else if (j.get("error").Value<long>() == 1357004)
             {
                 throw new FBchatPleaseRefresh(
-                    string.Format("Error #{0} when sending request: {1}", error, j["errorDescription"]),
+                    string.Format("Error #{0} when sending request: {1}", error, j.get("errorDescription")),
                     fb_error_code: error,
-                    fb_error_message: j["errorDescription"]?.Value<string>());
+                    fb_error_message: j.get("errorDescription")?.Value<string>());
             }
-            else if (new long[] { 1357031, 1545010, 1545003 }.Contains(j["error"].Value<long>()))
+            else if (new long[] { 1357031, 1545010, 1545003 }.Contains(j.get("error").Value<long>()))
             {
                 throw new FBchatInvalidParameters(
-                    string.Format("Error #{0} when sending request: {1}", error, j["errorDescription"]),
+                    string.Format("Error #{0} when sending request: {1}", error, j.get("errorDescription")),
                     fb_error_code: error,
-                    fb_error_message: j["errorDescription"]?.Value<string>());
+                    fb_error_message: j.get("errorDescription")?.Value<string>());
             }
-            // TODO: Use j["errorSummary"]
+            // TODO: Use j.get("errorSummary")
             // "errorDescription" is in the users own language!
         }
 
         public static void handle_graphql_errors(JToken j)
         {
             JToken errors = null;
-            if (j["error"] != null && j["error"].Type != JTokenType.Null)
+            if (j.get("error") != null && j.get("error").Type != JTokenType.Null)
             {
-                errors = j["error"];
+                errors = j.get("error");
             }
-            else if (j["errors"] != null && j["errors"].Type != JTokenType.Null)
+            else if (j.get("errors") != null && j.get("errors").Type != JTokenType.Null)
             {
-                errors = j["errors"];
+                errors = j.get("errors");
             }
             if (errors != null)
             {
@@ -100,10 +100,10 @@ namespace fbchat_sharp.API
                                         // TODO: Use `summary`, `severity` and `description`
                 throw new FBchatFacebookError(
                     string.Format("GraphQL error #{0}: {1} / {2}",
-                        errors["code"]?.Value<long>(), errors["message"]?.Value<string>(), errors["debug_info"]?.Value<string>()
+                        errors.get("code")?.Value<long>(), errors.get("message")?.Value<string>(), errors.get("debug_info")?.Value<string>()
                     ),
-                    fb_error_code: errors["code"]?.Value<long>() ?? 0,
-                    fb_error_message: errors["message"]?.Value<string>()
+                    fb_error_code: errors.get("code")?.Value<long>() ?? 0,
+                    fb_error_message: errors.get("message")?.Value<string>()
                 );
             }
         }
@@ -127,11 +127,11 @@ namespace fbchat_sharp.API
 
         public static JToken get_jsmods_require(JToken j, int index)
         {
-            if (j["jsmods"] != null && j["jsmods"].Type != JTokenType.Null && j["jsmods"]?.get("require") != null && j["jsmods"]?.get("require").Type != JTokenType.Null)
+            if (j.get("jsmods") != null && j.get("jsmods").Type != JTokenType.Null && j.get("jsmods")?.get("require") != null && j.get("jsmods")?.get("require").Type != JTokenType.Null)
             {
                 try
                 {
-                    return j["jsmods"]?.get("require")?.FirstOrDefault()?[index]?.FirstOrDefault();
+                    return j.get("jsmods")?.get("require")?.FirstOrDefault()?[index]?.FirstOrDefault();
                 }
                 catch (Exception)
                 {

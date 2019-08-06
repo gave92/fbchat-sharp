@@ -15,7 +15,7 @@ namespace fbchat_sharp.API
         USER = 1,
         GROUP = 2,
         ROOM = 2,
-        PAGE = 3,        
+        PAGE = 3,
         INVALID = 4
     }
 
@@ -118,25 +118,25 @@ namespace fbchat_sharp.API
         public static Dictionary<string, object> _parse_customization_info(JToken data)
         {
             var rtn = new Dictionary<string, object>();
-            if (data == null || data["customization_info"] == null || data["customization_info"].Type == JTokenType.Null)
+            if (data == null || data.get("customization_info") == null || data.get("customization_info").Type == JTokenType.Null)
                 return rtn;
-            var info = data["customization_info"];
-            rtn["emoji"] = info["emoji"];
-            rtn["color"] = ThreadColor._from_graphql(info["outgoing_bubble_color"]);
+            var info = data.get("customization_info");
+            rtn["emoji"] = info.get("emoji");
+            rtn["color"]= ThreadColor._from_graphql(info.get("outgoing_bubble_color"));
 
             if (
-                data["thread_type"]?.Value<string>() == "GROUP"
-                || (data["is_group_thread"]?.Value<bool>() ?? false)
-                || (data["thread_key"]?.get("thread_fbid") != null && data["thread_key"]?.get("thread_fbid").Type != JTokenType.Null))
+                data.get("thread_type")?.Value<string>() == "GROUP"
+                || (data.get("is_group_thread")?.Value<bool>() ?? false)
+                || (data.get("thread_key")?.get("thread_fbid") != null && data.get("thread_key")?.get("thread_fbid").Type != JTokenType.Null))
             {
                 rtn["nicknames"] = new Dictionary<string, string>();
-                foreach (var k in info["participant_customizations"])
-                    ((Dictionary<string, string>)rtn["nicknames"])[k["participant_id"]?.Value<string>()] = k["nickname"]?.Value<string>();
+                foreach (var k in info.get("participant_customizations"))
+                    ((Dictionary<string, string>)rtn["nicknames"])[k.get("participant_id")?.Value<string>()] = k.get("nickname")?.Value<string>();
             }
-            else if (info["participant_customizations"] != null && info["participant_customizations"].Type != JTokenType.Null)
+            else if (info.get("participant_customizations") != null && info.get("participant_customizations").Type != JTokenType.Null)
             {
-                string uid = data["thread_key"]?.get("other_user_id")?.Value<string>() ?? data["id"]?.Value<string>();
-                var pc = info["participant_customizations"];                
+                string uid = data.get("thread_key")?.get("other_user_id")?.Value<string>() ?? data.get("id")?.Value<string>();
+                var pc = info.get("participant_customizations");
                 if (pc.Type == JTokenType.Array && pc.Value<JArray>().Count > 0)
                 {
                     if (pc[0]?.get("participant_id")?.Value<string>() == uid)

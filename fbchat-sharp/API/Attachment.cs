@@ -22,7 +22,7 @@ namespace fbchat_sharp.API
 
         public static FB_Attachment graphql_to_attachment(JToken data)
         {
-            var _type = data["__typename"]?.Value<string>();
+            var _type = data.get("__typename")?.Value<string>();
             if (new string[] { "MessageImage", "MessageAnimatedImage" }.Contains(_type))
             {
                 return FB_ImageAttachment._from_graphql(data);
@@ -41,14 +41,14 @@ namespace fbchat_sharp.API
             }
             else
             {
-                return new FB_Attachment(uid: data["legacy_attachment_id"]?.Value<string>());
+                return new FB_Attachment(uid: data.get("legacy_attachment_id")?.Value<string>());
             }
         }
 
         public static FB_Attachment graphql_to_subattachment(JToken data)
         {
-            JToken target = data["target"];
-            string type = target != null ? target["__typename"]?.Value<string>() : null;
+            JToken target = data.get("target");
+            string type = target != null ? target.get("__typename")?.Value<string>() : null;
             if (type == "Video")
                 return FB_VideoAttachment._from_subattachment(data);
             return null;
@@ -56,15 +56,15 @@ namespace fbchat_sharp.API
 
         public static FB_Attachment graphql_to_extensible_attachment(JToken data)
         {
-            var story = data["story_attachment"];
+            var story = data.get("story_attachment");
             if (story == null || story.Type == JTokenType.Null)
                 return null;
 
-            var target = story["target"];
+            var target = story.get("target");
             if (target == null || target.Type == JTokenType.Null)
-                return new FB_UnsentMessage(uid: data["legacy_attachment_id"]?.Value<string>());
+                return new FB_UnsentMessage(uid: data.get("legacy_attachment_id")?.Value<string>());
 
-            var _type = target["__typename"]?.Value<string>();
+            var _type = target.get("__typename")?.Value<string>();
             if (_type == "MessageLocation")
                 return FB_LocationAttachment._from_graphql(story);
             else if (_type == "MessageLiveLocation")
@@ -151,27 +151,27 @@ namespace fbchat_sharp.API
 
         public static FB_ShareAttachment _from_graphql(JToken data)
         {
-            string url = data["url"]?.Value<string>();
+            string url = data.get("url")?.Value<string>();
             FB_ShareAttachment rtn = new FB_ShareAttachment(
-                uid: data["deduplication_key"]?.Value<string>(),
-                author: data["target"]?.get("actors")?.FirstOrDefault()?.get("id")?.Value<string>(),
+                uid: data.get("deduplication_key")?.Value<string>(),
+                author: data.get("target")?.get("actors")?.FirstOrDefault()?.get("id")?.Value<string>(),
                 url: url,
                 original_url: (url?.Contains("/l.php?u=") ?? false) ? Utils.get_url_parameter(url, "u") : url,
-                title: data["title_with_entities"]?.get("text")?.Value<string>(),
+                title: data.get("title_with_entities")?.get("text")?.Value<string>(),
                 description: data.get("description")?.get("text")?.Value<string>(),
-                source: data["source"]?.get("text")?.Value<string>()
+                source: data.get("source")?.get("text")?.Value<string>()
                 );
 
-            rtn.attachments = data["subattachments"]?.Select(node => FB_Attachment.graphql_to_subattachment(node))?.ToList();
+            rtn.attachments = data.get("subattachments")?.Select(node => FB_Attachment.graphql_to_subattachment(node))?.ToList();
 
-            JToken media = data["media"];
-            if (media != null && media.Type != JTokenType.Null && media["image"] != null && media["image"].Type != JTokenType.Null)
+            JToken media = data.get("media");
+            if (media != null && media.Type != JTokenType.Null && media.get("image") != null && media.get("image").Type != JTokenType.Null)
             {
-                JToken image = media["image"];
-                rtn.image_url = image["uri"]?.Value<string>();
+                JToken image = media.get("image");
+                rtn.image_url = image.get("uri")?.Value<string>();
                 rtn.original_image_url = (rtn.image_url?.Contains("/safe_image.php") ?? false) ? Utils.get_url_parameter(rtn.image_url, "url") : rtn.image_url;
-                rtn.image_width = image["width"]?.Value<int>() ?? 0;
-                rtn.image_height = image["height"]?.Value<int>() ?? 0;
+                rtn.image_width = image.get("width")?.Value<int>() ?? 0;
+                rtn.image_height = image.get("height")?.Value<int>() ?? 0;
             }
 
             return rtn;

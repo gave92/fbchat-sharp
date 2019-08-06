@@ -49,23 +49,23 @@ namespace fbchat_sharp.API
 
         public static FB_Page _from_graphql(JToken data)
         {
-            if (data["profile_picture"] == null || data["profile_picture"].Type == JTokenType.Null)
+            if (data.get("profile_picture") == null || data.get("profile_picture").Type == JTokenType.Null)
                 data["profile_picture"] = new JObject(new JProperty("uri", ""));
-            if (data["city"] == null || data["city"].Type == JTokenType.Null)
+            if (data.get("city") == null || data.get("city").Type == JTokenType.Null)
                 data["city"] = new JObject(new JProperty("name", ""));
 
             FB_Plan plan = null;
-            if (data["event_reminders"] != null && data["event_reminders"].Type != JTokenType.Null && data["event_reminders"]?.get("nodes") != null && data["event_reminders"]?.get("nodes").Type != JTokenType.Null)
-                plan = FB_Plan._from_graphql(data["event_reminders"]?.get("nodes")?.FirstOrDefault());
+            if (data.get("event_reminders") != null && data.get("event_reminders").Type != JTokenType.Null && data.get("event_reminders")?.get("nodes") != null && data.get("event_reminders")?.get("nodes").Type != JTokenType.Null)
+                plan = FB_Plan._from_graphql(data.get("event_reminders")?.get("nodes")?.FirstOrDefault());
 
             return new FB_Page(
-                uid: data["id"]?.Value<string>(),
-                url: data["url"]?.Value<string>(),
-                city: data["city"]?.get("name")?.Value<string>(),
-                category: data["category_type"]?.Value<string>(),
-                photo: data["profile_picture"]?.get("uri")?.Value<string>(),
-                name: data["name"]?.Value<string>(),
-                message_count: data["messages_count"]?.Value<int>() ?? 0,
+                uid: data.get("id")?.Value<string>(),
+                url: data.get("url")?.Value<string>(),
+                city: data.get("city")?.get("name")?.Value<string>(),
+                category: data.get("category_type")?.Value<string>(),
+                photo: data.get("profile_picture")?.get("uri")?.Value<string>(),
+                name: data.get("name")?.Value<string>(),
+                message_count: data.get("messages_count")?.Value<int>() ?? 0,
                 plan: plan
             );
         }

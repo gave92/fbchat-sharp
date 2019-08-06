@@ -50,7 +50,7 @@ namespace fbchat_sharp.API
 
         public static FB_LocationAttachment _from_graphql(JToken data)
         {
-            var url = data["url"]?.Value<string>();
+            var url = data.get("url")?.Value<string>();
             var address = Utils.get_url_parameter(Utils.get_url_parameter(url, "u"), "where1");
             double latitude = 0, longitude = 0;
             try
@@ -65,15 +65,15 @@ namespace fbchat_sharp.API
             }
 
             var rtn = new FB_LocationAttachment(
-                uid: data["deduplication_key"]?.Value<string>(),
+                uid: data.get("deduplication_key")?.Value<string>(),
                 latitude: latitude,
                 longitude: longitude,
                 address: address);
 
-            var media = data["media"];
-            if (media != null && media["image"] != null && media["image"].Type != JTokenType.Null)
+            var media = data.get("media");
+            if (media != null && media.get("image") != null && media.get("image").Type != JTokenType.Null)
             {
-                var image = media["image"];
+                var image = media.get("image");
                 rtn.image_url = image?.get("uri")?.Value<string>();
                 rtn.image_width = image?.get("width")?.Value<int>() ?? 0;
                 rtn.image_height = image?.get("height")?.Value<int>() ?? 0;
@@ -121,33 +121,33 @@ namespace fbchat_sharp.API
         public static FB_LiveLocationAttachment _from_pull(JToken data)
         {
             return new FB_LiveLocationAttachment(
-                uid: data["id"]?.Value<string>(),
-                latitude: ((data["stopReason"] == null || data["stopReason"].Type == JTokenType.Null) ? data["coordinate"]?.get("latitude")?.Value<double>() ?? 0 : 0) / (10 ^ 8),
-                longitude: ((data["stopReason"] == null || data["stopReason"].Type == JTokenType.Null) ? data["coordinate"]?.get("longitude")?.Value<double>() ?? 0 : 0) / (10 ^ 8),
-                name: data["locationTitle"]?.Value<string>(),
-                expiration_time: data["expirationTime"]?.Value<string>(),
-                is_expired: data["stopReason"]?.Value<bool>() ?? false);
+                uid: data.get("id")?.Value<string>(),
+                latitude: ((data.get("stopReason") == null || data.get("stopReason").Type == JTokenType.Null) ? data.get("coordinate")?.get("latitude")?.Value<double>() ?? 0 : 0) / (10 ^ 8),
+                longitude: ((data.get("stopReason") == null || data.get("stopReason").Type == JTokenType.Null) ? data.get("coordinate")?.get("longitude")?.Value<double>() ?? 0 : 0) / (10 ^ 8),
+                name: data.get("locationTitle")?.Value<string>(),
+                expiration_time: data.get("expirationTime")?.Value<string>(),
+                is_expired: data.get("stopReason")?.Value<bool>() ?? false);
         }
 
         public static new FB_LiveLocationAttachment _from_graphql(JToken data)
         {
-            var target = data["target"];
+            var target = data.get("target");
             var rtn = new FB_LiveLocationAttachment(
-                uid: target["live_location_id"]?.Value<string>(),
-                latitude: target["coordinate"]?.get("latitude")?.Value<double>() ?? 0,
-                longitude: target["coordinate"]?.get("longitude")?.Value<double>() ?? 0,
-                name: data["title_with_entities"]?.get("text")?.Value<string>(),
-                expiration_time: target["expiration_time"]?.Value<string>(),
-                is_expired: target["is_expired"]?.Value<bool>() ?? false);
+                uid: target.get("live_location_id")?.Value<string>(),
+                latitude: target.get("coordinate")?.get("latitude")?.Value<double>() ?? 0,
+                longitude: target.get("coordinate")?.get("longitude")?.Value<double>() ?? 0,
+                name: data.get("title_with_entities")?.get("text")?.Value<string>(),
+                expiration_time: target.get("expiration_time")?.Value<string>(),
+                is_expired: target.get("is_expired")?.Value<bool>() ?? false);
 
-            var media = data["media"];
-            if (media != null && media["image"] != null && media["image"].Type != JTokenType.Null) {
-                var image = media["image"];
+            var media = data.get("media");
+            if (media != null && media.get("image") != null && media.get("image").Type != JTokenType.Null) {
+                var image = media.get("image");
                 rtn.image_url = image?.get("uri")?.Value<string>();
                 rtn.image_width = image?.get("width")?.Value<int>() ?? 0;
                 rtn.image_height = image?.get("height")?.Value<int>() ?? 0;
             }                
-            rtn.url = data["url"]?.Value<string>();
+            rtn.url = data.get("url")?.Value<string>();
 
             return rtn;
         }

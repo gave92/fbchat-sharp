@@ -61,25 +61,25 @@ namespace fbchat_sharp.API
 
         public static FB_Group _from_graphql(JToken data)
         {
-            if (data["image"] == null || data["image"].Type == JTokenType.Null)
+            if (data.get("image") == null || data.get("image").Type == JTokenType.Null)
                 data["image"] = new JObject(new JProperty("uri", ""));
             var c_info = FB_Group._parse_customization_info(data);
 
-            var last_message_timestamp = data["last_message"]?.get("nodes")?.FirstOrDefault()?.get("timestamp_precise")?.Value<string>();
-            var plan = data["event_reminders"]?.get("nodes")?.FirstOrDefault() != null ? FB_Plan._from_graphql(data["event_reminders"]?.get("nodes")?.FirstOrDefault()) : null;
+            var last_message_timestamp = data.get("last_message")?.get("nodes")?.FirstOrDefault()?.get("timestamp_precise")?.Value<string>();
+            var plan = data.get("event_reminders")?.get("nodes")?.FirstOrDefault() != null ? FB_Plan._from_graphql(data.get("event_reminders")?.get("nodes")?.FirstOrDefault()) : null;
 
             return new FB_Group(
-                uid: data["thread_key"]?.get("thread_fbid")?.Value<string>(),
-                participants: new HashSet<string>(data["all_participants"]?.get("nodes")?.Select(node => node["messaging_actor"]?.get("id")?.Value<string>())),
+                uid: data.get("thread_key")?.get("thread_fbid")?.Value<string>(),
+                participants: new HashSet<string>(data.get("all_participants")?.get("nodes")?.Select(node => node.get("messaging_actor")?.get("id")?.Value<string>())),
                 nicknames: (Dictionary<string, string>)c_info.GetValueOrDefault("nicknames"),
                 color: (string)c_info.GetValueOrDefault("color"),
                 emoji: (JToken)c_info.GetValueOrDefault("emoji"),
-                admins: new HashSet<string>(data["thread_admins"]?.Select(node => node["id"]?.Value<string>())),
-                approval_mode: data["approval_mode"]?.Value<bool>() ?? false,
-                approval_requests: data["group_approval_queue"] != null ? new HashSet<string>(data["group_approval_queue"]?.get("nodes")?.Select(node => node["requester"]?.get("id")?.Value<string>())) : null,
-                photo: data["image"]?.get("uri")?.Value<string>(),
-                name: data["name"]?.Value<string>(),
-                message_count: data["messages_count"]?.Value<int>() ?? 0,
+                admins: new HashSet<string>(data.get("thread_admins")?.Select(node => node.get("id")?.Value<string>())),
+                approval_mode: data.get("approval_mode")?.Value<bool>() ?? false,
+                approval_requests: data.get("group_approval_queue") != null ? new HashSet<string>(data.get("group_approval_queue")?.get("nodes")?.Select(node => node.get("requester")?.get("id")?.Value<string>())) : null,
+                photo: data.get("image")?.get("uri")?.Value<string>(),
+                name: data.get("name")?.Value<string>(),
+                message_count: data.get("messages_count")?.Value<int>() ?? 0,
                 last_message_timestamp: last_message_timestamp,
                 plan: plan);
         }

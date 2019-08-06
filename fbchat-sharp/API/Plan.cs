@@ -97,15 +97,15 @@ namespace fbchat_sharp.API
         public static FB_Plan _from_pull(JToken data)
         {
             FB_Plan rtn = new FB_Plan(
-                time: data["event_time"]?.Value<string>(),
-                title: data["event_title"]?.Value<string>(),
-                location: data["event_location_name"]?.Value<string>(),
-                location_id: data["event_location_id"]?.Value<string>()
+                time: data.get("event_time")?.Value<string>(),
+                title: data.get("event_title")?.Value<string>(),
+                location: data.get("event_location_name")?.Value<string>(),
+                location_id: data.get("event_location_id")?.Value<string>()
             );
-            rtn.uid = data["event_id"]?.Value<string>();
-            rtn.author_id = data["event_creator_id"]?.Value<string>();
-            rtn.guests = JToken.Parse(data["guest_state_list"]?.Value<string>()).Select((x) => {
-                return new { Key = x["node"]?.get("id")?.Value<string>(), Value = FB_Plan_Constants.GUESTS[x["guest_list_state"]?.Value<string>()] };
+            rtn.uid = data.get("event_id")?.Value<string>();
+            rtn.author_id = data.get("event_creator_id")?.Value<string>();
+            rtn.guests = JToken.Parse(data.get("guest_state_list")?.Value<string>()).Select((x) => {
+                return new { Key = x.get("node")?.get("id")?.Value<string>(), Value = FB_Plan_Constants.GUESTS[x.get("guest_list_state")?.Value<string>()] };
             }).ToDictionary(t => t.Key, t => t.Value);
             return rtn;
         }
@@ -113,14 +113,14 @@ namespace fbchat_sharp.API
         public static FB_Plan _from_fetch(JToken data)
         {
             FB_Plan rtn = new FB_Plan(
-                time: data["event_time"]?.Value<string>(),
-                title: data["title"]?.Value<string>(),
-                location: data["location_name"]?.Value<string>(),
-                location_id: data["location_id"]?.Value<string>()
+                time: data.get("event_time")?.Value<string>(),
+                title: data.get("title")?.Value<string>(),
+                location: data.get("location_name")?.Value<string>(),
+                location_id: data.get("location_id")?.Value<string>()
             );
-            rtn.uid = data["oid"]?.Value<string>();
-            rtn.author_id = data["creator_id"]?.Value<string>();
-            rtn.guests = data["event_members"]?.Value<JObject>().Properties().Select((x) => {
+            rtn.uid = data.get("oid")?.Value<string>();
+            rtn.author_id = data.get("creator_id")?.Value<string>();
+            rtn.guests = data.get("event_members")?.Value<JObject>().Properties().Select((x) => {
                 return new { Key = x.Name, Value = FB_Plan_Constants.GUESTS[x.Value?.Value<string>()] };
             }).ToDictionary(t => t.Key, t => t.Value);
             return rtn;
@@ -129,14 +129,14 @@ namespace fbchat_sharp.API
         public static FB_Plan _from_graphql(JToken data)
         {
             FB_Plan rtn = new FB_Plan(
-                time: data["time"]?.Value<string>(),
-                title: data["event_title"]?.Value<string>(),
-                location: data["location_name"]?.Value<string>()
+                time: data.get("time")?.Value<string>(),
+                title: data.get("event_title")?.Value<string>(),
+                location: data.get("location_name")?.Value<string>()
             );
-            rtn.uid = data["id"]?.Value<string>();
-            rtn.author_id = data["lightweight_event_creator"]?.get("id")?.Value<string>();
-            rtn.guests = data["event_reminder_members"]?.get("edges")?.Select((x) => {
-                return new { Key = x["node"]?.get("id") ?.Value<string>(), Value = FB_Plan_Constants.GUESTS[x["guest_list_state"]?.Value<string>()] };
+            rtn.uid = data.get("id")?.Value<string>();
+            rtn.author_id = data.get("lightweight_event_creator")?.get("id")?.Value<string>();
+            rtn.guests = data.get("event_reminder_members")?.get("edges")?.Select((x) => {
+                return new { Key = x.get("node")?.get("id") ?.Value<string>(), Value = FB_Plan_Constants.GUESTS[x.get("guest_list_state")?.Value<string>()] };
             }).ToDictionary(t => t.Key, t => t.Value);
             return rtn;
         }

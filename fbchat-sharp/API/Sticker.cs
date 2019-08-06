@@ -46,26 +46,26 @@ namespace fbchat_sharp.API
             {
                 return null;
             }
-            var sticker = new FB_Sticker(uid: data["id"]?.Value<string>());
-            if (data["pack"] != null && data["pack"].Type != JTokenType.Null)
+            var sticker = new FB_Sticker(uid: data.get("id")?.Value<string>());
+            if (data.get("pack") != null && data.get("pack").Type != JTokenType.Null)
             {
-                sticker.pack = data["pack"]?.get("id")?.Value<string>();
+                sticker.pack = data.get("pack")?.get("id")?.Value<string>();
             }
-            if (data["sprite_image"] != null && data["sprite_image"].Type != JTokenType.Null)
+            if (data.get("sprite_image") != null && data.get("sprite_image").Type != JTokenType.Null)
             {
                 sticker.is_animated = true;
-                sticker.medium_sprite_image = data["sprite_image"]?.get("uri")?.Value<string>();
-                sticker.large_sprite_image = data["sprite_image_2x"]?.get("uri")?.Value<string>();
-                sticker.frames_per_row = data["frames_per_row"]?.Value<int>() ?? 0;
-                sticker.frames_per_col = data["frames_per_column"]?.Value<int>() ?? 0;
-                sticker.frame_rate = data["frame_rate"]?.Value<float>() ?? 0;
+                sticker.medium_sprite_image = data.get("sprite_image")?.get("uri")?.Value<string>();
+                sticker.large_sprite_image = data.get("sprite_image_2x")?.get("uri")?.Value<string>();
+                sticker.frames_per_row = data.get("frames_per_row")?.Value<int>() ?? 0;
+                sticker.frames_per_col = data.get("frames_per_column")?.Value<int>() ?? 0;
+                sticker.frame_rate = data.get("frame_rate")?.Value<float>() ?? 0;
             }
-            sticker.url = data["url"]?.Value<string>();
-            sticker.width = data["width"]?.Value<int>() ?? 0;
-            sticker.height = data["height"]?.Value<int>() ?? 0;
-            if (data["label"] != null && data["label"].Type != JTokenType.Null)
+            sticker.url = data.get("url")?.Value<string>();
+            sticker.width = data.get("width")?.Value<int>() ?? 0;
+            sticker.height = data.get("height")?.Value<int>() ?? 0;
+            if (data.get("label") != null && data.get("label").Type != JTokenType.Null)
             {
-                sticker.label = data["label"]?.Value<string>();
+                sticker.label = data.get("label")?.Value<string>();
             }
             return sticker;
         }
