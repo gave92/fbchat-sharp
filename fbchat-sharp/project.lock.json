@@ -3500,7 +3500,6 @@
     "C:\\Users\\Marco\\.nuget\\packages\\": {}
   },
   "project": {
-    "version": "1.0.0",
     "restore": {
       "projectUniqueName": "C:\\Users\\Marco\\source\\repos\\fbchat-sharp\\fbchat-sharp\\fbchat-sharp.csproj",
       "projectName": "fbchat-sharp",
