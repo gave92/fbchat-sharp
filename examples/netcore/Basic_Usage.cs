@@ -30,10 +30,8 @@ namespace examples
             // Check login was successful
             if (logged_in)
             {
-                // client.StartListening();
-
-                // Save session cookies
-                await client.WriteCookiesAsync();
+                // Start listening for new messages
+                await client.StartListening();
 
                 // Fetch latest threads
                 var threads = await client.FetchThreadList();
@@ -65,16 +63,20 @@ namespace examples
                     Console.WriteLine("Message sent: {0}", msg_uid);
                 }
 
-                // Send an image to myself
+                // Send a local image to myself
                 // using (FileStream stream = File.OpenRead(@"C:\Users\Marco\Pictures\Saved Pictures\opengraph.png"))
                 // {
                 // await client.sendLocalImage(@"C:\Users\Marco\Pictures\Saved Pictures\opengraph.png", stream, null, client.GetUserUid(), ThreadType.USER);
                 // }
 
-                // await Task.Delay(60 * 1000);
-                // client.StopListening();
+                // Send a remote image to myself
+                await client.sendRemoteImage(@"https://freeaddon.com/wp-content/uploads/2018/12/cat-memes-25.jpg", thread_id: client.GetUserUid());
 
-                // Do logout
+                // Stop listening after 60secs
+                await Task.Delay(60 * 1000);
+                client.StopListening();
+
+                // Logging out is not required
                 // await client.DoLogout();
             }
             else
