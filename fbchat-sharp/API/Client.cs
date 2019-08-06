@@ -753,7 +753,7 @@ namespace fbchat_sharp.API
 
             var j = await this._payload_post("/chat/user_info/", data);
 
-            if (j["profiles"] == null)
+            if (j["profiles"] == null || j["profiles"].Type == JTokenType.Null)
                 throw new FBchatException("No users/pages returned");
 
             var entries = new JObject();
@@ -1020,7 +1020,7 @@ namespace fbchat_sharp.API
                 throw new FBchatException(string.Format("Could not fetch thread {0}", thread_id));
             }
 
-            var messages = j?["message_thread"]?["messages"]?["nodes"]?.Select(message => FB_Message._from_graphql(message))?.Reverse()?.ToList();
+            var messages = j?["message_thread"]?["messages"]?["nodes"]?.Select(message => FB_Message._from_graphql(message, thread_id))?.Reverse()?.ToList();
 
             var read_receipts = j?["message_thread"]?["read_receipts"]?["nodes"];
             foreach (var message in messages)
@@ -1182,7 +1182,7 @@ namespace fbchat_sharp.API
             var thread = this._getThread(thread_id, null);
             thread_id = thread.Item1;
             var message_info = ((JToken)await this._forcedFetch(thread_id, mid))?["message"];
-            return FB_Message._from_graphql(message_info);
+            return FB_Message._from_graphql(message_info, thread_id);
         }
 
         /// <summary>
@@ -1887,7 +1887,7 @@ namespace fbchat_sharp.API
                 { string.Format("recipient_map[{0]",Utils.generateOfflineThreadingID()), thread.Item1 }
             };
             var j = await this._payload_post("/mercury/attachments/forward/", data);
-            if (j["success"] == null)
+            if (j["success"] == null || j["success"].Type == JTokenType.Null)
                 throw new FBchatFacebookError(
                 string.Format("Failed forwarding attachment: {0}", j["error"]),
                 fb_error_message: j["error"]?.Value<string>()
@@ -3157,7 +3157,7 @@ namespace fbchat_sharp.API
                 );
 
                 var threads = new List<Tuple<string, ThreadType>>();
-                if (delta["folders"] == null)
+                if (delta["folders"] == null || delta["folders"].Type == JTokenType.Null)
                 {
                     threads = delta["threadKeys"].Select(thr => getThreadIdAndThreadType(
                         new JObject(new JProperty("threadKey", thr)))).ToList();
@@ -3458,8 +3458,8 @@ namespace fbchat_sharp.API
                         var i = d["deltaMessageReply"];
                         metadata = i["message"]["messageMetadata"];
                         var thread = getThreadIdAndThreadType(metadata);
-                        var message = FB_Message._from_reply(i["message"]);
-                        message.replied_to = FB_Message._from_reply(i["repliedToMessage"]);
+                        var message = FB_Message._from_reply(i["message"],thread.Item1);
+                        message.replied_to = FB_Message._from_reply(i["repliedToMessage"], thread.Item1);
                         message.reply_to_id = message.replied_to.uid;
                         await this.onMessage(
                             mid: message.uid,
@@ -3485,10 +3485,11 @@ namespace fbchat_sharp.API
                     message: delta["body"]?.Value<string>() ?? "",
                     message_object: FB_Message._from_pull(
                         delta,
+                        thread.Item1,
                         mid: mid,
                         tags: metadata["tags"]?.ToObject<List<string>>(),
                         author: author_id,
-                        timestamp: ts.ToString()
+                        timestamp: ts.ToString()                        
                     ),
                     thread_id: thread.Item1,
                     thread_type: thread.Item2,
@@ -3519,7 +3520,7 @@ namespace fbchat_sharp.API
                     await this._parseMessage(batch);
             }
 
-            if (content["ms"] == null) return;
+            if (content["ms"] == null || content["ms"].Type == JTokenType.Null) return;
 
             foreach (var m in content["ms"])
             {

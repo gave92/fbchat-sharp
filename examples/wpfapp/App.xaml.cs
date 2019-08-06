@@ -1,5 +1,4 @@
-﻿using examples;
-using fbchat_sharp.API;
+﻿using fbchat_sharp.API;
 using System.Windows;
 
 namespace wpfapp
@@ -10,9 +9,9 @@ namespace wpfapp
     public partial class App : Application
     {
         // FBClient
-        private MessengerClient _client;
+        private FBClient_Wpf _client;
 
-        public MessengerClient client
+        public FBClient_Wpf client
         {
             get
             {

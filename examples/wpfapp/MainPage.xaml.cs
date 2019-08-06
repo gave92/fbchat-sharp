@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using wpfapp.Helpers;
+using static wpfapp.FBClient_Wpf;
 
 namespace wpfapp
 {
@@ -19,7 +20,7 @@ namespace wpfapp
     {
         private static SemaphoreSlim SlowStuffSemaphore = new SemaphoreSlim(1, 1);
 
-        public MessengerClient Client { get; private set; }
+        public FBClient_Wpf Client { get; private set; }
         public ObservableCollection<FB_Thread> Threads { get; private set; }
         public ObservableObject<FB_Thread> SelectedThread { get; private set; }
         public ObservableObject<FB_User> Profile { get; private set; }
@@ -40,7 +41,7 @@ namespace wpfapp
 
         private void MainPage_Unloaded(object sender, RoutedEventArgs e)
         {
-            //Client.UpdateEvent -= Client_UpdateEvent;
+            Client.UpdateEvent -= Client_UpdateEvent;
             Client.StopListening();
         }
 
@@ -48,11 +49,10 @@ namespace wpfapp
         {
             Profile.Value = await Client.FetchProfile();
             await UpdateThreadList();
-            //Client.UpdateEvent += Client_UpdateEvent;
+            Client.UpdateEvent += Client_UpdateEvent;
             await Client.StartListening();
         }
 
-        /*
         private void Client_UpdateEvent(object sender, UpdateEventArgs e)
         {
             if (e.EventType == UpdateStatus.NEW_MESSAGE)
@@ -65,7 +65,6 @@ namespace wpfapp
                 }
             }
         }
-        */
 
         private async void LogoutButton_Click(object sender, RoutedEventArgs e)
         {

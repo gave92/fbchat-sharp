@@ -122,8 +122,8 @@ namespace fbchat_sharp.API
         {
             return new FB_LiveLocationAttachment(
                 uid: data["id"]?.Value<string>(),
-                latitude: (data["stopReason"] == null ? data["coordinate"]?["latitude"]?.Value<double>() ?? 0 : 0) / (10 ^ 8),
-                longitude: (data["stopReason"] == null ? data["coordinate"]?["longitude"]?.Value<double>() ?? 0 : 0) / (10 ^ 8),
+                latitude: ((data["stopReason"] == null || data["stopReason"].Type == JTokenType.Null) ? data["coordinate"]?["latitude"]?.Value<double>() ?? 0 : 0) / (10 ^ 8),
+                longitude: ((data["stopReason"] == null || data["stopReason"].Type == JTokenType.Null) ? data["coordinate"]?["longitude"]?.Value<double>() ?? 0 : 0) / (10 ^ 8),
                 name: data["locationTitle"]?.Value<string>(),
                 expiration_time: data["expirationTime"]?.Value<string>(),
                 is_expired: data["stopReason"]?.Value<bool>() ?? false);

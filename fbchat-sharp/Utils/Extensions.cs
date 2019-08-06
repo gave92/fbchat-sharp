@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -10,6 +11,12 @@ namespace fbchat_sharp
 {
     internal static class Extensions
     {
+        public static JToken get(this JToken token, string key)
+        {
+            return token.Type != JTokenType.Null && token[key] != null && token[key].Type != JTokenType.Null ? 
+                token[key] : null;
+        }
+
         public static Dictionary<string, List<Cookie>> GetAllCookies(this CookieContainer container)
         {
             var allCookies = new Dictionary<string, List<Cookie>>();

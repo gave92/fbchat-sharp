@@ -196,28 +196,31 @@ namespace fbchat_sharp.API
         {
             Debug.WriteLine(string.Format("{0}: {1}", message, method));
         }
-        
+
         /// <summary>
         /// Use this to set the callback for providing a 2FA code
         /// </summary>
         public void Set2FACallback(Func<Task<string>> get2FACode)
         {
-            this.get2FACode = get2FACode;
+            this.get2FACode = new WeakReference<Func<Task<string>>>(get2FACode);
         }
 
-        private Func<Task<string>> get2FACode;
+        private WeakReference<Func<Task<string>>> get2FACode;
 
         /// <summary>
         /// Called when a 2FA code is requested
         /// </summary>
         protected override async Task<string> on2FACode()
         {
-            if (get2FACode == null)
+            Func<Task<string>> get2FACodeRef;
+            get2FACode.TryGetTarget(out get2FACodeRef);
+
+            if (get2FACodeRef == null)
             {
                 this.Log("2FA code callback is not set. Use Set2FACallback().");
                 return null;
             }
-            return await get2FACode();
+            return await get2FACodeRef();
         }
 
         /// <summary>
@@ -229,7 +232,7 @@ namespace fbchat_sharp.API
         /// How to save a list of cookies to disk
         /// </summary>
         /// <param name="cookieJar">List of session cookies</param>
-        protected abstract Task WriteCookiesToDiskAsync(Dictionary<string,List<Cookie>> cookieJar);
+        protected abstract Task WriteCookiesToDiskAsync(Dictionary<string, List<Cookie>> cookieJar);
 
         /// <summary>
         /// How to load a list of saved cookies

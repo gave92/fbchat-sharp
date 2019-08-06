@@ -160,6 +160,8 @@ namespace fbchat_sharp.API
         public bool forwarded { get; set; }
         /// The message was sent from me (not filled)
         public bool is_from_me { get; set; }
+        /// The thread this message belong to (not in fbchat)
+        public string thread_id { get; set; }
 
         /// <summary>
         /// Facebook messenger message class
@@ -181,7 +183,8 @@ namespace fbchat_sharp.API
         /// <param name="replied_to"></param>
         /// <param name="forwarded"></param>
         /// <param name="is_from_me"></param>
-        public FB_Message(string text = null, List<FB_Mention> mentions = null, EmojiSize? emoji_size = null, string uid = null, string author = null, string timestamp = null, bool is_read = false, List<string> read_by = null, Dictionary<string, MessageReaction> reactions = null, FB_Sticker sticker = null, List<FB_Attachment> attachments = null, List<FB_QuickReply> quick_replies = null, bool unsent = false, string reply_to_id = null, FB_Message replied_to = null, bool forwarded = false, bool is_from_me = false)
+        /// <param name="thread_id"></param>
+        public FB_Message(string text = null, List<FB_Mention> mentions = null, EmojiSize? emoji_size = null, string uid = null, string author = null, string timestamp = null, bool is_read = false, List<string> read_by = null, Dictionary<string, MessageReaction> reactions = null, FB_Sticker sticker = null, List<FB_Attachment> attachments = null, List<FB_QuickReply> quick_replies = null, bool unsent = false, string reply_to_id = null, FB_Message replied_to = null, bool forwarded = false, bool is_from_me = false, string thread_id = null)
         {
             this.text = text;
             this.mentions = mentions ?? new List<FB_Mention>();
@@ -200,6 +203,7 @@ namespace fbchat_sharp.API
             this.replied_to = replied_to;
             this.forwarded = forwarded;
             this.is_from_me = is_from_me;
+            this.thread_id = thread_id;
         }
 
         /// <returns>Pretty string representation of the thread</returns>
@@ -230,7 +234,7 @@ namespace fbchat_sharp.API
             return tags.Any((tag) => tag.Contains("forward") || tag.Contains("copy"));
         }
 
-        public static FB_Message _from_graphql(JToken data)
+        public static FB_Message _from_graphql(JToken data, string thread_id)
         {
             if (data["message_sender"] == null || data["message_sender"].Type == JTokenType.Null)
                 data["message_sender"] = new JObject(new JProperty("id", 0));
@@ -252,6 +256,7 @@ namespace fbchat_sharp.API
 
             rtn.forwarded = FB_Message._get_forwarded_from_tags(tags);
             rtn.uid = data["message_id"]?.Value<string>();
+            rtn.thread_id = thread_id; // Added
             rtn.author = data["message_sender"]?["id"]?.Value<string>();
             rtn.timestamp = data["timestamp_precise"]?.Value<string>();
             rtn.unsent = false;
@@ -291,14 +296,14 @@ namespace fbchat_sharp.API
             }
             if (data["replied_to_message"] != null && data["replied_to_message"].Type != JTokenType.Null)
             {
-                rtn.replied_to = FB_Message._from_graphql(data["replied_to_message"]["message"]);
+                rtn.replied_to = FB_Message._from_graphql(data["replied_to_message"]["message"],thread_id);
                 rtn.reply_to_id = rtn.replied_to.uid;
             }
 
             return rtn;
         }
 
-        public static FB_Message _from_reply(JToken data)
+        public static FB_Message _from_reply(JToken data, string thread_id)
         {
             var tags = data["messageMetadata"]?["tags"]?.ToObject<List<string>>();
 
@@ -315,6 +320,7 @@ namespace fbchat_sharp.API
             var metadata = data["messageMetadata"];
             rtn.forwarded = FB_Message._get_forwarded_from_tags(tags);
             rtn.uid = metadata?["messageId"]?.Value<string>();
+            rtn.thread_id = thread_id; // Added
             rtn.author = metadata?["actorFbId"]?.Value<string>();
             rtn.timestamp = metadata?["timestamp"]?.Value<string>();
             rtn.unsent = false;
@@ -353,11 +359,12 @@ namespace fbchat_sharp.API
             return rtn;
         }
 
-        public static FB_Message _from_pull(JToken data, string mid= null, List<string> tags= null, string author= null, string timestamp= null)
+        public static FB_Message _from_pull(JToken data, string thread_id, string mid= null, List<string> tags= null, string author= null, string timestamp= null)
         {
             var rtn = new FB_Message(
-                text: data["body"]?.Value<string>());
+                text: data["body"]?.Value<string>());            
             rtn.uid = mid;
+            rtn.thread_id = thread_id; // Added
             rtn.author = author;
             rtn.timestamp = timestamp;
 

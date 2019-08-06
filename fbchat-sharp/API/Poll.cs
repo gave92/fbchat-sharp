@@ -79,7 +79,7 @@ namespace fbchat_sharp.API
         public static FB_PollOption _from_graphql(JToken data)
         {
             bool vote = false;
-            if (data["viewer_has_voted"] == null)
+            if (data["viewer_has_voted"] == null || data["viewer_has_voted"].Type == JTokenType.Null)
                 vote = false;
             else if (data["viewer_has_voted"]?.Type == JTokenType.Boolean)
                 vote = data["viewer_has_voted"]?.Value<bool>() ?? false;
