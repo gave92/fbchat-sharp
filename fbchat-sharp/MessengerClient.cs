@@ -86,7 +86,7 @@ namespace fbchat_sharp.API
         /// <summary>
         /// Starts listening for messenger updates (e.g. a new message) on a background thread
         /// </summary>
-        public async Task StartListening(bool markAlive = false)
+        public async Task StartListening(bool markAlive = true)
         {
             base.startListening();
             await base.onListening();

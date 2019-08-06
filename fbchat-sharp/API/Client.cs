@@ -40,7 +40,7 @@ namespace fbchat_sharp.API
 
         private string _sticky = null;
         private string _pool = null;
-        private string _seq = null;
+        private int _seq = 0;
         private string _client_id = null;
         private string _default_thread_id = null;
         private ThreadType? _default_thread_type = null;
@@ -59,8 +59,8 @@ namespace fbchat_sharp.API
         {
             this._sticky = null;
             this._pool = null;
-            this._seq = "0";
-            this._client_id = ((int)(new Random().NextDouble() * (2 ^ 31))).ToString("X4").Substring(2);
+            this._seq = 0;
+            this._client_id = ((int)(new Random().NextDouble() * Math.Pow(2, 31))).ToString("x4");
             this._default_thread_id = null;
             this._default_thread_type = null;
             this._pull_channel = 0;
@@ -2906,9 +2906,10 @@ namespace fbchat_sharp.API
             var data = new Dictionary<string, object>() {
                 { "seq", this._seq },
                 { "msgs_recv", 0 },
-                {"sticky_token", this._sticky },
-                {"sticky_pool", this._pool },
-                {"clientid", this._client_id },
+                { "sticky_token", this._sticky },
+                { "sticky_pool", this._pool },
+                { "clientid", this._client_id },
+                { "state", this._markAlive ? "active" : "offline"},
             };
 
             return await this._get(
@@ -3458,7 +3459,7 @@ namespace fbchat_sharp.API
                         var i = d.get("deltaMessageReply");
                         metadata = i.get("message")?.get("messageMetadata");
                         var thread = getThreadIdAndThreadType(metadata);
-                        var message = FB_Message._from_reply(i.get("message"),thread.Item1);
+                        var message = FB_Message._from_reply(i.get("message"), thread.Item1);
                         message.replied_to = FB_Message._from_reply(i.get("repliedToMessage"), thread.Item1);
                         message.reply_to_id = message.replied_to.uid;
                         await this.onMessage(
@@ -3489,7 +3490,7 @@ namespace fbchat_sharp.API
                         mid: mid,
                         tags: metadata.get("tags")?.ToObject<List<string>>(),
                         author: author_id,
-                        timestamp: ts.ToString()                        
+                        timestamp: ts.ToString()
                     ),
                     thread_id: thread.Item1,
                     thread_type: thread.Item2,
@@ -3506,7 +3507,7 @@ namespace fbchat_sharp.API
         private async Task _parseMessage(JToken content)
         {
             /*Get message and author name from content. May contain multiple messages in the content.*/
-            this._seq = content.get("seq")?.Value<string>() ?? "0";
+            this._seq = content.get("seq")?.Value<int>() ?? 0;
 
             if (content.get("lb_info") != null)
             {
