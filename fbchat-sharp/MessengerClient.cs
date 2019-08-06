@@ -202,25 +202,22 @@ namespace fbchat_sharp.API
         /// </summary>
         public void Set2FACallback(Func<Task<string>> get2FACode)
         {
-            this.get2FACode = new WeakReference<Func<Task<string>>>(get2FACode);
+            this.get2FACode = get2FACode;
         }
 
-        private WeakReference<Func<Task<string>>> get2FACode;
+        private Func<Task<string>> get2FACode;
 
         /// <summary>
         /// Called when a 2FA code is requested
         /// </summary>
         protected override async Task<string> on2FACode()
         {
-            Func<Task<string>> get2FACodeRef;
-            get2FACode.TryGetTarget(out get2FACodeRef);
-
-            if (get2FACodeRef == null)
+            if (get2FACode == null)
             {
                 this.Log("2FA code callback is not set. Use Set2FACallback().");
                 return null;
             }
-            return await get2FACodeRef();
+            return await get2FACode();
         }
 
         /// <summary>

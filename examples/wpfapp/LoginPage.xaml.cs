@@ -18,7 +18,18 @@ namespace wpfapp
         {
             InitializeComponent();
             Client = ((App)Application.Current).client;
+            this.Loaded += LoginPage_Loaded;
+            this.Unloaded += LoginPage_Unloaded;
+        }
+
+        private void LoginPage_Loaded(object sender, RoutedEventArgs e)
+        {
             Client.Set2FACallback(On2FACallback);
+        }
+
+        private void LoginPage_Unloaded(object sender, RoutedEventArgs e)
+        {
+            Client.Set2FACallback(null);
         }
 
         private async Task<string> On2FACallback()
@@ -42,6 +53,6 @@ namespace wpfapp
                     NavigationService.Navigate(new Uri("MainPage.xaml", UriKind.RelativeOrAbsolute));
                 }
             }
-        }        
+        }
     }
 }

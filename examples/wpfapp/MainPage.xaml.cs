@@ -39,18 +39,18 @@ namespace wpfapp
             this.Unloaded += MainPage_Unloaded;
         }
 
-        private void MainPage_Unloaded(object sender, RoutedEventArgs e)
-        {
-            Client.UpdateEvent -= Client_UpdateEvent;
-            Client.StopListening();
-        }
-
         private async void MainPage_Loaded(object sender, RoutedEventArgs e)
         {
             Profile.Value = await Client.FetchProfile();
             await UpdateThreadList();
             Client.UpdateEvent += Client_UpdateEvent;
             await Client.StartListening();
+        }
+
+        private void MainPage_Unloaded(object sender, RoutedEventArgs e)
+        {
+            Client.UpdateEvent -= Client_UpdateEvent;
+            Client.StopListening();
         }
 
         private void Client_UpdateEvent(object sender, UpdateEventArgs e)

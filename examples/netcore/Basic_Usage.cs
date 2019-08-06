@@ -2,12 +2,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace examples
 {
     class Basic_Usage
     {
+        private static readonly AutoResetEvent _closing = new AutoResetEvent(false);
+
         public static async Task Run()
         {
             // Instantiate FBClient
@@ -22,7 +25,7 @@ namespace examples
                 var email = Console.ReadLine();
                 Console.WriteLine("Insert Facebook password:");
                 var password = Console.ReadLine();
-                
+
                 // Login with username and password
                 logged_in = await client.DoLogin(email, password);
             }
@@ -72,8 +75,10 @@ namespace examples
                 // Send a remote image to myself
                 await client.sendRemoteImage(@"https://freeaddon.com/wp-content/uploads/2018/12/cat-memes-25.jpg", thread_id: client.GetUserUid());
 
-                // Stop listening after 60secs
-                await Task.Delay(60 * 1000);
+                // Stop listening Ctrl+C
+                Console.WriteLine("Listening... Press Ctrl+C to exit.");
+                Console.CancelKeyPress += new ConsoleCancelEventHandler((s, e) => { e.Cancel = true; _closing.Set(); });
+                _closing.WaitOne();
                 client.StopListening();
 
                 // Logging out is not required

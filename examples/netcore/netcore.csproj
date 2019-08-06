@@ -6,10 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="SharpSerializer.Core" Version="1.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\fbchat-sharp\fbchat-sharp.csproj" />
   </ItemGroup>
 

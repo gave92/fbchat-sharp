@@ -1,6 +1,6 @@
 ﻿using fbchat_sharp.API;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Polenter.Serialization;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -85,9 +85,11 @@ namespace wpfapp
                 using (var fileStream = File.OpenRead(file))
                 {
                     await Task.Yield();
-                    var settings = new SharpSerializerBinarySettings(BinarySerializationMode.Burst);
-                    var serializer = new SharpSerializer(settings);
-                    return (Dictionary<string, List<Cookie>>)serializer.Deserialize(fileStream);
+                    using (var jsonTextReader = new JsonTextReader(new StreamReader(fileStream)))
+                    {
+                        JsonSerializer serializer = new JsonSerializer();
+                        return serializer.Deserialize<Dictionary<string, List<Cookie>>>(jsonTextReader);
+                    }
                 }
             }
             catch (Exception ex)
@@ -105,10 +107,12 @@ namespace wpfapp
             {
                 try
                 {
-                    var settings = new SharpSerializerBinarySettings(BinarySerializationMode.Burst);
-                    var serializer = new SharpSerializer(settings);
-                    serializer.Serialize(cookieJar, fileStream);
-                    await fileStream.FlushAsync();
+                    using (var jsonWriter = new JsonTextWriter(new StreamWriter(fileStream)))
+                    {
+                        JsonSerializer serializer = new JsonSerializer();
+                        serializer.Serialize(jsonWriter, cookieJar);
+                        await jsonWriter.FlushAsync();
+                    }
                 }
                 catch (Exception ex)
                 {
