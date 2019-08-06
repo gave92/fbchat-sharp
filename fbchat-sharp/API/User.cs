@@ -121,7 +121,7 @@ namespace fbchat_sharp.API
 
         public static FB_User _from_graphql(JToken data)
         {
-            if (data.get("profile_picture") == null || data.get("profile_picture").Type == JTokenType.Null)
+            if (data.get("profile_picture") == null)
             {
                 data["profile_picture"] = new JObject(new JProperty("uri", ""));
             }
@@ -189,7 +189,7 @@ namespace fbchat_sharp.API
                     gender = GENDER.graphql_GENDERS[data.get("gender")?.Value<string>() ?? "UNKNOWN"];
             };
 
-            if (user.get("big_image_src") == null || user.get("big_image_src").Type == JTokenType.Null)
+            if (user.get("big_image_src") == null)
             {
                 user["big_image_src"] = new JObject(new JProperty("uri", ""));
             }

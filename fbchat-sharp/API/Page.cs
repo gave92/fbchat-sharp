@@ -49,13 +49,13 @@ namespace fbchat_sharp.API
 
         public static FB_Page _from_graphql(JToken data)
         {
-            if (data.get("profile_picture") == null || data.get("profile_picture").Type == JTokenType.Null)
+            if (data.get("profile_picture") == null)
                 data["profile_picture"] = new JObject(new JProperty("uri", ""));
-            if (data.get("city") == null || data.get("city").Type == JTokenType.Null)
+            if (data.get("city") == null)
                 data["city"] = new JObject(new JProperty("name", ""));
 
             FB_Plan plan = null;
-            if (data.get("event_reminders") != null && data.get("event_reminders").Type != JTokenType.Null && data.get("event_reminders")?.get("nodes") != null && data.get("event_reminders")?.get("nodes").Type != JTokenType.Null)
+            if (data.get("event_reminders") != null && data.get("event_reminders")?.get("nodes") != null)
                 plan = FB_Plan._from_graphql(data.get("event_reminders")?.get("nodes")?.FirstOrDefault());
 
             return new FB_Page(

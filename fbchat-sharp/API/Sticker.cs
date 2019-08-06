@@ -42,16 +42,16 @@ namespace fbchat_sharp.API
 
         public static FB_Sticker _from_graphql(JToken data)
         {
-            if (data == null || data.Type == JTokenType.Null)
+            if (data == null)
             {
                 return null;
             }
             var sticker = new FB_Sticker(uid: data.get("id")?.Value<string>());
-            if (data.get("pack") != null && data.get("pack").Type != JTokenType.Null)
+            if (data.get("pack") != null)
             {
                 sticker.pack = data.get("pack")?.get("id")?.Value<string>();
             }
-            if (data.get("sprite_image") != null && data.get("sprite_image").Type != JTokenType.Null)
+            if (data.get("sprite_image") != null)
             {
                 sticker.is_animated = true;
                 sticker.medium_sprite_image = data.get("sprite_image")?.get("uri")?.Value<string>();
@@ -63,7 +63,7 @@ namespace fbchat_sharp.API
             sticker.url = data.get("url")?.Value<string>();
             sticker.width = data.get("width")?.Value<int>() ?? 0;
             sticker.height = data.get("height")?.Value<int>() ?? 0;
-            if (data.get("label") != null && data.get("label").Type != JTokenType.Null)
+            if (data.get("label") != null)
             {
                 sticker.label = data.get("label")?.Value<string>();
             }

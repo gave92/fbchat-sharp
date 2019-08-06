@@ -118,7 +118,7 @@ namespace fbchat_sharp.API
         public static Dictionary<string, object> _parse_customization_info(JToken data)
         {
             var rtn = new Dictionary<string, object>();
-            if (data == null || data.get("customization_info") == null || data.get("customization_info").Type == JTokenType.Null)
+            if (data == null || data.get("customization_info") == null)
                 return rtn;
             var info = data.get("customization_info");
             rtn["emoji"] = info.get("emoji");
@@ -127,13 +127,13 @@ namespace fbchat_sharp.API
             if (
                 data.get("thread_type")?.Value<string>() == "GROUP"
                 || (data.get("is_group_thread")?.Value<bool>() ?? false)
-                || (data.get("thread_key")?.get("thread_fbid") != null && data.get("thread_key")?.get("thread_fbid").Type != JTokenType.Null))
+                || (data.get("thread_key")?.get("thread_fbid") != null))
             {
                 rtn["nicknames"] = new Dictionary<string, string>();
                 foreach (var k in info.get("participant_customizations"))
                     ((Dictionary<string, string>)rtn["nicknames"])[k.get("participant_id")?.Value<string>()] = k.get("nickname")?.Value<string>();
             }
-            else if (info.get("participant_customizations") != null && info.get("participant_customizations").Type != JTokenType.Null)
+            else if (info.get("participant_customizations") != null)
             {
                 string uid = data.get("thread_key")?.get("other_user_id")?.Value<string>() ?? data.get("id")?.Value<string>();
                 var pc = info.get("participant_customizations");

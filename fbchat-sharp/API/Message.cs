@@ -236,9 +236,9 @@ namespace fbchat_sharp.API
 
         public static FB_Message _from_graphql(JToken data, string thread_id)
         {
-            if (data["message_sender"] == null || data.get("message_sender").Type == JTokenType.Null)
+            if (data["message_sender"] == null)
                 data["message_sender"] = new JObject(new JProperty("id", 0));
-            if (data["message"] == null || data.get("message").Type == JTokenType.Null)
+            if (data["message"] == null)
                 data["message"] = new JObject(new JProperty("text", ""));
 
             var tags = data.get("tags_list")?.ToObject<List<string>>();
@@ -261,14 +261,14 @@ namespace fbchat_sharp.API
             rtn.timestamp = data.get("timestamp_precise")?.Value<string>();
             rtn.unsent = false;
 
-            if (data.get("unread") != null && data.get("unread").Type != JTokenType.Null)
+            if (data.get("unread") != null)
                 rtn.is_read = !data.get("unread").Value<bool>();
             rtn.reactions = new Dictionary<string, MessageReaction>();
             foreach (var r in data.get("message_reactions"))
             {
                 rtn.reactions.Add(r.get("user")?.get("id")?.Value<string>(), FB_Message_Constants.REACTIONS[r.get("reaction").Value<string>()]);
             }
-            if (data.get("blob_attachments") != null && data.get("blob_attachments").Type != JTokenType.Null)
+            if (data.get("blob_attachments") != null)
             {
                 rtn.attachments = new List<FB_Attachment>();
                 foreach (var attachment in data.get("blob_attachments"))
@@ -276,7 +276,7 @@ namespace fbchat_sharp.API
                     rtn.attachments.Add(FB_Attachment.graphql_to_attachment(attachment));
                 }
             }
-            if (data.get("platform_xmd_encoded") != null && data.get("platform_xmd_encoded").Type != JTokenType.Null)
+            if (data.get("platform_xmd_encoded") != null)
             {
                 var quick_replies = JToken.Parse(data.get("platform_xmd_encoded")?.Value<string>()).get("quick_replies");
                 if (quick_replies.Type == JTokenType.Array)
@@ -284,7 +284,7 @@ namespace fbchat_sharp.API
                 else
                     rtn.quick_replies = new List<FB_QuickReply>() { FB_QuickReply.graphql_to_quick_reply(quick_replies) };
             }
-            if (data.get("extensible_attachment") != null && data.get("extensible_attachment").Type != JTokenType.Null)
+            if (data.get("extensible_attachment") != null)
             {
                 var attachment = FB_Attachment.graphql_to_extensible_attachment(data.get("extensible_attachment"));
                 if (attachment is FB_UnsentMessage)
@@ -294,7 +294,7 @@ namespace fbchat_sharp.API
                     rtn.attachments.Add(attachment);
                 }
             }
-            if (data.get("replied_to_message") != null && data.get("replied_to_message").Type != JTokenType.Null)
+            if (data.get("replied_to_message") != null)
             {
                 rtn.replied_to = FB_Message._from_graphql(data.get("replied_to_message")?.get("message"),thread_id);
                 rtn.reply_to_id = rtn.replied_to.uid;
@@ -325,7 +325,7 @@ namespace fbchat_sharp.API
             rtn.timestamp = metadata?.get("timestamp")?.Value<string>();
             rtn.unsent = false;
 
-            if (data.get("data")?.get("platform_xmd") != null && data.get("data")?.get("platform_xmd").Type != JTokenType.Null)
+            if (data.get("data")?.get("platform_xmd") != null)
             {
                 var quick_replies = JToken.Parse(data.get("data")?.get("platform_xmd").Value<string>()).get("quick_replies");
                 if (quick_replies.Type == JTokenType.Array)
@@ -333,17 +333,17 @@ namespace fbchat_sharp.API
                 else
                     rtn.quick_replies = new List<FB_QuickReply>() { FB_QuickReply.graphql_to_quick_reply(quick_replies) };
             }
-            if (data.get("attachments") != null && data.get("attachments").Type != JTokenType.Null)
+            if (data.get("attachments") != null)
             {
                 foreach (var atc in data.get("attachments")) {
                     var attachment = JToken.Parse(atc.get("mercuryJSON")?.Value<string>());
-                    if (attachment.get("blob_attachment") != null && attachment.get("blob_attachment").Type != JTokenType.Null)
+                    if (attachment.get("blob_attachment") != null)
                     {
                         rtn.attachments.Add(
                             FB_Attachment.graphql_to_attachment(attachment.get("blob_attachment"))
                         );
                     }
-                    if (attachment.get("extensible_attachment") != null && attachment.get("extensible_attachment").Type != JTokenType.Null)
+                    if (attachment.get("extensible_attachment") != null)
                     {
                         var ext_attachment = FB_Attachment.graphql_to_extensible_attachment(attachment.get("extensible_attachment"));
                         if (ext_attachment is FB_UnsentMessage)
@@ -375,14 +375,14 @@ namespace fbchat_sharp.API
                         length: data.get("l")?.Value<int>() ?? 0)
                 ).ToList();
 
-            if (data.get("attachments") != null && data.get("attachments").Type != JTokenType.Null)
+            if (data.get("attachments") != null)
             {
                 try
                 {
                     foreach (var a in data.get("attachments"))
                     {
                         var mercury = a.get("mercury");
-                        if (mercury.get("blob_attachment") != null && mercury.get("blob_attachment").Type != JTokenType.Null)
+                        if (mercury.get("blob_attachment") != null)
                         {
                             var image_metadata = a.get("imageMetadata");
                             var attach_type = mercury.get("blob_attachment")?.get("__typename")?.Value<string>();
@@ -399,13 +399,13 @@ namespace fbchat_sharp.API
                             }
                             rtn.attachments.Add(attachment);
                         }
-                        else if (mercury.get("sticker_attachment") != null && mercury.get("sticker_attachment").Type != JTokenType.Null)
+                        else if (mercury.get("sticker_attachment") != null)
                         {
                             rtn.sticker = FB_Sticker._from_graphql(
                                 mercury.get("sticker_attachment")
                             );
                         }
-                        else if (mercury.get("extensible_attachment") != null && mercury.get("extensible_attachment").Type != JTokenType.Null)
+                        else if (mercury.get("extensible_attachment") != null)
                         {
                             var attachment = FB_Attachment.graphql_to_extensible_attachment(
                                 mercury.get("extensible_attachment")

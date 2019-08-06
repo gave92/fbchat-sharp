@@ -57,11 +57,11 @@ namespace fbchat_sharp.API
         public static FB_Attachment graphql_to_extensible_attachment(JToken data)
         {
             var story = data.get("story_attachment");
-            if (story == null || story.Type == JTokenType.Null)
+            if (story == null)
                 return null;
 
             var target = story.get("target");
-            if (target == null || target.Type == JTokenType.Null)
+            if (target == null)
                 return new FB_UnsentMessage(uid: data.get("legacy_attachment_id")?.Value<string>());
 
             var _type = target.get("__typename")?.Value<string>();
@@ -165,7 +165,7 @@ namespace fbchat_sharp.API
             rtn.attachments = data.get("subattachments")?.Select(node => FB_Attachment.graphql_to_subattachment(node))?.ToList();
 
             JToken media = data.get("media");
-            if (media != null && media.Type != JTokenType.Null && media.get("image") != null && media.get("image").Type != JTokenType.Null)
+            if (media != null && media.get("image") != null)
             {
                 JToken image = media.get("image");
                 rtn.image_url = image.get("uri")?.Value<string>();

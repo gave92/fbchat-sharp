@@ -71,7 +71,7 @@ namespace fbchat_sharp.API
                 address: address);
 
             var media = data.get("media");
-            if (media != null && media.get("image") != null && media.get("image").Type != JTokenType.Null)
+            if (media != null && media.get("image") != null)
             {
                 var image = media.get("image");
                 rtn.image_url = image?.get("uri")?.Value<string>();
@@ -122,8 +122,8 @@ namespace fbchat_sharp.API
         {
             return new FB_LiveLocationAttachment(
                 uid: data.get("id")?.Value<string>(),
-                latitude: ((data.get("stopReason") == null || data.get("stopReason").Type == JTokenType.Null) ? data.get("coordinate")?.get("latitude")?.Value<double>() ?? 0 : 0) / (10 ^ 8),
-                longitude: ((data.get("stopReason") == null || data.get("stopReason").Type == JTokenType.Null) ? data.get("coordinate")?.get("longitude")?.Value<double>() ?? 0 : 0) / (10 ^ 8),
+                latitude: ((data.get("stopReason") == null) ? data.get("coordinate")?.get("latitude")?.Value<double>() ?? 0 : 0) / (10 ^ 8),
+                longitude: ((data.get("stopReason") == null) ? data.get("coordinate")?.get("longitude")?.Value<double>() ?? 0 : 0) / (10 ^ 8),
                 name: data.get("locationTitle")?.Value<string>(),
                 expiration_time: data.get("expirationTime")?.Value<string>(),
                 is_expired: data.get("stopReason")?.Value<bool>() ?? false);
@@ -141,7 +141,7 @@ namespace fbchat_sharp.API
                 is_expired: target.get("is_expired")?.Value<bool>() ?? false);
 
             var media = data.get("media");
-            if (media != null && media.get("image") != null && media.get("image").Type != JTokenType.Null) {
+            if (media != null && media.get("image") != null) {
                 var image = media.get("image");
                 rtn.image_url = image?.get("uri")?.Value<string>();
                 rtn.image_width = image?.get("width")?.Value<int>() ?? 0;

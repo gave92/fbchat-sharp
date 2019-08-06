@@ -61,7 +61,7 @@ namespace fbchat_sharp.API
 
         public static FB_Group _from_graphql(JToken data)
         {
-            if (data.get("image") == null || data.get("image").Type == JTokenType.Null)
+            if (data.get("image") == null)
                 data["image"] = new JObject(new JProperty("uri", ""));
             var c_info = FB_Group._parse_customization_info(data);
 

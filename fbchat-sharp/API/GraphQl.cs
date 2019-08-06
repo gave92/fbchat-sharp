@@ -32,7 +32,7 @@ namespace fbchat_sharp.API
                     if (jsonReader.TokenType == JsonToken.Comment)
                         continue;
                     var x = JToken.ReadFrom(jsonReader);
-                    if (x.get("error_results") != null && x.get("error_results").Type != JTokenType.Null)
+                    if (x.get("error_results") != null)
                     {
                         continue;
                     }
@@ -41,7 +41,7 @@ namespace fbchat_sharp.API
                     string key = x.Value<JObject>().Properties().First().Name;
                     JToken value = x[key];
                     Utils.handle_graphql_errors(value);
-                    if (value.get("response") != null && value.get("response").Type != JTokenType.Null)
+                    if (value.get("response") != null)
                         rtn.Insert(Math.Min(rtn.Count, int.Parse(key.Substring(1))), value.get("response"));
                     else
                         rtn.Insert(Math.Min(rtn.Count, int.Parse(key.Substring(1))), value.get("data"));

@@ -54,7 +54,7 @@ namespace fbchat_sharp.API
 
         public static void handle_payload_error(JToken j)
         {
-            if (j.get("error") == null || j.get("error").Type == JTokenType.Null)
+            if (j.get("error") == null)
                 return;
             var error = j.get("error").Value<long>();
             if (j.get("error").Value<long>() == 1357001)
@@ -85,11 +85,11 @@ namespace fbchat_sharp.API
         public static void handle_graphql_errors(JToken j)
         {
             JToken errors = null;
-            if (j.get("error") != null && j.get("error").Type != JTokenType.Null)
+            if (j.get("error") != null)
             {
                 errors = j.get("error");
             }
-            else if (j.get("errors") != null && j.get("errors").Type != JTokenType.Null)
+            else if (j.get("errors") != null)
             {
                 errors = j.get("errors");
             }
@@ -127,7 +127,7 @@ namespace fbchat_sharp.API
 
         public static JToken get_jsmods_require(JToken j, int index)
         {
-            if (j.get("jsmods") != null && j.get("jsmods").Type != JTokenType.Null && j.get("jsmods")?.get("require") != null && j.get("jsmods")?.get("require").Type != JTokenType.Null)
+            if (j.get("jsmods") != null && j.get("jsmods")?.get("require") != null)
             {
                 try
                 {
