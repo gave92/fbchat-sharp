@@ -283,5 +283,13 @@ namespace fbchat_sharp.API
                 last_active: data.get("la")?.Value<string>(),
                 in_game: in_game);
         }
+
+        public static FB_ActiveStatus _from_buddylist_update(JToken data)
+        {
+            return new FB_ActiveStatus(
+                active: new int[] { 0 }.Contains(data.get("status")?.Value<int>() ?? -1),
+                last_active: null,
+                in_game: false);
+        }
     }
 }

@@ -90,6 +90,10 @@ namespace fbchat_sharp.API
 
         private Dictionary<string, string> _generatePayload(Dictionary<string, object> query = null)
         {
+            if (this._state == null)
+            {
+                throw new FBchatNotLoggedIn(message: "Please login before calling 'fetch' methods.");
+            }
             var payload = this._state.get_params();
             if (query != null)
             {
@@ -1290,6 +1294,28 @@ namespace fbchat_sharp.API
             return this._buddylist.GetValueOrDefault(user_id);
         }
 
+        /// <summary>
+        /// Fetches currently active users
+        /// </summary>
+        /// <returns>List of active user ids</returns>
+        public async Task<List<string>> fetchActiveUsers()
+        {
+            /*
+             * Fetches currently active users
+             * Also updates internal buddylist
+             * :return: List of active user ids
+             * :rtype: List
+             * */
+            var data = new Dictionary<string, object>()
+            {
+                { "data_fetch", true },
+                { "send_full_data", true }
+            };
+            var j = await this._payload_post("https://m.facebook.com/buddylist_update.php", data);
+            foreach (var buddy in j.get("buddylist"))
+                this._buddylist[buddy.get("id")?.Value<string>()] = FB_ActiveStatus._from_buddylist_update(buddy);
+            return j.get("buddylist")?.Select((b) => b.get("id")?.Value<string>())?.ToList();
+        }
         #endregion
 
         #region SEND METHODS
@@ -3507,7 +3533,7 @@ namespace fbchat_sharp.API
         private async Task _parseMessage(JToken content)
         {
             /*Get message and author name from content. May contain multiple messages in the content.*/
-            this._seq = content.get("seq")?.Value<int>() ?? 0;
+            this._seq = content.get("seq")?.Value<int>() ?? _seq;
 
             if (content.get("lb_info") != null)
             {
