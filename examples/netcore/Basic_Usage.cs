@@ -59,7 +59,7 @@ namespace examples
                 messages.ForEach(v => Console.WriteLine(v));
 
                 // Send a message to myself
-                var msg_uid = await client.sendMessage("Message test", thread_id: client.GetUserUid());
+                var msg_uid = await client.sendMessage("Message test", thread_id: client.GetUserUid(), thread_type: ThreadType.USER);
                 if (msg_uid != null)
                 {
                     Console.WriteLine("Message sent: {0}", msg_uid);
@@ -75,7 +75,7 @@ namespace examples
                 // }
 
                 // Send a remote image to myself
-                await client.sendRemoteImage(@"https://freeaddon.com/wp-content/uploads/2018/12/cat-memes-25.jpg", thread_id: client.GetUserUid());
+                await client.sendRemoteImage(@"https://freeaddon.com/wp-content/uploads/2018/12/cat-memes-25.jpg", thread_id: client.GetUserUid(), thread_type: ThreadType.USER);
 
                 // Stop listening Ctrl+C
                 Console.WriteLine("Listening... Press Ctrl+C to exit.");

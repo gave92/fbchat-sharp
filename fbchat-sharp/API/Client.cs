@@ -336,7 +336,7 @@ namespace fbchat_sharp.API
         /// <param name="given_thread_id"></param>
         /// <param name="given_thread_type"></param>
         /// <returns>Thread ID and thread type</returns>
-        private Tuple<string, ThreadType?> _getThread(string given_thread_id = null, ThreadType? given_thread_type = ThreadType.USER)
+        private Tuple<string, ThreadType?> _getThread(string given_thread_id = null, ThreadType? given_thread_type = null)
         {
             if (given_thread_id == null)
             {
@@ -1694,7 +1694,7 @@ namespace fbchat_sharp.API
         }
 
         private async Task<dynamic> _sendFiles(
-            List<Tuple<string, string>> files, FB_Message message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+            List<Tuple<string, string>> files, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
         {
             /*
              * Sends files from file IDs to a thread
@@ -1725,7 +1725,7 @@ namespace fbchat_sharp.API
         /// <param name="thread_type">See :ref:`intro_threads`</param>
         /// <returns>`Message ID of the sent files</returns>
         public async Task<dynamic> sendRemoteFiles(
-            List<string> file_urls, FB_Message message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+            List<string> file_urls, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
         {
             /*
              * Sends files from URLs to a thread
@@ -1752,7 +1752,7 @@ namespace fbchat_sharp.API
         /// <param name="thread_id">User/Group ID to send to. See :ref:`intro_threads`</param>
         /// <param name="thread_type">See :ref:`intro_threads`</param>
         /// <returns>:ref:`Message ID` of the sent files</returns>
-        public async Task<string> sendLocalFiles(Dictionary<string, Stream> file_paths = null, FB_Message message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        public async Task<string> sendLocalFiles(Dictionary<string, Stream> file_paths = null, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
         {
             /*
              * Sends local files to a thread
@@ -1778,7 +1778,7 @@ namespace fbchat_sharp.API
         /// <param name="thread_type">See :ref:`intro_threads`</param>
         /// <returns>`Message ID of the sent files</returns>
         public async Task<dynamic> sendRemoteVoiceClips(
-            List<string> clip_urls, FB_Message message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+            List<string> clip_urls, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
         {
             /*
              * Sends voice clips from URLs to a thread
@@ -1805,7 +1805,7 @@ namespace fbchat_sharp.API
         /// <param name="thread_id">User/Group ID to send to. See :ref:`intro_threads`</param>
         /// <param name="thread_type">See :ref:`intro_threads`</param>
         /// <returns>:ref:`Message ID` of the sent files</returns>
-        public async Task<string> sendLocalVoiceClips(Dictionary<string, Stream> clip_paths = null, FB_Message message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        public async Task<string> sendLocalVoiceClips(Dictionary<string, Stream> clip_paths = null, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
         {
             /*
              * Sends local voice clips to a thread
@@ -1826,7 +1826,7 @@ namespace fbchat_sharp.API
         /// Sends an image to a thread
         /// </summary>
         [Obsolete("Deprecated.")]
-        public async Task<string> sendImage(string image_id = null, FB_Message message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER, bool is_gif = false)
+        public async Task<string> sendImage(string image_id = null, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null, bool is_gif = false)
         {
             string mimetype = null;
             if (!is_gif)
@@ -1850,7 +1850,7 @@ namespace fbchat_sharp.API
         /// <param name="thread_type"></param>
         /// <returns></returns>
         [Obsolete("Deprecated. Use :func:`fbchat.Client.sendRemoteImage` instead")]
-        public async Task<string> sendRemoteImage(string image_url = null, FB_Message message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        public async Task<string> sendRemoteImage(string image_url = null, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
         {
             /*
              * Sends an image from a URL to a thread
@@ -1880,7 +1880,7 @@ namespace fbchat_sharp.API
         /// <param name="thread_type"></param>
         /// <returns></returns>
         [Obsolete("Deprecated. Use :func:`fbchat.Client.sendLocalFiles` instead")]
-        public async Task<string> sendLocalImage(string image_path = null, Stream data = null, FB_Message message = null, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        public async Task<string> sendLocalImage(string image_path = null, Stream data = null, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
         {
             /*
              * Sends a local image to a thread
@@ -2204,7 +2204,7 @@ namespace fbchat_sharp.API
         /// <param name="thread_id">Group ID to change title of. See: ref:`intro_threads`</param>
         /// <param name="thread_type"></param>
         /// <returns></returns>
-        public async Task changeThreadTitle(string title, string thread_id = null, ThreadType thread_type = ThreadType.USER)
+        public async Task changeThreadTitle(string title, string thread_id = null, ThreadType? thread_type = null)
         {
             /*
              * Changes title of a thread.
@@ -3829,7 +3829,7 @@ namespace fbchat_sharp.API
         /// <param name="ts">The timestamp of the message</param>
         /// <param name="metadata">Extra metadata about the message</param>
         /// <param name="msg">A full set of the data received</param>
-        protected virtual async Task onMessage(string mid = null, string author_id = null, string message = null, FB_Message message_object = null, string thread_id = null, ThreadType thread_type = ThreadType.USER, long ts = 0, JToken metadata = null, JToken msg = null)
+        protected virtual async Task onMessage(string mid = null, string author_id = null, string message = null, FB_Message message_object = null, string thread_id = null, ThreadType? thread_type = null, long ts = 0, JToken metadata = null, JToken msg = null)
         {
             /*
             Called when the client is listening, and somebody sends a message
@@ -3859,7 +3859,7 @@ namespace fbchat_sharp.API
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data received</param>
-        protected virtual async Task onColorChange(string mid = null, string author_id = null, string new_color = null, string thread_id = null, ThreadType thread_type = ThreadType.USER, long ts = 0, JToken metadata = null, JToken msg = null)
+        protected virtual async Task onColorChange(string mid = null, string author_id = null, string new_color = null, string thread_id = null, ThreadType? thread_type = null, long ts = 0, JToken metadata = null, JToken msg = null)
         {
             /*
              * Called when the client is listening, and somebody changes a thread's color
@@ -3889,7 +3889,7 @@ namespace fbchat_sharp.API
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data received</param>
-        protected virtual async Task onEmojiChange(string mid = null, string author_id = null, string new_emoji = null, string thread_id = null, ThreadType thread_type = ThreadType.USER, long ts = 0, JToken metadata = null, JToken msg = null)
+        protected virtual async Task onEmojiChange(string mid = null, string author_id = null, string new_emoji = null, string thread_id = null, ThreadType? thread_type = null, long ts = 0, JToken metadata = null, JToken msg = null)
         {
             /*
              * Called when the client is listening, and somebody changes a thread's emoji
@@ -3918,7 +3918,7 @@ namespace fbchat_sharp.API
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data received</param>
-        protected virtual async Task onTitleChange(string mid = null, string author_id = null, string new_title = null, string thread_id = null, ThreadType thread_type = ThreadType.USER, long ts = 0, JToken metadata = null, JToken msg = null)
+        protected virtual async Task onTitleChange(string mid = null, string author_id = null, string new_title = null, string thread_id = null, ThreadType? thread_type = null, long ts = 0, JToken metadata = null, JToken msg = null)
         {
             /*
              * Called when the client is listening, and somebody changes a thread's title
@@ -3946,7 +3946,7 @@ namespace fbchat_sharp.API
         /// <param name="thread_type">Type of thread that the action was sent to</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="msg">A full set of the data received</param>
-        protected virtual async Task onImageChange(string mid = null, string author_id = null, int? new_image = null, string thread_id = null, ThreadType thread_type = ThreadType.USER, long ts = 0, JToken msg = null)
+        protected virtual async Task onImageChange(string mid = null, string author_id = null, int? new_image = null, string thread_id = null, ThreadType? thread_type = null, long ts = 0, JToken msg = null)
         {
             /*
              * Called when the client is listening, and somebody changes a thread's image
@@ -3975,7 +3975,7 @@ namespace fbchat_sharp.API
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data received</param>
-        protected virtual async Task onNicknameChange(string mid = null, string author_id = null, string changed_for = null, string new_nickname = null, string thread_id = null, ThreadType thread_type = ThreadType.USER, long ts = 0, JToken metadata = null, JToken msg = null)
+        protected virtual async Task onNicknameChange(string mid = null, string author_id = null, string changed_for = null, string new_nickname = null, string thread_id = null, ThreadType? thread_type = null, long ts = 0, JToken metadata = null, JToken msg = null)
         {
             /*
              * Called when the client is listening, and somebody changes the nickname of a person
@@ -4083,7 +4083,7 @@ namespace fbchat_sharp.API
         protected virtual async Task onMessageSeen(
             object seen_by = null,
             string thread_id = null,
-            ThreadType thread_type = ThreadType.USER,
+            ThreadType? thread_type = null,
             long seen_ts = 0,
             long ts = 0,
             JToken metadata = null,
@@ -4107,7 +4107,7 @@ namespace fbchat_sharp.API
             JToken msg_ids = null,
             object delivered_for = null,
             string thread_id = null,
-            ThreadType thread_type = ThreadType.USER,
+            ThreadType? thread_type = null,
             long ts = 0,
             JToken metadata = null,
             JToken msg = null)
