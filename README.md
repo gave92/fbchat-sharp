@@ -61,7 +61,7 @@ var logged_in = await client.DoLogin(email, password);
 if (logged_in)
 {
     // Send a message to myself
-    var msg_uid = await client.SendMessage("Hi me!", thread_id: client.GetUserUid());
+    var msg_uid = await client.sendMessage("Hi me!", thread_id: client.GetUserUid(), thread_type: ThreadType.USER);
                 
     if (msg_uid != null)
     {
@@ -81,9 +81,9 @@ else
 
 ```cs
 // Get user's last 10 threads
-List<FB_Thread> threads = await client.FetchThreadList(limit: 10);
+List<FB_Thread> threads = await client.fetchThreadList(limit: 10);
 // Get user's last 20 messages in a thread
-List<FB_Message> messages = await client.FetchThreadMessages(threads.First().uid);
+List<FB_Message> messages = await client.fetchThreadMessages(threads.First().uid);
 ```
 
 ## Supported platforms
