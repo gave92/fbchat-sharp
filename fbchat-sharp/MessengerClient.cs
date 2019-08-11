@@ -128,66 +128,6 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Get the last messages in a thread
-        /// </summary>
-        /// <param name="thread_id">User / Group ID from which to retrieve the messages</param>
-        /// <param name="limit">Max.number of messages to retrieve</param>
-        /// <param name="before">A unix timestamp, indicating from which point to retrieve messages</param>
-        public async Task<List<FB_Message>> FetchThreadMessages(string thread_id = null, int limit = 20, string before = null)
-        {
-            return await this.SafeWrapper<List<FB_Message>>(async () => await base.fetchThreadMessages(thread_id, limit, before));
-        }
-
-        /// <summary>
-        /// Get logged user's info
-        /// </summary>
-        public async Task<FB_User> FetchProfile()
-        {
-            return await this.SafeWrapper<FB_User>(async () => (await base.fetchUserInfo(new List<string>() { base._uid })).Single().Value);
-        }
-
-        /// <summary>
-        /// Gets all users the client is currently chatting with
-        /// </summary>
-        public async Task<List<FB_User>> FetchAllUsers()
-        {
-            return await this.SafeWrapper<List<FB_User>>(async () => await base.fetchAllUsers());
-        }
-
-        /// <summary>
-        /// Find and get user by his/her name
-        /// </summary>
-        /// <param name="name">Name of the user</param>
-        /// <param name="limit">The max. amount of users to fetch</param>
-        public async Task<List<FB_User>> SearchUsers(string name, int limit = 1)
-        {
-            return await this.SafeWrapper<List<FB_User>>(async () => await base.searchForUsers(name, limit));
-        }
-
-        /// <summary>
-        /// Get thread list of your facebook account
-        /// </summary>
-        /// <param name="limit">Max.number of threads to retrieve. Capped at 20</param>
-        /// <param name="thread_location">models.ThreadLocation: INBOX, PENDING, ARCHIVED or OTHER</param>
-        /// <param name="before">A unix timestamp, indicating from which point to retrieve messages</param>
-        public async Task<List<FB_Thread>> FetchThreadList(int limit = 20, string thread_location = "inbox", string before = null)
-        {
-            return await this.SafeWrapper<List<FB_Thread>>(async () => await base.fetchThreadList(limit, thread_location, before));
-        }
-
-        /// <summary>
-        /// Sends a message to a thread
-        /// </summary>
-        /// <param name="message">Message to send</param>
-        /// <param name="thread_id">User / Group ID to send to</param>
-        /// <param name="thread_type">ThreadType enum</param>
-        /// <returns>Message ID of the sent message</returns>
-        public async Task<string> SendMessage(string message, string thread_id = null, ThreadType thread_type = ThreadType.USER)
-        {
-            return await this.SafeWrapper<string>(async () => await base.send(new FB_Message() { text = message }, thread_id, thread_type));
-        }
-
-        /// <summary>
         /// Logs a message to console
         /// </summary>
         /// <param name="message">Message to log</param>

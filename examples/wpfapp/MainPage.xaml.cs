@@ -41,7 +41,7 @@ namespace wpfapp
 
         private async void MainPage_Loaded(object sender, RoutedEventArgs e)
         {
-            Profile.Value = await Client.FetchProfile();
+            Profile.Value = await Client.fetchProfile();
             await UpdateThreadList();
             Client.UpdateEvent += Client_UpdateEvent;
             await Client.StartListening();
@@ -84,7 +84,7 @@ namespace wpfapp
         {
             var text = SendText.Text;
             if (SelectedThread.Value == null || string.IsNullOrWhiteSpace(text)) return;
-            await Client.SendMessage(text, SelectedThread.Value.uid, SelectedThread.Value.type);
+            await Client.sendMessage(text, SelectedThread.Value.uid, SelectedThread.Value.type);
             SendText.Clear();
         }
 
@@ -95,7 +95,7 @@ namespace wpfapp
             try
             {
                 if (clear) Messages.Clear();
-                var messages = await Client.FetchThreadMessages(SelectedThread.Value.uid, 20, Messages.FirstOrDefault()?.timestamp);
+                var messages = await Client.fetchThreadMessages(SelectedThread.Value.uid, 20, Messages.FirstOrDefault()?.timestamp);
                 if (messages.Any() && Messages.Any() && messages.First().uid == Messages.First().uid) messages.RemoveAt(0);
                 ScrollViewer scrollViewer = GetScrollViewer(MessageList) as ScrollViewer;
                 var prev_height = scrollViewer.ExtentHeight;
@@ -125,7 +125,7 @@ namespace wpfapp
             await SlowStuffSemaphore.WaitAsync();
             try
             {
-                var threads = await Client.FetchThreadList(20, ThreadLocation.INBOX, Threads.LastOrDefault()?.last_message_timestamp);
+                var threads = await Client.fetchThreadList(20, ThreadLocation.INBOX, Threads.LastOrDefault()?.last_message_timestamp);
                 threads.RemoveAll(x => Threads.Any(y => x.uid == y.uid));
                 foreach (var thread in threads)
                 {

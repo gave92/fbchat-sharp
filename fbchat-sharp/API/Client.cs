@@ -796,6 +796,14 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
+        /// Get logged user's info
+        /// </summary>
+        public async Task<FB_User> fetchProfile()
+        {
+            return (await this.fetchUserInfo(new List<string>() { this._uid })).Single().Value;
+        }
+
+        /// <summary>
         /// Get users' info from IDs, unordered
         /// </summary>
         /// <param name="user_ids">One or more user ID(s) to query</param>

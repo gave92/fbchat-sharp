@@ -37,29 +37,29 @@ namespace examples
                 await client.StartListening();
 
                 // Fetch latest threads
-                var threads = await client.FetchThreadList();
+                var threads = await client.fetchThreadList();
                 threads.ForEach(v => Console.WriteLine(v));
 
                 var info = await client.fetchThreadInfo(new List<string> { threads[0].uid });
 
                 // Fetch own profile
-                var self = await client.FetchProfile();
+                var self = await client.fetchProfile();
                 Console.WriteLine(self);
 
                 // Fetch users I'm chatting with
-                var users = await client.FetchAllUsers();
+                var users = await client.fetchAllUsers();
                 users.ForEach(v => Console.WriteLine(v));
 
                 // Find user by name/id
-                var search = await client.SearchUsers("Marco", 2);
+                var search = await client.searchForUsers("Marco", 2);
                 search.ForEach(v => Console.WriteLine(v));
 
                 // Fetch latest messages
-                var messages = await client.FetchThreadMessages(threads.FirstOrDefault()?.uid, 5);
+                var messages = await client.fetchThreadMessages(threads.FirstOrDefault()?.uid, 5);
                 messages.ForEach(v => Console.WriteLine(v));
 
                 // Send a message to myself
-                var msg_uid = await client.SendMessage("Message test", thread_id: client.GetUserUid());
+                var msg_uid = await client.sendMessage("Message test", thread_id: client.GetUserUid());
                 if (msg_uid != null)
                 {
                     Console.WriteLine("Message sent: {0}", msg_uid);
