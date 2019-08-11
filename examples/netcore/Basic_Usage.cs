@@ -60,11 +60,13 @@ namespace examples
 
                 // Send a message to myself
                 var msg_uid = await client.SendMessage("Message test", thread_id: client.GetUserUid());
-
                 if (msg_uid != null)
                 {
                     Console.WriteLine("Message sent: {0}", msg_uid);
                 }
+
+                // Send an emoji to myself
+                await client.sendEmoji("👍", EmojiSize.LARGE, thread_id: client.GetUserUid(), thread_type: ThreadType.USER);
 
                 // Send a local image to myself
                 // using (FileStream stream = File.OpenRead(@"C:\Users\Marco\Pictures\Saved Pictures\opengraph.png"))

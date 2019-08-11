@@ -1325,7 +1325,7 @@ namespace fbchat_sharp.API
             return message is FB_Message ? (FB_Message)message : new FB_Message((string)message);
         }
 
-        private Dictionary<string, object> _getSendData(FB_Message message = null, string thread_id = null, ThreadType? thread_type = ThreadType.USER)
+        private Dictionary<string, object> _getSendData(FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
         {
             /* Returns the data needed to send a request to `SendURL` */
             string messageAndOTID = Utils.generateOfflineThreadingID();
@@ -1334,7 +1334,7 @@ namespace fbchat_sharp.API
             var data = new Dictionary<string, object> {
                 { "client", "mercury" },
                 { "author" , "fbid:" + this._uid },
-                { "timestamp" , timestamp.ToString() },
+                { "timestamp" , timestamp },
                 { "source" , "source:chat:web" },
                 { "offline_threading_id", messageAndOTID },
                 { "message_id" , messageAndOTID },
@@ -1382,7 +1382,7 @@ namespace fbchat_sharp.API
                 data["sticker_id"] = message.sticker.uid;
             }
 
-            if (message.quick_replies != null)
+            if (message.quick_replies != null && message.quick_replies.Any())
             {
                 var xmd = new Dictionary<string, object>() { { "quick_replies", new List<Dictionary<string, object>>() } };
                 foreach (var quick_reply in message.quick_replies)
@@ -1503,13 +1503,12 @@ namespace fbchat_sharp.API
             var thread = this._getThread(thread_id, thread_type);
             var data = this._getSendData(thread_id: thread.Item1, thread_type: thread.Item2);
             data["action_type"] = "ma-type:user-generated-message";
-            data["lightweight_action_attachment[lwa_state]"] = new string[] { wave_first ? "INITIATED" : "RECIPROCATED" };
+            data["lightweight_action_attachment[lwa_state]"] = wave_first ? "INITIATED" : "RECIPROCATED";
             data["lightweight_action_attachment[lwa_type]"] = "WAVE";
-            if (thread_type == ThreadType.USER)
+            if (thread.Item2 == ThreadType.USER)
                 data["specific_to_list[0]"] = string.Format("fbid:{0}", thread.Item1);
             return await this._doSendRequest(data);
         }
-
 
         /// <summary>
         /// Replies to a chosen quick reply
@@ -2229,7 +2228,7 @@ namespace fbchat_sharp.API
         /// <param name="thread_type"></param>
         /// <returns></returns>
         public async Task changeNickname(
-            string nickname, string user_id, string thread_id = null, ThreadType? thread_type = ThreadType.USER
+            string nickname, string user_id, string thread_id = null, ThreadType? thread_type = null
         )
         {
             /*
