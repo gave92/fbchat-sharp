@@ -279,10 +279,13 @@ namespace fbchat_sharp.API
             if (data.get("platform_xmd_encoded") != null)
             {
                 var quick_replies = JToken.Parse(data.get("platform_xmd_encoded")?.Value<string>()).get("quick_replies");
-                if (quick_replies.Type == JTokenType.Array)
-                    rtn.quick_replies = quick_replies.Select((q) => FB_QuickReply.graphql_to_quick_reply(q)).ToList();
-                else
-                    rtn.quick_replies = new List<FB_QuickReply>() { FB_QuickReply.graphql_to_quick_reply(quick_replies) };
+                if (quick_replies != null)
+                {
+                    if (quick_replies.Type == JTokenType.Array)
+                        rtn.quick_replies = quick_replies.Select((q) => FB_QuickReply.graphql_to_quick_reply(q)).ToList();
+                    else
+                        rtn.quick_replies = new List<FB_QuickReply>() { FB_QuickReply.graphql_to_quick_reply(quick_replies) };
+                }
             }
             if (data.get("extensible_attachment") != null)
             {
