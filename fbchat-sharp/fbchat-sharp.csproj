@@ -52,27 +52,6 @@
     <None Include="project.json" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AsyncEnumerable\AsyncEnumerable.cs" />
-    <Compile Include="AsyncEnumerable\AsyncEnumerationCanceledException.cs" />
-    <Compile Include="AsyncEnumerable\AsyncEnumerator.cs" />
-    <Compile Include="AsyncEnumerable\Extensions\AdapterExtensions.cs" />
-    <Compile Include="AsyncEnumerable\Extensions\ForEachAsyncExtensions.cs" />
-    <Compile Include="AsyncEnumerable\Extensions\IAsyncEnumerableExtensions.cs" />
-    <Compile Include="AsyncEnumerable\Extensions\IAsyncEnumeratorExtensions.cs" />
-    <Compile Include="AsyncEnumerable\Extensions\ParallelForEachException.cs" />
-    <Compile Include="AsyncEnumerable\Extensions\ParallelForEachExtensions.cs" />
-    <Compile Include="AsyncEnumerable\IAsyncEnumerable.cs" />
-    <Compile Include="AsyncEnumerable\IAsyncEnumerator.cs" />
-    <Compile Include="AsyncEnumerable\Internals\AsyncEnumerableWrapper.cs" />
-    <Compile Include="AsyncEnumerable\Internals\AsyncEnumeratorWrapper.cs" />
-    <Compile Include="AsyncEnumerable\Internals\CancellationTokenEx.cs" />
-    <Compile Include="AsyncEnumerable\Internals\CurrentValueContainer.cs" />
-    <Compile Include="AsyncEnumerable\Internals\EmptyAsyncEnumerable.cs" />
-    <Compile Include="AsyncEnumerable\Internals\EmptyAsyncEnumerator.cs" />
-    <Compile Include="AsyncEnumerable\Internals\EnumerableAdapter.cs" />
-    <Compile Include="AsyncEnumerable\Internals\EnumeratorAdapter.cs" />
-    <Compile Include="AsyncEnumerable\Internals\TaskCompletionSource.cs" />
-    <Compile Include="AsyncEnumerable\Internals\TaskEx.cs" />
     <Compile Include="API\Attachment.cs" />
     <Compile Include="API\Client.cs" />
     <Compile Include="API\Exception.cs" />
@@ -95,6 +74,12 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\KnownMimeTypes.cs" />
     <Compile Include="Utils\MimeUtility.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AsyncEnumerable\AsyncEnumerable.csproj">
+      <Project>{c8728fcc-81d6-40c1-97a3-aca51e715f9a}</Project>
+      <Name>AsyncEnumerable</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

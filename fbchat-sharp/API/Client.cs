@@ -60,7 +60,8 @@ namespace fbchat_sharp.API
             this._sticky = null;
             this._pool = null;
             this._seq = 0;
-            this._client_id = ((int)(new Random().NextDouble() * Math.Pow(2, 31))).ToString("x4");
+            //this._client_id = ((int)(new Random().NextDouble() * Math.Pow(2, 31))).ToString("x4");
+            this._client_id = Guid.NewGuid().ToString();
             this._default_thread_id = null;
             this._default_thread_type = null;
             this._pull_channel = 0;
