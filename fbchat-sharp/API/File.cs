@@ -1,10 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace fbchat_sharp.API
 {
@@ -66,7 +62,7 @@ namespace fbchat_sharp.API
                 is_malicious: data.get("is_malicious")?.Value<bool>() ?? false,
                 name: data.get("filename").Value<String>()
                 );
-        }        
+        }
     }
 
     /// <summary>
@@ -160,7 +156,7 @@ namespace fbchat_sharp.API
         /// <param name="large_preview"></param>
         /// <param name="animated_preview"></param>
         public FB_ImageAttachment(string uid = null, string original_extension = null, int width = 0, int height = 0, bool is_animated = false, string thumbnail_url = null, JToken preview = null, JToken large_preview = null, JToken animated_preview = null)
-            :base(uid)
+            : base(uid)
         {
             this.original_extension = original_extension;
             this.width = width;
@@ -185,7 +181,7 @@ namespace fbchat_sharp.API
                 this.animated_preview_url = animated_preview.get("uri")?.Value<String>();
                 this.animated_preview_width = animated_preview.get("width")?.Value<int>() ?? 0;
                 this.animated_preview_height = animated_preview.get("height")?.Value<int>() ?? 0;
-            }                
+            }
         }
 
         public static FB_ImageAttachment _from_graphql(JToken data)
@@ -200,6 +196,19 @@ namespace fbchat_sharp.API
                     large_preview: data.get("large_preview"),
                     animated_preview: data.get("animated_image"),
                     uid: data.get("legacy_attachment_id")?.Value<string>());
+        }
+
+        public static FB_ImageAttachment _from_list(JToken data)
+        {
+            data = data["node"];
+            return new FB_ImageAttachment(
+                width: data?.get("original_dimensions")?.get("x")?.Value<int>() ?? 0,
+                height: data?.get("original_dimensions")?.get("y")?.Value<int>() ?? 0,
+                thumbnail_url: data?.get("image")?.get("uri")?.Value<string>(),
+                large_preview: data?.get("image2"),
+                preview: data?.get("image1"),
+                uid: data?.get("legacy_attachment_id")?.Value<string>()
+            );
         }
     }
 
@@ -249,7 +258,7 @@ namespace fbchat_sharp.API
         /// <param name="small_image"></param>
         /// <param name="medium_image"></param>
         /// <param name="large_image"></param>
-        public FB_VideoAttachment(string uid = null, int size = 0, int width = 0, int height = 0, int duration = 0, string preview_url = null, JToken small_image = null, JToken medium_image = null, JToken large_image = null) 
+        public FB_VideoAttachment(string uid = null, int size = 0, int width = 0, int height = 0, int duration = 0, string preview_url = null, JToken small_image = null, JToken medium_image = null, JToken large_image = null)
             : base(uid)
         {
             this.size = size;
@@ -289,6 +298,19 @@ namespace fbchat_sharp.API
                     medium_image: data.get("inbox_image"),
                     large_image: data.get("large_image"),
                     uid: data.get("legacy_attachment_id")?.Value<string>());
+        }
+
+        public static FB_VideoAttachment _from_list(JToken data)
+        {
+            data = data["node"];
+            return new FB_VideoAttachment(
+                width: data?.get("original_dimensions")?.get("x")?.Value<int>() ?? 0,
+                height: data?.get("original_dimensions")?.get("y")?.Value<int>() ?? 0,
+                small_image: data?.get("image"),
+                medium_image: data?.get("image1"),
+                large_image: data?.get("image2"),
+                uid: data?.get("legacy_attachment_id")?.Value<string>()
+            );
         }
 
         public static FB_VideoAttachment _from_subattachment(JToken data)

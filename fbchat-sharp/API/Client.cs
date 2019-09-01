@@ -1325,6 +1325,53 @@ namespace fbchat_sharp.API
                 this._buddylist[buddy.get("id")?.Value<string>()] = FB_ActiveStatus._from_buddylist_update(buddy);
             return j.get("buddylist")?.Select((b) => b.get("id")?.Value<string>())?.ToList();
         }
+
+        /// <summary>
+        /// Creates generator object for fetching images posted in thread.
+        /// </summary>
+        /// <param name="thread_id">ID of the thread</param>
+        /// <returns>:class:`ImageAttachment` or :class:`VideoAttachment`.</returns>
+        public IAsyncEnumerable<FB_Attachment> fetchThreadImages(string thread_id = null)
+        {
+            /*
+             * Creates generator object for fetching images posted in thread.
+             * :param thread_id: ID of the thread
+             * :return: :class:`ImageAttachment` or :class:`VideoAttachment`.
+             * :rtype: iterable
+             * */
+            return new AsyncEnumerable<FB_Attachment>(async yield =>
+            {
+                var thread = this._getThread(thread_id, null);
+                var data = new Dictionary<string, object>() { { "id", thread.Item1 }, { "first", 48 } };
+                var j = await this.graphql_request(GraphQL.from_query_id("515216185516880", data));
+                while (true)
+                {
+                    JToken i = null;
+                    try
+                    {
+                        i = j.get(thread_id).get("message_shared_media").get("edges").First();
+                    }
+                    catch (Exception)
+                    {
+                        if (j?.get(thread_id)?.get("message_shared_media")?.get("page_info")?.get("has_next_page")?.Value<bool>() ?? false)
+                        {
+                            data["after"] = j?.get(thread_id)?.get("message_shared_media").get("page_info")?.get("end_cursor")?.Value<string>();
+                            j = await this.graphql_request(GraphQL.from_query_id("515216185516880", data));
+                            continue;
+                        }
+                        else
+                            break;
+                    }
+
+                    if (i?.get("node")?.get("__typename")?.Value<string>() == "MessageImage")
+                        await yield.ReturnAsync(FB_ImageAttachment._from_list(i));
+                    else if (i?.get("node")?.get("__typename")?.Value<string>() == "MessageVideo")
+                        await yield.ReturnAsync(FB_VideoAttachment._from_list(i));
+                    else
+                        await yield.ReturnAsync(new FB_Attachment(uid: i?.get("node")?.get("legacy_attachment_id")?.Value<string>()));
+                }
+            });
+        }
         #endregion
 
         #region SEND METHODS

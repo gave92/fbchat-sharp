@@ -11,8 +11,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "wpfapp", "examples\wpfapp\w
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AsyncEnumerable", "AsyncEnumerable\AsyncEnumerable.csproj", "{C8728FCC-81D6-40C1-97A3-ACA51E715F9A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "fbchat-sharp-ws", "fbchat-sharp-ws\fbchat-sharp-ws.csproj", "{35C89C90-2335-4A2A-A625-B962106A2DF8}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,10 +33,6 @@ Global
 		{C8728FCC-81D6-40C1-97A3-ACA51E715F9A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C8728FCC-81D6-40C1-97A3-ACA51E715F9A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C8728FCC-81D6-40C1-97A3-ACA51E715F9A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{35C89C90-2335-4A2A-A625-B962106A2DF8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{35C89C90-2335-4A2A-A625-B962106A2DF8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{35C89C90-2335-4A2A-A625-B962106A2DF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{35C89C90-2335-4A2A-A625-B962106A2DF8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

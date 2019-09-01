@@ -1,0 +1,100 @@
+#r "C:\Users\Marco\source\repos\fbchat-sharp\packages\AngleSharp.0.9.11\lib\net45\AngleSharp.dll"
+#r "C:\Users\Marco\source\repos\fbchat-sharp\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll"
+#r "C:\Users\Marco\source\repos\fbchat-sharp\packages\SuperSocket.ClientEngine.Core.0.10.0\lib\net45\SuperSocket.ClientEngine.dll"
+#r "C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.1\System.dll"
+#r "C:\Users\Marco\source\repos\fbchat-sharp\packages\System.Collections.Specialized.4.3.0\lib\net46\System.Collections.Specialized.dll"
+#r "C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.1\System.Data.dll"
+#r "C:\Users\Marco\source\repos\fbchat-sharp\packages\System.Net.NameResolution.4.3.0\lib\net46\System.Net.NameResolution.dll"
+#r "C:\Users\Marco\source\repos\fbchat-sharp\packages\System.Net.Security.4.3.0\lib\net46\System.Net.Security.dll"
+#r "C:\Users\Marco\source\repos\fbchat-sharp\packages\System.Net.Sockets.4.3.0\lib\net46\System.Net.Sockets.dll"
+#r "C:\Users\Marco\source\repos\fbchat-sharp\packages\System.Security.Cryptography.Algorithms.4.3.0\lib\net461\System.Security.Cryptography.Algorithms.dll"
+#r "C:\Users\Marco\source\repos\fbchat-sharp\packages\System.Security.Cryptography.Encoding.4.3.0\lib\net46\System.Security.Cryptography.Encoding.dll"
+#r "C:\Users\Marco\source\repos\fbchat-sharp\packages\System.Security.Cryptography.Primitives.4.3.0\lib\net46\System.Security.Cryptography.Primitives.dll"
+#r "C:\Users\Marco\source\repos\fbchat-sharp\packages\System.Security.Cryptography.X509Certificates.4.3.0\lib\net461\System.Security.Cryptography.X509Certificates.dll"
+#r "C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.1\System.Xml.dll"
+#r "C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.1\Microsoft.CSharp.dll"
+#r "C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.1\System.Core.dll"
+#r "C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.1\System.Xml.Linq.dll"
+#r "C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.1\System.Data.DataSetExtensions.dll"
+#r "C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.1\System.Net.Http.dll"
+#r "C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.1\System.Xaml.dll"
+#r "C:\Users\Marco\source\repos\fbchat-sharp\packages\WebSocket4Net.0.15.2\lib\net45\WebSocket4Net.dll"
+#r "C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.1\WindowsBase.dll"
+#r "C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.1\PresentationCore.dll"
+#r "C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.1\PresentationFramework.dll"
+#r "C:\Users\Marco\source\repos\fbchat-sharp\fbchat-sharp-ws\bin\Debug\netstandard1.3\fbchat-sharp-ws.dll"
+#r "C:\Users\Marco\source\repos\fbchat-sharp\examples\wpfapp\bin\Debug\wpfapp.exe"
+
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Collections.Async;
+using Newtonsoft.Json;
+using System.Net;
+using WebSocket4Net;
+using fbchat_sharp.API;
+using wpfapp;
+
+var client = new FBClient_Wpf();
+await client.TryLogin();
+//await client.StartListening(markAlive: false)
+
+public async Task<Dictionary<string, List<Cookie>>> ReadCookiesFromDiskAsync()
+{
+	string folderBase = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+	string dir = Path.Combine(folderBase, "fbchat-sharp".ToUpper());
+	var file = Path.Combine(dir, "SESSION_COOKIES_wpf.dat");
+
+	using (var fileStream = File.OpenRead(file))
+	{
+		await Task.Yield();
+		using (var jsonTextReader = new JsonTextReader(new StreamReader(fileStream)))
+		{
+			JsonSerializer serializer = new JsonSerializer();
+			return serializer.Deserialize<Dictionary<string, List<Cookie>>>(jsonTextReader);
+		}
+	}
+}
+
+public static string ByteArrayToString(byte[] ba)
+{
+  return BitConverter.ToString(ba).Replace("-","");
+}
+
+public static byte[] StringToByteArray(String hex)
+{
+  int NumberChars = hex.Length;
+  byte[] bytes = new byte[NumberChars / 2];
+  for (int i = 0; i < NumberChars; i += 2)
+    bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
+  return bytes;
+}
+
+var cdict = await ReadCookiesFromDiskAsync();
+var cookies = cdict.SelectMany(c => c.Value).Select(c => new KeyValuePair<string, string>(c.Name, c.Value)).ToList();
+var origin = "https://www.messenger.com";
+var useragent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.18362";
+
+var m_OpenedEvent = new AutoResetEvent(false);
+var sid = "4355684255471633";
+var clientId = client._client_id;
+Console.WriteLine(clientId);
+var wss = new WebSocket($"wss://edge-chat.messenger.com/chat?region=lla&sid={sid}", "", cookies, null, useragent, origin, WebSocketVersion.Rfc6455, null, System.Security.Authentication.SslProtocols.None);
+
+wss.DataReceived += (s, e) => Console.WriteLine(ByteArrayToString(e.Data));
+wss.Error += (s, e) => Console.WriteLine(e.Exception.ToString());
+wss.Error += (s, e) => { m_OpenedEvent.Set(); };
+wss.Opened += (s, e) => Console.WriteLine("OPENED");
+wss.Opened += (s, e) => { m_OpenedEvent.Set(); };
+wss.Closed += (s, e) => Console.WriteLine("CLOSED");
+wss.Open();
+
+m_OpenedEvent.WaitOne();
+
+byte[] bytes = Encoding.ASCII.GetBytes($"{{\"u\":\"1598715048\",\"s\":{sid},\"cp\":3,\"ecp\":10,\"chat_on\":true,\"fg\":true,\"d\":\"{clientId}\",\"ct\":\"websocket\",\"mqtt_sid\":\"\",\"aid\":219994525426954,\"st\":[],\"pm\":[],\"dc\":\"\",\"no_auto_fg\":true}}");
+byte[] arrOutput;
+arrOutput = new byte[]{ 0x10, 0xF6, 0x01, 0x00, 0x06, 0x4D, 0x51, 0x49, 0x73, 0x64, 0x70, 0x03, 0x82, 0x00, 0x0A, 0x00, 0x0C, 0x6D, 0x71, 0x74, 0x74, 0x77, 0x73, 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x00, 0xDA}.Concat(bytes).ToArray();
+//byte[] arrOutputO = { 0x10, 0xF6, 0x01, 0x00, 0x06, 0x4D, 0x51, 0x49, 0x73, 0x64, 0x70, 0x03, 0x82, 0x00, 0x0A, 0x00, 0x0C, 0x6D, 0x71, 0x74, 0x74, 0x77, 0x73, 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74, 0x00, 0xDA, 0x7B, 0x22, 0x75, 0x22, 0x3A, 0x22, 0x31, 0x35, 0x39, 0x38, 0x37, 0x31, 0x35, 0x30, 0x34, 0x38, 0x22, 0x2C, 0x22, 0x73, 0x22, 0x3A, 0x34, 0x31, 0x35, 0x35, 0x36, 0x38, 0x34, 0x32, 0x34, 0x35, 0x34, 0x37, 0x31, 0x32, 0x33, 0x31, 0x2C, 0x22, 0x63, 0x70, 0x22, 0x3A, 0x33, 0x2C, 0x22, 0x65, 0x63, 0x70, 0x22, 0x3A, 0x31, 0x30, 0x2C, 0x22, 0x63, 0x68, 0x61, 0x74, 0x5F, 0x6F, 0x6E, 0x22, 0x3A, 0x74, 0x72, 0x75, 0x65, 0x2C, 0x22, 0x66, 0x67, 0x22, 0x3A, 0x74, 0x72, 0x75, 0x65, 0x2C, 0x22, 0x64, 0x22, 0x3A, 0x22, 0x35, 0x66, 0x30, 0x62, 0x34, 0x62, 0x37, 0x39, 0x2D, 0x62, 0x39, 0x37, 0x63, 0x2D, 0x34, 0x32, 0x32, 0x34, 0x2D, 0x62, 0x31, 0x61, 0x30, 0x2D, 0x34, 0x31, 0x35, 0x32, 0x61, 0x38, 0x34, 0x33, 0x62, 0x35, 0x61, 0x38, 0x22, 0x2C, 0x22, 0x63, 0x74, 0x22, 0x3A, 0x22, 0x77, 0x65, 0x62, 0x73, 0x6F, 0x63, 0x6B, 0x65, 0x74, 0x22, 0x2C, 0x22, 0x6D, 0x71, 0x74, 0x74, 0x5F, 0x73, 0x69, 0x64, 0x22, 0x3A, 0x22, 0x22, 0x2C, 0x22, 0x61, 0x69, 0x64, 0x22, 0x3A, 0x32, 0x31, 0x39, 0x39, 0x39, 0x34, 0x35, 0x32, 0x35, 0x34, 0x32, 0x36, 0x39, 0x35, 0x34, 0x2C, 0x22, 0x73, 0x74, 0x22, 0x3A, 0x5B, 0x5D, 0x2C, 0x22, 0x70, 0x6D, 0x22, 0x3A, 0x5B, 0x5D, 0x2C, 0x22, 0x64, 0x63, 0x22, 0x3A, 0x22, 0x22, 0x2C, 0x22, 0x6E, 0x6F, 0x5F, 0x61, 0x75, 0x74, 0x6F, 0x5F, 0x66, 0x67, 0x22, 0x3A, 0x74, 0x72, 0x75, 0x65, 0x7D };
+//Console.WriteLine(ByteArrayToString(arrOutput)==ByteArrayToString(arrOutputO));
+Console.WriteLine(ByteArrayToString(arrOutput));
+wss.Send(arrOutput,0,arrOutput.Length);
