@@ -41,7 +41,6 @@ namespace fbchat_sharp.API
         private string _sticky = null;
         private string _pool = null;
         private int _seq = 0;
-        private string _client_id = null;
         private string _default_thread_id = null;
         private ThreadType? _default_thread_type = null;
         private int _pull_channel = 0;
@@ -60,8 +59,6 @@ namespace fbchat_sharp.API
             this._sticky = null;
             this._pool = null;
             this._seq = 0;
-            //this._client_id = ((int)(new Random().NextDouble() * Math.Pow(2, 31))).ToString("x4");
-            this._client_id = Guid.NewGuid().ToString();
             this._default_thread_id = null;
             this._default_thread_type = null;
             this._pull_channel = 0;
@@ -89,127 +86,33 @@ namespace fbchat_sharp.API
 
         #region INTERNAL REQUEST METHODS
 
-        private Dictionary<string, string> _generatePayload(Dictionary<string, object> query = null)
+        private async Task<JToken> _get(string url, Dictionary<string, object> query = null, int error_retries = 3)
         {
             if (this._state == null)
             {
                 throw new FBchatNotLoggedIn(message: "Please login before calling 'fetch' methods.");
             }
-            var payload = this._state.get_params();
-            if (query != null)
-            {
-                foreach (var entry in query)
-                {
-                    payload[entry.Key] = entry.Value?.ToString();
-                }
-            }
-            return payload;
-        }
-
-        private async Task _do_refresh()
-        {
-            // TODO: Raise the error instead, and make the user do the refresh manually
-            // It may be a bad idea to do this in an exception handler, if you have a better method, please suggest it!
-            Debug.WriteLine("Refreshing state and resending request");
-            this._state = await State.from_session(this._state);
-        }
-
-        private async Task<JToken> _get(string url, Dictionary<string, object> query = null, int error_retries = 3)
-        {
-            var payload = this._generatePayload(query);
-            var r = await this._state._cleanGet(Utils.prefix_url(url), query: payload);
-            var content = await State.check_request(r);
-            var j = Utils.to_json(content);
-            try
-            {
-                Utils.handle_payload_error(j);
-            }
-            catch (FBchatPleaseRefresh ex)
-            {
-                if (error_retries > 0)
-                {
-                    await this._do_refresh();
-                    return await this._get(url, query: query, error_retries: error_retries - 1);
-                }
-                throw ex;
-            }
-            return j;
+            return await this._state._get(url, query, error_retries);
         }
 
         private async Task<object> _post(string url, Dictionary<string, object> query = null, Dictionary<string, FB_File> files = null, bool as_graphql = false, int error_retries = 3)
         {
-            var payload = this._generatePayload(query);
-            var r = await this._state._cleanPost(Utils.prefix_url(url), query: payload, files: files);
-            var content = await State.check_request(r);
-            try
-            {
-                if (as_graphql)
-                {
-                    return GraphQL.response_to_json(content);
-                }
-                else
-                {
-                    var j = Utils.to_json(content);
-                    // TODO: Remove this, and move it to _payload_post instead
-                    // We can't yet, since errors raised in here need to be caught below
-                    Utils.handle_payload_error(j);
-                    return j;
-                }
-            }
-            catch (FBchatPleaseRefresh ex)
-            {
-                if (error_retries > 0)
-                {
-                    await this._do_refresh();
-                    return await this._post(
-                        url,
-                        query: query,
-                        files: files,
-                        as_graphql: as_graphql,
-                        error_retries: error_retries - 1);
-                }
-                throw ex;
-            }
+            return await this._state._post(url, query, files, as_graphql, error_retries);
         }
 
         private async Task<JToken> _payload_post(string url, Dictionary<string, object> data = null, Dictionary<string, FB_File> files = null)
         {
-            var j = await this._post(url, data, files: files);
-            try
-            {
-                return ((JToken)j).get("payload");
-            }
-            catch (Exception)
-            {
-                throw new FBchatException(string.Format("Missing payload: {0}", j));
-            }
+            return await this._state._payload_post(url, data, files);
         }
 
         private async Task<List<JToken>> graphql_requests(List<GraphQL> queries)
         {
-            /*
-             * :param queries: Zero or more dictionaries
-             * :type queries: dict
-             * : raises: FBchatException if request failed
-             * : return: A tuple containing json graphql queries
-             * :rtype: tuple
-             * */
-            var data = new Dictionary<string, object>(){
-                { "method", "GET"},
-                { "response_format", "json"},
-                { "queries", GraphQL.queries_to_json(queries)}
-            };
-
-            return (List<JToken>)await this._post("/api/graphqlbatch/", data, as_graphql: true);
+            return await this._state.graphql_requests(queries);
         }
 
         private async Task<JToken> graphql_request(GraphQL query)
         {
-            /*
-             * Shorthand for `graphql_requests(query)[0]`
-             * :raises: Exception if request failed
-             */
-            return (await this.graphql_requests(new[] { query }.ToList()))[0];
+            return await this._state.graphql_request(query);
         }
 
         #endregion
@@ -251,21 +154,14 @@ namespace fbchat_sharp.API
             try
             {
                 // Load cookies into current session
-                state = await State.from_cookies(session_cookies, user_agent: user_agent);
+                this._state = await State.from_cookies(session_cookies, user_agent: user_agent);
+                this._uid = state.get_user_id();
             }
             catch (Exception)
             {
                 Debug.WriteLine("Failed loading session");
                 return false;
             }
-            var uid = state.get_user_id();
-            if (uid == null)
-            {
-                Debug.WriteLine("Could not find c_user cookie");
-                return false;
-            }
-            this._state = state;
-            this._uid = uid;
             return true;
         }
 
@@ -289,17 +185,12 @@ namespace fbchat_sharp.API
             {
                 try
                 {
-                    var state = await State.login(
+                    this._state = await State.login(
                         email,
                         password,
                         on_2fa_callback: this.on2FACode,
                         user_agent: user_agent);
-                    var uid = state.get_user_id();
-                    if (uid == null)
-                        throw new FBchatException("Could not find user id");
-
-                    this._state = state;
-                    this._uid = uid;
+                    this._uid = this._state.get_user_id();
                     await this.onLoggedIn(email: email);
                     break;
                 }
@@ -1381,118 +1272,10 @@ namespace fbchat_sharp.API
             return message is FB_Message ? (FB_Message)message : new FB_Message((string)message);
         }
 
-        private Dictionary<string, object> _getSendData(FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
-        {
-            /* Returns the data needed to send a request to `SendURL` */
-            string messageAndOTID = Utils.generateOfflineThreadingID();
-            long timestamp = Utils.now();
-            var date = DateTime.Now;
-            var data = new Dictionary<string, object> {
-                { "client", "mercury" },
-                { "author" , "fbid:" + this._uid },
-                { "timestamp" , timestamp },
-                { "source" , "source:chat:web" },
-                { "offline_threading_id", messageAndOTID },
-                { "message_id" , messageAndOTID },
-                { "threading_id", Utils.generateMessageID(this._client_id) },
-                { "ephemeral_ttl_mode:", "0" },
-            };
-
-            // Set recipient
-            if (new[] { ThreadType.USER, ThreadType.PAGE }.Contains(thread_type ?? ThreadType.INVALID))
-            {
-                data["other_user_fbid"] = thread_id;
-            }
-            else if (thread_type == ThreadType.GROUP)
-            {
-                data["thread_fbid"] = thread_id;
-            }
-
-            if (message == null)
-                message = new FB_Message();
-
-            if (message.text != null || message.sticker != null || message.emoji_size != null)
-                data["action_type"] = "ma-type:user-generated-message";
-
-            if (message.text != null)
-                data["body"] = message.text;
-
-            foreach (var item in message.mentions.Select((mention, i) => new { i, mention }))
-            {
-                data[string.Format("profile_xmd[{0}][id]", item.i)] = item.mention.thread_id;
-                data[string.Format("profile_xmd[{0}][offset]", item.i)] = item.mention.offset.ToString();
-                data[string.Format("profile_xmd[{0}][length]", item.i)] = item.mention.length.ToString();
-                data[string.Format("profile_xmd[{0}][type]", item.i)] = "p";
-            }
-
-            if (message.emoji_size != null)
-            {
-                if (message.text != null)
-                    data["tags[0]"] = "hot_emoji_size:" + Enum.GetName(typeof(EmojiSize), message.emoji_size).ToLower();
-                else
-                    data["sticker_id"] = message.emoji_size?.GetEnumDescriptionAttribute();
-            }
-
-            if (message.sticker != null)
-            {
-                data["sticker_id"] = message.sticker.uid;
-            }
-
-            if (message.quick_replies != null && message.quick_replies.Any())
-            {
-                var xmd = new Dictionary<string, object>() { { "quick_replies", new List<Dictionary<string, object>>() } };
-                foreach (var quick_reply in message.quick_replies)
-                {
-                    var q = new Dictionary<string, object>();
-                    q["content_type"] = quick_reply._type;
-                    q["payload"] = quick_reply.payload;
-                    q["external_payload"] = quick_reply.external_payload;
-                    q["data"] = quick_reply.data;
-                    if (quick_reply.is_response)
-                        q["ignore_for_webhook"] = false;
-                    if (quick_reply is FB_QuickReplyText)
-                        q["title"] = ((FB_QuickReplyText)quick_reply).title;
-                    if (!(quick_reply is FB_QuickReplyLocation))
-                        q["image_url"] = quick_reply.GetType().GetRuntimeProperty("image_url").GetValue(quick_reply, null);
-                    ((List<Dictionary<string, object>>)xmd["quick_replies"]).Add(q);
-                }
-                if (message.quick_replies.Count == 1 && message.quick_replies[0].is_response)
-                    xmd["quick_replies"] = ((List<Dictionary<string, object>>)xmd["quick_replies"])[0];
-                data["platform_xmd"] = JsonConvert.SerializeObject(xmd);
-            }
-            if (message.reply_to_id != null)
-                data["replied_to_message_id"] = message.reply_to_id;
-
-            return data;
-        }
-
         private async Task<dynamic> _doSendRequest(Dictionary<string, object> data, bool get_thread_id = false)
         {
             /* Sends the data to `SendURL`, and returns the message ID or null on failure */
-            var j = (JToken)(await this._post("/messaging/send/", data));
-
-            var fb_dtsg = Utils.get_jsmods_require(j, 2)?.Value<string>();
-            if (fb_dtsg != null)
-                this._state.fb_dtsg = fb_dtsg;
-
-            try
-            {
-                var message_ids = j.get("payload")?.get("actions").Where(action => action.get("message_id") != null).Select(
-                    action => new { MSG = action.get("message_id").Value<string>(), THR = action.get("thread_fbid").Value<string>() }
-                ).ToList();
-                if (message_ids.Count != 1)
-                {
-                    Debug.WriteLine(string.Format("Got multiple message ids back: {0}", message_ids));
-                }
-                if (get_thread_id)
-                    return message_ids[0];
-                else
-                    return message_ids[0].MSG;
-            }
-            catch
-            {
-                throw new FBchatException(string.Format("Error when sending message: No message IDs could be found: {0}", j));
-            }
+            return await this._state._do_send_request(data, get_thread_id);
         }
 
         /// <summary>
@@ -1516,7 +1299,9 @@ namespace fbchat_sharp.API
              */
 
             var thread = this._getThread(thread_id, thread_type);
-            var data = this._getSendData(message: message, thread_id: thread.Item1, thread_type: thread.Item2);
+            var tmp = Activator.CreateInstance(thread.Item2.Value._to_class(), thread.Item1);
+            var data = (Dictionary<string, object>)tmp.GetType().GetRuntimeMethods().SingleOrDefault(m => m.Name == "_to_send_data").Invoke(tmp, null);
+            data.update(message._to_send_data());
             return await this._doSendRequest(data);
         }
 
@@ -1557,7 +1342,8 @@ namespace fbchat_sharp.API
              * :raises: FBchatException if request failed
              * */
             var thread = this._getThread(thread_id, thread_type);
-            var data = this._getSendData(thread_id: thread.Item1, thread_type: thread.Item2);
+            var tmp = Activator.CreateInstance(thread.Item2.Value._to_class(), thread.Item1);
+            var data = (Dictionary<string, object>)tmp.GetType().GetRuntimeMethods().SingleOrDefault(m => m.Name == "_to_send_data").Invoke(tmp, null);
             data["action_type"] = "ma-type:user-generated-message";
             data["lightweight_action_attachment[lwa_state]"] = wave_first ? "INITIATED" : "RECIPROCATED";
             data["lightweight_action_attachment[lwa_type]"] = "WAVE";
@@ -1643,9 +1429,10 @@ namespace fbchat_sharp.API
         )
         {
             var thread = this._getThread(thread_id, thread_type);
-            var data = this._getSendData(
-                message: message, thread_id: thread.Item1, thread_type: thread.Item2
-            );
+            var tmp = Activator.CreateInstance(thread.Item2.Value._to_class(), thread.Item1);
+            var data = (Dictionary<string, object>)tmp.GetType().GetRuntimeMethods().SingleOrDefault(m => m.Name == "_to_send_data").Invoke(tmp, null);
+            if (message != null)
+                data.update(message._to_send_data());
             data["action_type"] = "ma-type:user-generated-message";
             data["location_attachment[coordinates][latitude]"] = location.latitude;
             data["location_attachment[coordinates][longitude]"] = location.longitude;
@@ -1717,28 +1504,7 @@ namespace fbchat_sharp.API
 
         private async Task<List<Tuple<string, string>>> _upload(List<FB_File> files, bool voice_clip = false)
         {
-            /*
-             * Uploads files to Facebook
-             * `files` should be a list of files that requests can upload, see:
-             * http://docs.python-requests.org/en/master/api/#requests.request
-             * Returns a list of tuples with a file's ID and mimetype
-             * */
-            var file_dict = new Dictionary<string, FB_File>();
-            foreach (var obj in files.Select((x, index) => new { f = x, i = index }))
-                file_dict.Add(string.Format("upload_{0}", obj.i), obj.f);
-
-            var data = new Dictionary<string, object>() { { "voice_clip", voice_clip } };
-
-            var j = await this._payload_post(
-                "https://upload.facebook.com/ajax/mercury/upload.php", data, files: file_dict
-            );
-
-            if (j.get("metadata").Count() != files.Count)
-                throw new FBchatException(
-                    string.Format("Some files could not be uploaded: {0}", j));
-
-            return j.get("metadata").Select(md =>
-                new Tuple<string, string>(md[Utils.mimetype_to_key(md.get("filetype")?.Value<string>())]?.Value<string>(), md.get("filetype")?.Value<string>())).ToList();
+            return await this._state._upload(files, voice_clip);
         }
 
         private async Task<dynamic> _sendFiles(
@@ -1749,11 +1515,9 @@ namespace fbchat_sharp.API
              * `files` should be a list of tuples, with a file's ID and mimetype
              * */
             var thread = this._getThread(thread_id, thread_type);
-            var data = this._getSendData(
-                message: this._oldMessage(message),
-                thread_id: thread.Item1,
-                thread_type: thread.Item2
-            );
+            var tmp = Activator.CreateInstance(thread.Item2.Value._to_class(), thread.Item1);
+            var data = (Dictionary<string, object>)tmp.GetType().GetRuntimeMethods().SingleOrDefault(m => m.Name == "_to_send_data").Invoke(tmp, null);
+            data.update(this._oldMessage(message)._to_send_data());
 
             data["action_type"] = "ma-type:user-generated-message";
             data["has_attachment"] = true;
@@ -1990,7 +1754,7 @@ namespace fbchat_sharp.API
              * :return: ID of the new group
              * :raises: FBchatException if request failed
              * */
-            var data = this._getSendData(message: this._oldMessage(message));
+            var data = this._oldMessage(message)._to_send_data();
 
             if (user_ids.Count < 2)
                 throw new FBchatUserError("Error when creating group: Not enough participants");
@@ -2022,7 +1786,7 @@ namespace fbchat_sharp.API
              * :raises: FBchatException if request failed
              * */
             var thread = this._getThread(thread_id, null);
-            var data = this._getSendData(thread_id: thread.Item1, thread_type: ThreadType.GROUP);
+            var data = new FB_Group(thread_id)._to_send_data();
 
             data["action_type"] = "ma-type:log-message";
             data["log_message_type"] = "log:subscribe";
@@ -2968,7 +2732,7 @@ namespace fbchat_sharp.API
             var data = new Dictionary<string, object>() {
                 { "seq", this._seq},
                 {"channel", "p_" + this._uid},
-                { "clientid", this._client_id},
+                { "clientid", this._state._client_id},
                 { "partition", -2},
                 { "cap", 0},
                 { "uid", this._uid},
@@ -2989,7 +2753,7 @@ namespace fbchat_sharp.API
                 { "msgs_recv", 0 },
                 { "sticky_token", this._sticky },
                 { "sticky_pool", this._pool },
-                { "clientid", this._client_id },
+                { "clientid", this._state._client_id },
                 { "state", this._markAlive ? "active" : "offline"},
             };
 

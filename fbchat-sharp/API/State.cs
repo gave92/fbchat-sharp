@@ -1,5 +1,6 @@
 ﻿using AngleSharp.Dom;
 using AngleSharp.Parser.Html;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,23 +15,30 @@ using System.Threading.Tasks;
 
 namespace fbchat_sharp.API
 {
-    public class State
+    internal class State
     {
         private const string FB_DTSG_REGEX = "name=\"fb_dtsg\" value=\"(.*?)\"";
         private const string facebookEncoding = "UTF-8";
         private HtmlParser _parser = null;
-        public string fb_dtsg = null;
+        private string _fb_dtsg = null;
+        private string user_id = null;
         private string _revision = null;
         private int _counter = 0;
+        public string _client_id = null;
         private string _logout_h = null;
         private Dictionary<string, string> _headers = null;
 
         private HttpClientHandler HttpClientHandler;
         private HttpClient _http_client;
 
-        private CookieContainer _session
+        public CookieContainer _session
         {
             get { return HttpClientHandler?.CookieContainer; }
+            set
+            {
+                if (HttpClientHandler != null)
+                    HttpClientHandler.CookieContainer = value;
+            }
         }
 
         public State(string user_agent = null)
@@ -43,6 +51,9 @@ namespace fbchat_sharp.API
                 { "Referer", "https://www.facebook.com" },
                 { "User-Agent", user_agent ?? Utils.USER_AGENTS[0] },
             };
+
+            //this._client_id = ((int)(new Random().NextDouble() * Math.Pow(2, 31))).ToString("x4");
+            this._client_id = Guid.NewGuid().ToString();
         }
 
         private IHtmlCollection<IElement> find_input_fields(string html)
@@ -135,7 +146,9 @@ namespace fbchat_sharp.API
 
         public static async Task<State> from_session(State state)
         {
-            var r = await state._cleanGet(Utils.prefix_url("/"));
+            // TODO: Automatically set user_id when the cookie changes in the session
+            var user_id = state.get_user_id();
+            var r = await state._cleanGet<string>(Utils.prefix_url("/"));
             string content = await State.check_request(r);
             var soup = state.find_input_fields(content);
             var fb_dtsg = soup.Where(i => i.GetAttribute("name").Equals("fb_dtsg")).Select(i => i.GetAttribute("value")).FirstOrDefault();
@@ -150,19 +163,36 @@ namespace fbchat_sharp.API
 
             var logout_h = soup.Where(i => i.GetAttribute("name").Equals("h")).Select(i => i.GetAttribute("value")).FirstOrDefault();
 
-            state.fb_dtsg = fb_dtsg;
-            state._revision = client_revision;
-            state._logout_h = logout_h;
-            return state;
+            return new State()
+            {
+                user_id = user_id,
+                _fb_dtsg = fb_dtsg,
+                _revision = client_revision,
+                _session = state._session,
+                _logout_h = logout_h
+            };
         }
 
-        public async Task<HttpResponseMessage> _cleanGet(string url, Dictionary<string, string> query = null, int timeout = 30)
+        public async Task _do_refresh()
+        {
+            // TODO: Raise the error instead, and make the user do the refresh manually
+            // It may be a bad idea to do this in an exception handler, if you have a better method, please suggest it!
+            Debug.WriteLine("Refreshing state and resending request");
+            var new_state = await State.from_session(state: this);
+            this.user_id = new_state.user_id;
+            this._fb_dtsg = new_state._fb_dtsg;
+            this._revision = new_state._revision;
+            this._counter = new_state._counter;
+            this._logout_h = new_state._logout_h ?? this._logout_h;
+        }
+
+        public async Task<HttpResponseMessage> _cleanGet<TValue>(string url, Dictionary<string, TValue> query = null, int timeout = 30)
         {
             HttpRequestMessage request = null;
 
             if (query != null)
             {
-                var content = new FormUrlEncodedContent(query);
+                var content = new FormUrlEncodedContent(query?.ToDictionary(k => k.Key, k => k.Value?.ToString()));
                 var query_string = await content.ReadAsStringAsync();
                 var builder = new UriBuilder(url) { Query = query_string };
                 request = new HttpRequestMessage(HttpMethod.Get, builder.ToString());
@@ -180,13 +210,13 @@ namespace fbchat_sharp.API
                 return await _cleanGet(response.Headers.Location.ToString(), query, timeout);
         }
 
-        public async Task<HttpResponseMessage> _cleanPost(string url, Dictionary<string, string> query = null, Dictionary<string, FB_File> files = null, int timeout = 30)
+        public async Task<HttpResponseMessage> _cleanPost<TValue>(string url, Dictionary<string, TValue> query = null, Dictionary<string, FB_File> files = null, int timeout = 30)
         {
             if (files != null)
             {
                 return await this._postFile(url, query, files, timeout);
             }
-            var content = new FormUrlEncodedContent(query);
+            var content = new FormUrlEncodedContent(query?.ToDictionary(k => k.Key, k => k.Value?.ToString()));
             var request = new HttpRequestMessage(HttpMethod.Post, url);
             foreach (var header in this._headers) request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             request.Content = content;
@@ -198,12 +228,12 @@ namespace fbchat_sharp.API
                 return await _cleanPost(response.Headers.Location.ToString(), query, files, timeout);
         }
 
-        private async Task<HttpResponseMessage> _postFile(string url, Dictionary<string, string> query = null, Dictionary<string, FB_File> files = null, int timeout = 30)
+        private async Task<HttpResponseMessage> _postFile<TValue>(string url, Dictionary<string, TValue> query = null, Dictionary<string, FB_File> files = null, int timeout = 30)
         {
             var content = new MultipartFormDataContent();
             foreach (var keyValuePair in query)
             {
-                content.Add(new StringContent(keyValuePair.Value), keyValuePair.Key);
+                content.Add(new StringContent(keyValuePair.Value?.ToString()), keyValuePair.Key);
             }
             if (files != null)
             {
@@ -256,7 +286,7 @@ namespace fbchat_sharp.API
             var files = new List<FB_File>();
             foreach (var file_url in file_urls)
             {
-                var r = await this._cleanGet(file_url);
+                var r = await this._cleanGet<string>(file_url);
                 // We could possibly use r.headers.get('Content-Disposition'), see
                 // https://stackoverflow.com/a/37060758
                 var file = new FB_File();
@@ -273,7 +303,10 @@ namespace fbchat_sharp.API
             var cookies = (this._session.GetAllCookies().Values.SelectMany(c => c).Cast<Cookie>()
                 .GroupBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(c => c.Key, c => c.First().Value, StringComparer.OrdinalIgnoreCase));
-            return cookies.GetValueOrDefault("c_user");
+            var rtn = cookies.GetValueOrDefault("c_user");
+            if (rtn == null)
+                throw new FBchatException("Could not find user id");
+            return rtn;
         }
 
         public Dictionary<string, string> get_params()
@@ -283,7 +316,7 @@ namespace fbchat_sharp.API
             payload["__a"] = 1.ToString();
             payload["__req"] = Utils.str_base(this._counter, 36);
             payload["__rev"] = this._revision;
-            payload["fb_dtsg"] = this.fb_dtsg;
+            payload["fb_dtsg"] = this._fb_dtsg;
             return payload;
         }
 
@@ -296,7 +329,7 @@ namespace fbchat_sharp.API
                 throw new Exception("Email and password not set.");
             }
 
-            var r = await state._cleanGet("https://m.facebook.com/");
+            var r = await state._cleanGet<string>("https://m.facebook.com/");
             var soup = state.find_input_fields(await State.check_request(r));
 
             var data = soup.Where(i => i.HasAttribute("name") && i.HasAttribute("value")).Select(i => new { Key = i.GetAttribute("name"), Value = i.GetAttribute("value") })
@@ -320,7 +353,7 @@ namespace fbchat_sharp.API
             // Sometimes Facebook tries to show the user a "Save Device" dialog
             if (r.RequestMessage.RequestUri.ToString().Contains("save-device"))
             {
-                r = await state._cleanGet("https://m.facebook.com/login/save-device/cancel/");
+                r = await state._cleanGet<string>("https://m.facebook.com/login/save-device/cancel/");
             }
 
             if (state.is_home(r.RequestMessage.RequestUri.ToString()))
@@ -339,7 +372,7 @@ namespace fbchat_sharp.API
         public async Task<bool> is_logged_in()
         {
             // Send a request to the login url, to see if we're directed to the home page
-            var r = await this._cleanGet("https://m.facebook.com/login.php?login_attempt=1");
+            var r = await this._cleanGet<string>("https://m.facebook.com/login.php?login_attempt=1");
             return is_home(r.RequestMessage.RequestUri.ToString())
                 || (r.Headers.Contains("Location") && is_home(r.Headers.Location.ToString()));
         }
@@ -407,6 +440,173 @@ namespace fbchat_sharp.API
             catch (Exception)
             {
                 return await State.from_session(state);
+            }
+        }
+
+        public async Task<JToken> _get(string url, Dictionary<string, object> query = null, int error_retries = 3)
+        {
+            query.update(get_params());
+            var r = await this._cleanGet(Utils.prefix_url(url), query: query);
+            var content = await State.check_request(r);
+            var j = Utils.to_json(content);
+            try
+            {
+                Utils.handle_payload_error(j);
+            }
+            catch (FBchatPleaseRefresh ex)
+            {
+                if (error_retries > 0)
+                {
+                    await this._do_refresh();
+                    return await this._get(url, query: query, error_retries: error_retries - 1);
+                }
+                throw ex;
+            }
+            return j;
+        }
+
+        public async Task<object> _post(string url, Dictionary<string, object> query = null, Dictionary<string, FB_File> files = null, bool as_graphql = false, int error_retries = 3)
+        {
+            query.update(get_params());
+            var r = await this._cleanPost(Utils.prefix_url(url), query: query, files: files);
+            var content = await State.check_request(r);
+            try
+            {
+                if (as_graphql)
+                {
+                    return GraphQL.response_to_json(content);
+                }
+                else
+                {
+                    var j = Utils.to_json(content);
+                    // TODO: Remove this, and move it to _payload_post instead
+                    // We can't yet, since errors raised in here need to be caught below
+                    Utils.handle_payload_error(j);
+                    return j;
+                }
+            }
+            catch (FBchatPleaseRefresh ex)
+            {
+                if (error_retries > 0)
+                {
+                    await this._do_refresh();
+                    return await this._post(
+                        url,
+                        query: query,
+                        files: files,
+                        as_graphql: as_graphql,
+                        error_retries: error_retries - 1);
+                }
+                throw ex;
+            }
+        }
+
+        public async Task<JToken> _payload_post(string url, Dictionary<string, object> data = null, Dictionary<string, FB_File> files = null)
+        {
+            var j = await this._post(url, data, files: files);
+            try
+            {
+                return ((JToken)j).get("payload");
+            }
+            catch (Exception)
+            {
+                throw new FBchatException(string.Format("Missing payload: {0}", j));
+            }
+        }
+
+        public async Task<List<JToken>> graphql_requests(List<GraphQL> queries)
+        {
+            /*
+             * :param queries: Zero or more dictionaries
+             * :type queries: dict
+             * : raises: FBchatException if request failed
+             * : return: A tuple containing json graphql queries
+             * :rtype: tuple
+             * */
+            var data = new Dictionary<string, object>(){
+                { "method", "GET"},
+                { "response_format", "json"},
+                { "queries", GraphQL.queries_to_json(queries)}
+            };
+
+            return (List<JToken>)await this._post("/api/graphqlbatch/", data, as_graphql: true);
+        }
+
+        public async Task<JToken> graphql_request(GraphQL query)
+        {
+            /*
+             * Shorthand for `graphql_requests(query)[0]`
+             * :raises: Exception if request failed
+             */
+            return (await this.graphql_requests(new[] { query }.ToList()))[0];
+        }
+
+        public async Task<List<Tuple<string, string>>> _upload(List<FB_File> files, bool voice_clip = false)
+        {
+            /*
+             * Uploads files to Facebook
+             * `files` should be a list of files that requests can upload, see:
+             * http://docs.python-requests.org/en/master/api/#requests.request
+             * Returns a list of tuples with a file's ID and mimetype
+             * */
+            var file_dict = new Dictionary<string, FB_File>();
+            foreach (var obj in files.Select((x, index) => new { f = x, i = index }))
+                file_dict.Add(string.Format("upload_{0}", obj.i), obj.f);
+
+            var data = new Dictionary<string, object>() { { "voice_clip", voice_clip } };
+
+            var j = await this._payload_post(
+                "https://upload.facebook.com/ajax/mercury/upload.php", data, files: file_dict
+            );
+
+            if (j.get("metadata").Count() != files.Count)
+                throw new FBchatException(
+                    string.Format("Some files could not be uploaded: {0}", j));
+
+            return j.get("metadata").Select(md =>
+                new Tuple<string, string>(md[Utils.mimetype_to_key(md.get("filetype")?.Value<string>())]?.Value<string>(), md.get("filetype")?.Value<string>())).ToList();
+        }
+
+        public async Task<dynamic> _do_send_request(Dictionary<string, object> data, bool get_thread_id = false)
+        {
+            /* Sends the data to `SendURL`, and returns the message ID or null on failure */
+            string messageAndOTID = Utils.generateOfflineThreadingID();
+            long timestamp = Utils.now();
+            var date = DateTime.Now;
+            data.update(new Dictionary<string, object> {
+                { "client", "mercury" },
+                { "author" , "fbid:" + this.user_id },
+                { "timestamp" , timestamp },
+                { "source" , "source:chat:web" },
+                { "offline_threading_id", messageAndOTID },
+                { "message_id" , messageAndOTID },
+                { "threading_id", Utils.generateMessageID(this._client_id) },
+                { "ephemeral_ttl_mode:", "0" },
+            });
+
+            var j = (JToken)(await this._post("/messaging/send/", data));
+
+            var fb_dtsg = Utils.get_jsmods_require(j, 2)?.Value<string>();
+            if (fb_dtsg != null)
+                this._fb_dtsg = fb_dtsg;
+
+            try
+            {
+                var message_ids = j.get("payload")?.get("actions").Where(action => action.get("message_id") != null).Select(
+                    action => new { MSG = action.get("message_id").Value<string>(), THR = action.get("thread_fbid").Value<string>() }
+                ).ToList();
+                if (message_ids.Count != 1)
+                {
+                    Debug.WriteLine(string.Format("Got multiple message ids back: {0}", message_ids));
+                }
+                if (get_thread_id)
+                    return message_ids[0];
+                else
+                    return message_ids[0].MSG;
+            }
+            catch
+            {
+                throw new FBchatException(string.Format("Error when sending message: No message IDs could be found: {0}", j));
             }
         }
     }

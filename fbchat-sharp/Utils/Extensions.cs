@@ -11,6 +11,17 @@ namespace fbchat_sharp
 {
     internal static class Extensions
     {
+        public static void update<TKey, TValue1, TValue2>(this Dictionary<TKey, TValue1> dict, Dictionary<TKey, TValue2> outDict)
+        {
+            if (dict != null)
+            {
+                foreach (var entry in dict)
+                {
+                    outDict[entry.Key] = (TValue2)Convert.ChangeType(entry.Value, typeof(TValue2));
+                }
+            }
+        }
+
         public static JToken get(this JToken token, string key = null)
         {
             if (key != null)

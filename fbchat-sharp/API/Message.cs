@@ -1,9 +1,11 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 
 namespace fbchat_sharp.API
 {
@@ -232,6 +234,66 @@ namespace fbchat_sharp.API
             if (tags == null)
                 return false;
             return tags.Any((tag) => tag.Contains("forward") || tag.Contains("copy"));
+        }
+
+        public Dictionary<string,object> _to_send_data()
+        {
+            var data = new Dictionary<string, object>();
+
+            if (this.text != null || this.sticker != null || this.emoji_size != null)
+                data["action_type"] = "ma-type:user-generated-message";
+
+            if (this.text != null)
+                data["body"] = this.text;
+
+            foreach (var item in this.mentions.Select((mention, i) => new { i, mention }))
+            {
+                data[string.Format("profile_xmd[{0}][id]", item.i)] = item.mention.thread_id;
+                data[string.Format("profile_xmd[{0}][offset]", item.i)] = item.mention.offset.ToString();
+                data[string.Format("profile_xmd[{0}][length]", item.i)] = item.mention.length.ToString();
+                data[string.Format("profile_xmd[{0}][type]", item.i)] = "p";
+            }
+
+            if (this.emoji_size != null)
+            {
+                if (this.text != null)
+                    data["tags[0]"] = "hot_emoji_size:" + Enum.GetName(typeof(EmojiSize), this.emoji_size).ToLower();
+                else
+                    data["sticker_id"] = this.emoji_size?.GetEnumDescriptionAttribute();
+            }
+
+            if (this.sticker != null)
+            {
+                data["sticker_id"] = this.sticker.uid;
+            }
+
+            if (this.quick_replies != null && this.quick_replies.Any())
+            {
+                var xmd = new Dictionary<string, object>() { { "quick_replies", new List<Dictionary<string, object>>() } };
+                foreach (var quick_reply in this.quick_replies)
+                {
+                    var q = new Dictionary<string, object>();
+                    q["content_type"] = quick_reply._type;
+                    q["payload"] = quick_reply.payload;
+                    q["external_payload"] = quick_reply.external_payload;
+                    q["data"] = quick_reply.data;
+                    if (quick_reply.is_response)
+                        q["ignore_for_webhook"] = false;
+                    if (quick_reply is FB_QuickReplyText)
+                        q["title"] = ((FB_QuickReplyText)quick_reply).title;
+                    if (!(quick_reply is FB_QuickReplyLocation))
+                        q["image_url"] = quick_reply.GetType().GetRuntimeProperty("image_url").GetValue(quick_reply, null);
+                    ((List<Dictionary<string, object>>)xmd["quick_replies"]).Add(q);
+                }
+                if (this.quick_replies.Count == 1 && this.quick_replies[0].is_response)
+                    xmd["quick_replies"] = ((List<Dictionary<string, object>>)xmd["quick_replies"])[0];
+                data["platform_xmd"] = JsonConvert.SerializeObject(xmd);
+            }
+
+            if (this.reply_to_id != null)
+                data["replied_to_message_id"] = this.reply_to_id;
+
+            return data;
         }
 
         public static FB_Message _from_graphql(JToken data, string thread_id)

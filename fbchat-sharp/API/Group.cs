@@ -83,6 +83,12 @@ namespace fbchat_sharp.API
                 last_message_timestamp: last_message_timestamp,
                 plan: plan);
         }
+
+        public Dictionary<string, object> _to_send_data()
+        {
+            // TODO: Only implement this in subclasses
+            return new Dictionary<string, object>() { { "thread_fbid", this.uid } };
+        }
     }
 
     /// <summary>

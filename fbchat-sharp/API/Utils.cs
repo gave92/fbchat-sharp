@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace fbchat_sharp.API
 {
-    public class Utils
+    public static class Utils
     {
         // Default list of user agents
         public static readonly string[] USER_AGENTS = {
@@ -220,6 +220,24 @@ namespace fbchat_sharp.API
             if (url.StartsWith("/"))
                 return "https://www.facebook.com" + url;
             return url;
+        }
+
+        public static Type _to_class(this ThreadType threadType)
+        {
+            switch (threadType)
+            {
+                case ThreadType.USER:
+                    return typeof(FB_User);
+                case ThreadType.GROUP:
+                    return typeof(FB_Group);
+                //case ThreadType.ROOM:
+                //    return typeof(FB_Room);
+                case ThreadType.PAGE:
+                    return typeof(FB_Page);
+                case ThreadType.INVALID:
+                default:
+                    throw new FBchatException($"Invalid thread type: {threadType}.");
+            }
         }
     }
 }
