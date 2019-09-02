@@ -47,6 +47,15 @@ namespace fbchat_sharp.API
             this.category = category;
         }
 
+        /// <summary>
+        /// Represents a Facebook page. Inherits `Thread`
+        /// </summary>
+        public FB_Page(string uid) :
+            base(ThreadType.PAGE, uid)
+        {
+
+        }
+
         public static FB_Page _from_graphql(JToken data)
         {
             if (data.get("profile_picture") == null)

@@ -150,12 +150,11 @@ namespace fbchat_sharp.API
         /// <returns>false if ``session_cookies`` does not contain proper cookies</returns>
         public async Task<bool> setSession(Dictionary<string, List<Cookie>> session_cookies, string user_agent = null)
         {
-            State state = null;
             try
             {
                 // Load cookies into current session
                 this._state = await State.from_cookies(session_cookies, user_agent: user_agent);
-                this._uid = state.get_user_id();
+                this._uid = this._state.get_user_id();
             }
             catch (Exception)
             {

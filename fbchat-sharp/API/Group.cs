@@ -59,6 +59,16 @@ namespace fbchat_sharp.API
             this.join_link = join_link;
         }
 
+        /// <summary>
+        /// Represents a Facebook group. Inherits `Thread`
+        /// </summary>
+        /// <param name="uid"></param>
+        public FB_Group(string uid) :
+            base(ThreadType.GROUP, uid)
+        {
+
+        }
+
         public static FB_Group _from_graphql(JToken data)
         {
             if (data.get("image") == null)
@@ -122,6 +132,16 @@ namespace fbchat_sharp.API
         {
             this.type = ThreadType.ROOM;
             this.privacy_mode = privacy_mode;
+        }
+
+        /// <summary>
+        /// Represents a Facebook room. Inherits `Group`
+        /// </summary>
+        /// <param name="uid"></param>
+        public FB_Room(string uid) :
+            base(uid)
+        {
+            this.type = ThreadType.ROOM;
         }
     }
 }

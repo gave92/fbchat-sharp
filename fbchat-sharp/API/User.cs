@@ -108,6 +108,16 @@ namespace fbchat_sharp.API
             this.emoji = emoji;
         }
 
+        /// <summary>
+        /// Represents a Facebook user. Inherits `Thread`
+        /// </summary>
+        /// <param name="uid"></param>
+        public FB_User(string uid) :
+            base(ThreadType.USER, uid)
+        {
+
+        }
+
         /// <returns>Pretty string representation of the thread</returns>
         public override string ToString()
         {

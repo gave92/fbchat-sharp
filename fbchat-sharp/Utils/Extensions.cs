@@ -11,13 +11,13 @@ namespace fbchat_sharp
 {
     internal static class Extensions
     {
-        public static void update<TKey, TValue1, TValue2>(this Dictionary<TKey, TValue1> dict, Dictionary<TKey, TValue2> outDict)
+        public static void update<TKey, TValue1, TValue2>(this Dictionary<TKey, TValue1> dict, Dictionary<TKey, TValue2> mergeDict)
         {
-            if (dict != null)
+            if (mergeDict != null)
             {
-                foreach (var entry in dict)
+                foreach (var entry in mergeDict)
                 {
-                    outDict[entry.Key] = (TValue2)Convert.ChangeType(entry.Value, typeof(TValue2));
+                    dict[entry.Key] = (TValue1)Convert.ChangeType(entry.Value, typeof(TValue1));
                 }
             }
         }
