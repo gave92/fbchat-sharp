@@ -1,0 +1,20 @@
+﻿<ContentDialog
+    x:Class="uwpapp.InputBox"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:uwpapp"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    x:Name="ContentDialog"
+    PrimaryButtonClick="ContentDialog_PrimaryButtonClick"
+    PrimaryButtonText="OK"
+    SecondaryButtonClick="ContentDialog_SecondaryButtonClick"
+    SecondaryButtonText="Cancel"
+    mc:Ignorable="d">
+
+    <Grid>
+        <TextBox Text="{Binding ElementName=ContentDialog, Path=Text, Mode=TwoWay}" 
+                 PlaceholderText="{Binding ElementName=ContentDialog, Path=PlaceholderText}"
+                 VerticalAlignment="Center"/>
+    </Grid>
+</ContentDialog>

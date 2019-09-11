@@ -35,12 +35,14 @@ namespace fbchat_sharp
         public static Dictionary<string, List<Cookie>> GetAllCookies(this CookieContainer container)
         {
             var allCookies = new Dictionary<string, List<Cookie>>();
-            var domainTableField = container.GetType().GetRuntimeFields().FirstOrDefault(x => x.Name == "m_domainTable");
+            var domainTableField = container.GetType().GetRuntimeFields().FirstOrDefault(x => x.Name == "m_domainTable") ??
+                                   container.GetType().GetRuntimeFields().FirstOrDefault(x => x.Name == "_domainTable");
             var domains = (IDictionary)domainTableField.GetValue(container);
 
             foreach (var val in domains.Values)
             {
-                var type = val.GetType().GetRuntimeFields().First(x => x.Name == "m_list");
+                var type = val.GetType().GetRuntimeFields().FirstOrDefault(x => x.Name == "m_list") ??
+                           val.GetType().GetRuntimeFields().FirstOrDefault(x => x.Name == "_list");
                 var values = (IDictionary)type.GetValue(val);
 
                 foreach (CookieCollection cookies in values.Values)

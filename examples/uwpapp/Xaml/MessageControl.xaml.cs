@@ -2,9 +2,10 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
+using Windows.UI.Xaml;
+using Windows.UI.Xaml.Controls;
 
-namespace wpfapp.Xaml
+namespace uwpapp.Xaml
 {
     /// <summary>
     /// Logica di interazione per MessageControl.xaml
@@ -17,7 +18,7 @@ namespace wpfapp.Xaml
             this.DataContextChanged += MessageControl_DataContextChanged;
         }
 
-        private void MessageControl_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        private void MessageControl_DataContextChanged(FrameworkElement sender, DataContextChangedEventArgs e)
         {
             if (e.NewValue == null) return;
             var Message = e.NewValue as FB_Message;

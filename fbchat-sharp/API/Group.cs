@@ -94,7 +94,7 @@ namespace fbchat_sharp.API
                 plan: plan);
         }
 
-        public Dictionary<string, object> _to_send_data()
+        public new Dictionary<string, object> _to_send_data()
         {
             // TODO: Only implement this in subclasses
             return new Dictionary<string, object>() { { "thread_fbid", this.uid } };
