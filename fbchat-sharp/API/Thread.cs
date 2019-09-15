@@ -65,7 +65,7 @@ namespace fbchat_sharp.API
                 return ThreadColor.MESSENGER_BLUE;
             try
             {
-                return string.Format("#{0}", color.Skip(2).ToString());
+                return string.Format("#{0}", color.Substring(2));
             }
             catch
             {

@@ -51,7 +51,7 @@ namespace fbchat_sharp.API
         {
             this.participants = participants ?? new HashSet<string>();
             this.nicknames = nicknames ?? new Dictionary<string, string>();
-            this.color = color;
+            this.color = color ?? ThreadColor.MESSENGER_BLUE;
             this.emoji = emoji;
             this.admins = admins ?? new HashSet<string>();
             this.approval_mode = approval_mode;

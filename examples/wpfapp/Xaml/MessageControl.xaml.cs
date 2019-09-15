@@ -35,7 +35,7 @@ namespace wpfapp.Xaml
             {
                 this.ContentPanel.Children.Add(new ContentControl() { ContentTemplate = (DataTemplate)this.Resources["StickerMessageTemplate"], Content = Message.sticker });
             }
-            if (Message.text.Any())
+            if (Message.text != null && Message.text.Any())
             {
                 if (Message.is_from_me)
                 {

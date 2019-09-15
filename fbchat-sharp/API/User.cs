@@ -104,7 +104,7 @@ namespace fbchat_sharp.API
             this.affinity = affinity;
             this.nickname = nickname;
             this.own_nickname = own_nickname;
-            this.color = color;
+            this.color = color ?? ThreadColor.MESSENGER_BLUE;
             this.emoji = emoji;
         }
 
