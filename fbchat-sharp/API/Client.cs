@@ -1660,7 +1660,7 @@ namespace fbchat_sharp.API
         /// <param name="thread_id"></param>
         /// <param name="thread_type"></param>
         /// <returns></returns>
-        [Obsolete("Deprecated. Use :func:`fbchat.Client.sendRemoteImage` instead")]
+        [Obsolete("Deprecated. Use :func:`fbchat.Client.sendRemoteFiles` instead")]
         public async Task<string> sendRemoteImage(string image_url = null, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
         {
             /*
