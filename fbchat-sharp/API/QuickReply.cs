@@ -4,6 +4,14 @@ using System.Collections.Generic;
 
 namespace fbchat_sharp.API
 {
+    public enum QuickReplyType
+    {
+        location,
+        text,
+        user_phone_number,
+        user_email
+    }
+
     /// <summary>
     /// Represents a quick reply 
     /// </summary>
@@ -18,7 +26,7 @@ namespace fbchat_sharp.API
         /// Whether it's a response for a quick reply
         public bool is_response { get; set; }
         /// Type of the quick reply
-        public string _type { get; set; }
+        public QuickReplyType? _type { get; set; }
 
         /// <summary>
         /// Represents a quick reply 
@@ -28,7 +36,7 @@ namespace fbchat_sharp.API
         /// <param name="external_payload"></param>
         /// <param name="data"></param>
         /// <param name="is_response"></param>
-        public FB_QuickReply(string _type = null, JToken payload = null, JToken external_payload = null, JToken data = null, bool is_response = false)
+        public FB_QuickReply(QuickReplyType? _type = null, JToken payload = null, JToken external_payload = null, JToken data = null, bool is_response = false)
         {
             this._type = _type;
             this.payload = payload;
@@ -44,10 +52,10 @@ namespace fbchat_sharp.API
             var _type = q.get("content_type")?.Value<string>()?.ToLower();
             data["payload"] = q.get("payload");
             data["data"] = q.get("data");
-            if (q["image_url"] != null && _type != FB_QuickReplyLocation._type)
+            if (q["image_url"] != null && _type != QuickReplyType.location.ToString())
                 data["image_url"] = q.get("image_url")?.Value<string>();
             data["is_response"] = is_response;            
-            if (_type == FB_QuickReplyText._type)
+            if (_type == QuickReplyType.text.ToString())
             {
                 if (q.get("title") != null)
                     data["title"] = q.get("title");
@@ -59,20 +67,20 @@ namespace fbchat_sharp.API
                     (string)data.GetValueOrDefault("title"),
                     (string)data.GetValueOrDefault("image_url"));
             }                
-            else if (_type == FB_QuickReplyLocation._type)
+            else if (_type == QuickReplyType.location.ToString())
                 rtn = new FB_QuickReplyLocation(
                     (JToken)data.GetValueOrDefault("payload"),
                     (JToken)data.GetValueOrDefault("external_payload"),
                     (JToken)data.GetValueOrDefault("data"),
                     (bool)data.GetValueOrDefault("is_response"));
-            else if (_type == FB_QuickReplyPhoneNumber._type)
+            else if (_type == QuickReplyType.user_phone_number.ToString())
                 rtn = new FB_QuickReplyPhoneNumber(
                     (JToken)data.GetValueOrDefault("payload"),
                     (JToken)data.GetValueOrDefault("external_payload"),
                     (JToken)data.GetValueOrDefault("data"),
                     (bool)data.GetValueOrDefault("is_response"),
                     (string)data.GetValueOrDefault("image_url"));
-            else if (_type == FB_QuickReplyEmail._type)
+            else if (_type == QuickReplyType.user_email.ToString())
                 rtn = new FB_QuickReplyEmail(
                     (JToken)data.GetValueOrDefault("payload"),
                     (JToken)data.GetValueOrDefault("external_payload"),
@@ -92,8 +100,6 @@ namespace fbchat_sharp.API
         public string title { get; set; }
         /// URL of the quick reply image (optional)
         public string image_url { get; set; }
-        /// Type of the quick reply
-        public new static string _type { get { return "text"; } }
 
         /// <summary>
         /// Represents a text quick reply 
@@ -105,7 +111,7 @@ namespace fbchat_sharp.API
         /// <param name="title"></param>
         /// <param name="image_url"></param>
         public FB_QuickReplyText(JToken payload = null, JToken external_payload = null, JToken data = null, bool is_response = false, string title = null, string image_url = null)
-            : base(_type, payload, external_payload, data, is_response)
+            : base(QuickReplyType.text, payload, external_payload, data, is_response)
         {
             this.title = title;
             this.image_url = image_url;
@@ -117,9 +123,6 @@ namespace fbchat_sharp.API
     /// </summary>
     public class FB_QuickReplyLocation : FB_QuickReply
     {
-        /// Type of the quick reply
-        public new static string _type { get { return "location"; } }
-
         /// <summary>
         /// Represents a location quick reply (Doesn't work on mobile)
         /// </summary>
@@ -128,7 +131,7 @@ namespace fbchat_sharp.API
         /// <param name="data"></param>
         /// <param name="is_response"></param>
         public FB_QuickReplyLocation(JToken payload = null, JToken external_payload = null, JToken data = null, bool is_response = false)
-            : base(_type, payload, external_payload, data, is_response)
+            : base(QuickReplyType.location, payload, external_payload, data, is_response)
         {
             this.is_response = false;
         }
@@ -141,8 +144,6 @@ namespace fbchat_sharp.API
     {
         /// URL of the quick reply image (optional)
         public string image_url { get; set; }
-        /// Type of the quick reply
-        public new static string _type { get { return "user_phone_number"; } }
 
         /// <summary>
         /// Represents a location quick reply (Doesn't work on mobile)
@@ -153,7 +154,7 @@ namespace fbchat_sharp.API
         /// <param name="is_response"></param>
         /// <param name="image_url"></param>
         public FB_QuickReplyPhoneNumber(JToken payload = null, JToken external_payload = null, JToken data = null, bool is_response = false, string image_url = null)
-            : base(_type, payload, external_payload, data, is_response)
+            : base(QuickReplyType.user_phone_number, payload, external_payload, data, is_response)
         {
             this.image_url = image_url;
         }
@@ -166,8 +167,6 @@ namespace fbchat_sharp.API
     {
         /// URL of the quick reply image (optional)
         public string image_url { get; set; }
-        /// Type of the quick reply
-        public new static string _type { get { return "user_email"; } }
 
         /// <summary>
         /// Represents a location quick reply (Doesn't work on mobile)
@@ -178,7 +177,7 @@ namespace fbchat_sharp.API
         /// <param name="is_response"></param>
         /// <param name="image_url"></param>
         public FB_QuickReplyEmail(JToken payload = null, JToken external_payload = null, JToken data = null, bool is_response = false, string image_url = null)
-            : base(_type, payload, external_payload, data, is_response)
+            : base(QuickReplyType.user_email, payload, external_payload, data, is_response)
         {
             this.image_url = image_url;
         }

@@ -156,7 +156,7 @@ namespace fbchat_sharp.API
             return rtn;
         }
 
-        public Dictionary<string,object> _to_send_data()
+        public virtual Dictionary<string,object> _to_send_data()
         {
             // TODO: Only implement this in subclasses
             return new Dictionary<string, object>() { { "other_user_fbid", this.uid } };

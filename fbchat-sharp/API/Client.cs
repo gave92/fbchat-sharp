@@ -1298,8 +1298,8 @@ namespace fbchat_sharp.API
              */
 
             var thread = this._getThread(thread_id, thread_type);
-            var tmp = Activator.CreateInstance(thread.Item2.Value._to_class(), thread.Item1);
-            var data = (Dictionary<string, object>)tmp.GetType().GetRuntimeMethods().SingleOrDefault(m => m.Name == "_to_send_data").Invoke(tmp, null);
+            var tmp = (FB_Thread)Activator.CreateInstance(thread.Item2.Value._to_class(), thread.Item1);
+            var data = tmp._to_send_data();
             data.update(message._to_send_data());
             return await this._doSendRequest(data);
         }
