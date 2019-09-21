@@ -6,7 +6,7 @@
     <title>fbchat-sharp</title>
     <authors>Marco Gavelli</authors>
     <owners>Marco Gavelli</owners>
-    <licenseUrl>https://github.com/gave92/fbchat-sharp/blob/master/LICENSE.txt</licenseUrl>
+    <license type="file">LICENSE.txt</license>
     <projectUrl>https://github.com/gave92/fbchat-sharp</projectUrl>
     <iconUrl>https://github.com/gave92/fbchat-sharp/raw/master/fbchat-icon.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
@@ -22,6 +22,7 @@
     </dependencies>
   </metadata>
   <files>
+    <file src="..\LICENSE.txt"/>
     <file src="bin\Release\fbchat-sharp.dll" target="lib\netstandard1.2\fbchat-sharp.dll" />
     <file src="bin\Release\fbchat-sharp.xml" target="lib\netstandard1.2\fbchat-sharp.xml" />
   </files>
