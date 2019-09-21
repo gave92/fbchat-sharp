@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>Gave.Libs.Fbchat</id>
-    <version>0.2.9.1</version>
+    <version>0.3.0</version>
     <title>fbchat-sharp</title>
     <authors>Marco Gavelli</authors>
     <owners>Marco Gavelli</owners>
@@ -11,7 +11,7 @@
     <iconUrl>https://github.com/gave92/fbchat-sharp/raw/master/fbchat-icon.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Facebook Messenger client library for C#</description>
-    <releaseNotes>Sync to fbchat v1.7.3. Fix message parsing.</releaseNotes>
+    <releaseNotes>Sync to fbchat v1.8.3.</releaseNotes>
     <copyright>Copyright 2017-2018 Marco Gavelli</copyright>
     <tags>facebook messenger chat</tags>
     <dependencies>
