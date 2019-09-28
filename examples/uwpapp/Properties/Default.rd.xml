@@ -21,11 +21,18 @@
       Un elemento Assembly il cui nome è "*Application*" si applica a tutti gli assembly
       nel pacchetto dell'applicazione. Gli asterischi non sono caratteri jolly.
     -->
-    <Assembly Name="*Application*" Dynamic="Required All" />
-    
+    <Assembly Name="*Application*" Dynamic="Required All" />    
     
     <!-- Aggiungere qui le direttive di runtime specifiche dell'applicazione. -->
-
-
+    <Type Name="System.ComponentModel.DescriptionAttribute">
+      <AttributeImplies Dynamic="Required All" />
+    </Type>
+    <Type Name="fbchat_sharp.API.FB_QuickReply">
+      <Subtypes Dynamic="Required All" />
+    </Type>
+    <Type Name="fbchat_sharp.API.FB_Thread">
+      <Subtypes Activate="Required All" />
+    </Type>
+    
   </Application>
 </Directives>

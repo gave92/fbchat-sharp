@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Reflection;
 using System.Threading.Tasks;
 
 namespace fbchat_sharp.API
@@ -1341,8 +1340,8 @@ namespace fbchat_sharp.API
              * :raises: FBchatException if request failed
              * */
             var thread = this._getThread(thread_id, thread_type);
-            var tmp = Activator.CreateInstance(thread.Item2.Value._to_class(), thread.Item1);
-            var data = (Dictionary<string, object>)tmp.GetType().GetRuntimeMethods().SingleOrDefault(m => m.Name == "_to_send_data").Invoke(tmp, null);
+            var tmp = (FB_Thread)Activator.CreateInstance(thread.Item2.Value._to_class(), thread.Item1);
+            var data = tmp._to_send_data();
             data["action_type"] = "ma-type:user-generated-message";
             data["lightweight_action_attachment[lwa_state]"] = wave_first ? "INITIATED" : "RECIPROCATED";
             data["lightweight_action_attachment[lwa_type]"] = "WAVE";
@@ -1428,8 +1427,8 @@ namespace fbchat_sharp.API
         )
         {
             var thread = this._getThread(thread_id, thread_type);
-            var tmp = Activator.CreateInstance(thread.Item2.Value._to_class(), thread.Item1);
-            var data = (Dictionary<string, object>)tmp.GetType().GetRuntimeMethods().SingleOrDefault(m => m.Name == "_to_send_data").Invoke(tmp, null);
+            var tmp = (FB_Thread)Activator.CreateInstance(thread.Item2.Value._to_class(), thread.Item1);
+            var data = tmp._to_send_data();
             if (message != null)
                 data.update(message._to_send_data());
             data["action_type"] = "ma-type:user-generated-message";
@@ -1514,8 +1513,8 @@ namespace fbchat_sharp.API
              * `files` should be a list of tuples, with a file's ID and mimetype
              * */
             var thread = this._getThread(thread_id, thread_type);
-            var tmp = Activator.CreateInstance(thread.Item2.Value._to_class(), thread.Item1);
-            var data = (Dictionary<string, object>)tmp.GetType().GetRuntimeMethods().SingleOrDefault(m => m.Name == "_to_send_data").Invoke(tmp, null);
+            var tmp = (FB_Thread)Activator.CreateInstance(thread.Item2.Value._to_class(), thread.Item1);
+            var data = tmp._to_send_data();
             data.update(this._oldMessage(message)._to_send_data());
 
             data["action_type"] = "ma-type:user-generated-message";

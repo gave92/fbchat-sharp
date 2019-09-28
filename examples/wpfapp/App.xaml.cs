@@ -1,5 +1,4 @@
-﻿using fbchat_sharp.API;
-using System.Windows;
+﻿using System.Windows;
 
 namespace wpfapp
 {

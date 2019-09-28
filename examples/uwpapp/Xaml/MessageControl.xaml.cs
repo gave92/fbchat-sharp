@@ -1,7 +1,5 @@
 ﻿using fbchat_sharp.API;
-using System.Diagnostics;
 using System.Linq;
-using System.Windows;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 

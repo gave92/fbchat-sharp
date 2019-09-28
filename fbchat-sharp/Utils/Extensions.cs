@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -33,8 +32,14 @@ namespace fbchat_sharp
         }
 
         public static Dictionary<string, List<Cookie>> GetAllCookies(this CookieContainer container)
-        {
+        {            
             var allCookies = new Dictionary<string, List<Cookie>>();
+            string domain = ".facebook.com";
+            var url = string.Format("https://{0}/", domain[0] == '.' ? domain.Substring(1) : domain);
+            allCookies[domain] = new List<Cookie>();
+            allCookies[domain].AddRange(container.GetCookies(new Uri(url)).Cast<Cookie>());
+
+            /*
             var domainTableField = container.GetType().GetRuntimeFields().FirstOrDefault(x => x.Name == "m_domainTable") ??
                                    container.GetType().GetRuntimeFields().FirstOrDefault(x => x.Name == "_domainTable");
             var domains = (IDictionary)domainTableField.GetValue(container);
@@ -54,6 +59,7 @@ namespace fbchat_sharp
                     allCookies[domain].AddRange(cookies.Cast<Cookie>());
                 }
             }
+            */
             return allCookies;
         }
 
