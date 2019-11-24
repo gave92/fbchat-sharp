@@ -19,5 +19,10 @@ namespace wpfapp
                 return _client;
             }
         }
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+            Helpers.WtfWpf.UnsetRestrictedHeaders();
+        }
     }
 }
