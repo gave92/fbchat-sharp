@@ -90,11 +90,10 @@ List<FB_Message> messages = await client.fetchThreadMessages(threads.First().uid
 
 fbchat-sharp has been created as a PCL targeting .NET Standard 1.2 that supports a wide range of platforms. The list includes but is not limited to:
 
+* .NetStandard 1.3
 * .NET Core 1.0
-* .NET Framework 4.5.1
+* .NET Framework 4.6
 * Universal Windows Platform
-* Windows 8.1
-* Windows Phone 8.1
 * Xamarin.Android
 * Xamarin.iOS
 
