@@ -87,12 +87,13 @@ namespace fbchat_sharp.API
         /// </summary>
         public async Task StartListening(bool markAlive = true)
         {
-            base.startListening();
-            await base.onListening();
-
-            // Store this references as a private member, call Cancel() on it if UI wants to stop
             this._cancellationTokenSource = new CancellationTokenSource();
-            new Task(async () => await Listen(_cancellationTokenSource.Token, markAlive), _cancellationTokenSource.Token, TaskCreationOptions.LongRunning).Start();
+            if (await this.SafeWrapper(() => base.startListening(_cancellationTokenSource)))
+            {
+                await base.onListening();
+                // Store this references as a private member, call Cancel() on it if UI wants to stop            
+                new Task(async () => await Listen(_cancellationTokenSource.Token, markAlive), _cancellationTokenSource.Token, TaskCreationOptions.LongRunning).Start();
+            }
         }
 
         private async Task Listen(CancellationToken token, bool markAlive = false)
@@ -106,7 +107,7 @@ namespace fbchat_sharp.API
                 token.WaitHandle.WaitOne((int)(1 * 1000));
             }
 
-            base.stopListening();
+            await base.stopListening();
         }
 
         /// <summary>

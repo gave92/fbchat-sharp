@@ -1,4 +1,7 @@
-﻿using Newtonsoft.Json;
+﻿using MQTTnet;
+using MQTTnet.Client;
+using MQTTnet.Client.Options;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Async;
@@ -7,6 +10,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace fbchat_sharp.API
@@ -36,6 +41,8 @@ namespace fbchat_sharp.API
         private bool listening { get; set; }
         /// Stores and manages state required for most Facebook requests.
         private State _state { get; set; }
+        /// Mqtt client for receiving messages
+        private IMqttClient mqttClient;
 
         private string _sticky = null;
         private string _pool = null;
@@ -3480,13 +3487,169 @@ namespace fbchat_sharp.API
         /// <summary>
         /// Start listening from an external event loop
         /// </summary>
-        public void startListening()
+        public async Task<bool> startListening(CancellationTokenSource _cancellationTokenSource)
         {
             /*
              * Start listening from an external event loop
              * :raises: Exception if request failed
              */
+
+            // Get the sync sequence ID used for the /messenger_sync_create_queue call later.
+            // This is the same request as fetch_thread_list, but with includeSeqID=true
+            var j = await this.graphql_request(GraphQL.from_doc_id("1349387578499440", new Dictionary<string, object> {
+                { "limit", 1 },
+                { "tags", new string[] {ThreadLocation.INBOX } },
+                {"before", null },
+                {"includeDeliveryReceipts", false},
+                {"includeSeqID", true},
+            }));
+
+            this._seq = j.get("viewer")?.get("message_threads")?.get("sync_sequence_id")?.Value<int>() ?? _seq;
+
+            // Random session ID
+            var sid = new Random().Next(1, int.MaxValue);
+
+            // The MQTT username. There's no password.
+            var username = new Dictionary<string, object>() {
+                { "u", this._uid},
+                {"s", sid},
+                { "cp", 3},
+                { "ecp", 10},
+                { "chat_on", true},
+                { "fg", true},
+                // Not sure if this should be some specific kind of UUID, but it's a random one now.
+                { "d", Guid.NewGuid().ToString()},
+                { "ct", "websocket"},
+                { "mqtt_sid", ""},
+                // Application ID, taken from facebook.com
+                { "aid", 219994525426954},
+                { "st", new string[0]},
+                {"pm", new string[0]},
+                {"dc", ""},
+                {"no_auto_fg", true},
+                {"gas", null}
+            };
+
+            // Headers for the websocket connection. Not including Origin will cause 502's.
+            // User agent and Referer also probably required. Cookie is how it auths.
+            // Accept is there just for fun.
+            var cookies = this._state.get_cookies();
+
+            var headers = new Dictionary<string, string>() {
+                { "Referer", "https://www.facebook.com" },
+                { "User-Agent", Utils.USER_AGENTS[0] },
+                { "Cookie", string.Join(";", cookies[".facebook.com"].Select(c => $"{c.Name}={c.Value}"))},
+                { "Accept", "*/*"},
+                { "Origin", "https://www.messenger.com" }
+            };
+
+            // Use WebSocket connection.
+            var options = new MqttClientOptionsBuilder()
+                        .WithClientId("mqttwsclient")
+                        .WithWebSocketServer($"wss://edge-chat.facebook.com/chat?region=lla&sid={sid}",
+                            new MqttClientOptionsBuilderWebSocketParameters() { RequestHeaders = headers })
+                        .WithProtocolVersion(MQTTnet.Formatter.MqttProtocolVersion.V310)
+                        .WithCredentials(JsonConvert.SerializeObject(username), "")
+                        .Build();
+            var factory = new MqttFactory();
+            if (this.mqttClient != null)
+            {
+                try { await this.mqttClient.DisconnectAsync(); }
+                catch { }
+                this.mqttClient.Dispose();
+                this.mqttClient = null;
+            }
+            this.mqttClient = factory.CreateMqttClient();
+
+            mqttClient.UseConnectedHandler(async e =>
+            {
+                Debug.WriteLine("### CONNECTED WITH SERVER ###");
+
+                // Subscribe to a topic
+                await mqttClient.SubscribeAsync(
+                    new TopicFilterBuilder().WithTopic("/legacy_web").Build(),
+                    new TopicFilterBuilder().WithTopic("/webrtc").Build(),
+                    new TopicFilterBuilder().WithTopic("/br_sr").Build(),
+                    new TopicFilterBuilder().WithTopic("/sr_res").Build(),
+                    new TopicFilterBuilder().WithTopic("/t_ms").Build(), // Messages
+                    new TopicFilterBuilder().WithTopic("/thread_typing").Build(), // Group typing notifications
+                    new TopicFilterBuilder().WithTopic("/orca_typing_notifications").Build(), // Private chat typing notifications
+                    new TopicFilterBuilder().WithTopic("/thread_typing").Build(),
+                    new TopicFilterBuilder().WithTopic("/notify_disconnect").Build(),
+                    new TopicFilterBuilder().WithTopic("/orca_presence").Build());
+
+                // I read somewhere that not doing this might add message send limits
+                await mqttClient.UnsubscribeAsync("/orca_message_notifications");
+                Debug.WriteLine("Sending messenger sync create queue request");
+                // This is required to actually receive messages. The parameters probably do something.
+                var message = new MqttApplicationMessageBuilder()
+                .WithTopic("/messenger_sync_create_queue")
+                .WithPayload(JsonConvert.SerializeObject(new Dictionary<string, object>(){
+                    { "sync_api_version", 10},
+                    { "max_deltas_able_to_process", 1000},
+                    { "delta_batch_size", 500},
+                    { "encoding", "JSON"},
+                    { "entity_fbid", this._uid},
+                    { "initial_titan_sequence_id", this._seq},
+                    { "device_params", null} }))
+                    .Build();
+                await mqttClient.PublishAsync(message);
+
+                Debug.WriteLine("### SUBSCRIBED ###");
+            });
+
+            mqttClient.UseApplicationMessageReceivedHandler(async e =>
+            {
+                Debug.WriteLine("### RECEIVED APPLICATION MESSAGE ###");
+                Debug.WriteLine($"+ Topic = {e.ApplicationMessage.Topic}");
+                Debug.WriteLine($"+ Payload = {Encoding.UTF8.GetString(e.ApplicationMessage.Payload)}");
+                Debug.WriteLine($"+ QoS = {e.ApplicationMessage.QualityOfServiceLevel}");
+
+                var event_type = e.ApplicationMessage.Topic;
+                var data = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
+                try
+                {
+                    var event_data = Utils.to_json(data);
+                    await this._try_parse_mqtt(event_type, event_data);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex.ToString());
+                }
+            });
+
+            mqttClient.UseDisconnectedHandler(e =>
+            {
+                Debug.WriteLine("### DISCONNECTED FROM SERVER ###");
+            });
+
+            await mqttClient.ConnectAsync(options, _cancellationTokenSource.Token);
+
             this.listening = true;
+            return this.listening;
+        }
+
+        private async Task _try_parse_mqtt(string event_type, JToken event_data)
+        {
+            try
+            {
+                await this._parse_mqtt(event_type, event_data);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.ToString());
+            }
+        }
+
+        private async Task _parse_mqtt(string event_type, JToken event_data)
+        {
+            if (event_type == "/t_ms")
+            {
+                this._seq = Math.Max(this._seq,
+                    event_data.get("lastIssuedSeqId")?.Value<int>() ?? event_data.get("deltas")?.LastOrDefault()?.get("irisSeqId")?.Value<int>() ?? _seq);
+                foreach (var delta in event_data.get("deltas") ?? new JObject())
+                    await this._parseDelta(new JObject() { { "delta", delta } });
+            }            
         }
 
         /// <summary>
@@ -3519,7 +3682,6 @@ namespace fbchat_sharp.API
                 {
                     // Bump pull channel, while contraining withing 0-4
                     this._pull_channel = (this._pull_channel + 1) % 5;
-                    this.startListening();
                 }
                 else
                 {
@@ -3537,9 +3699,18 @@ namespace fbchat_sharp.API
         /// <summary>
         /// Cleans up the variables from startListening
         /// </summary>
-        public void stopListening()
+        public async Task stopListening()
         {
-            /*Cleans up the variables from startListening*/
+            // Stop mqtt client
+            if (this.mqttClient != null)
+            {
+                try { await this.mqttClient.DisconnectAsync(); }
+                catch { }
+                this.mqttClient.Dispose();
+                this.mqttClient = null;
+            }
+
+            // Cleans up the variables from startListening
             this.listening = false;
             this._sticky = null;
             this._pool = null;

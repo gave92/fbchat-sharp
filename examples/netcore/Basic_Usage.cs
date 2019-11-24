@@ -70,6 +70,7 @@ namespace examples
                 await client.sendEmoji("👍", EmojiSize.LARGE, thread_id: client.GetUserUid(), thread_type: ThreadType.USER);
 
                 // Send a local file to myself
+                /*
                 using (FileStream stream = File.OpenRead(@"C:\Users\Marco\Documents\a032.pdf"))
                 {
                     //await client.sendLocalImage(@"C:\Users\Marco\Pictures\Saved Pictures\opengraph.png", stream, null, client.GetUserUid(), ThreadType.USER);
@@ -79,6 +80,7 @@ namespace examples
                         thread_id: client.GetUserUid(),
                         thread_type: ThreadType.USER);
                 }
+                */
 
                 // Send a remote image to myself
                 await client.sendRemoteImage(@"https://freeaddon.com/wp-content/uploads/2018/12/cat-memes-25.jpg", thread_id: client.GetUserUid(), thread_type: ThreadType.USER);
