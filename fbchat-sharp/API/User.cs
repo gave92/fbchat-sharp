@@ -301,5 +301,13 @@ namespace fbchat_sharp.API
                 last_active: null,
                 in_game: false);
         }
+
+        public static FB_ActiveStatus _from_orca_presence(JToken data, bool in_game = false)
+        {
+            return new FB_ActiveStatus(
+                active: new int[] { 2, 3 }.Contains(data.get("p")?.Value<int>() ?? 0),
+                last_active: data.get("l")?.Value<string>(),
+                in_game: in_game);
+        }
     }
 }

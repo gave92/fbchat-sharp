@@ -234,7 +234,6 @@ namespace fbchat_sharp.API
                 //    return typeof(FB_Room);
                 case ThreadType.PAGE:
                     return typeof(FB_Page);
-                case ThreadType.INVALID:
                 default:
                     throw new FBchatException($"Invalid thread type: {threadType}.");
             }

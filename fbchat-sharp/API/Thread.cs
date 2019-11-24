@@ -12,7 +12,8 @@ namespace fbchat_sharp.API
         GROUP = 2,
         ROOM = 2,
         PAGE = 3,
-        INVALID = 4
+        MARKETPLACE = 4,
+        INVALID = 5
     }
 
     /// <summary>

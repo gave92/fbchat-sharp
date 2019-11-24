@@ -3618,9 +3618,18 @@ namespace fbchat_sharp.API
                 }
             });
 
-            mqttClient.UseDisconnectedHandler(e =>
+            mqttClient.UseDisconnectedHandler(async e =>
             {
                 Debug.WriteLine("### DISCONNECTED FROM SERVER ###");
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5), _cancellationTokenSource.Token);
+                    await mqttClient.ConnectAsync(options, _cancellationTokenSource.Token);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex.ToString());
+                }
             });
 
             await mqttClient.ConnectAsync(options, _cancellationTokenSource.Token);
@@ -3649,7 +3658,37 @@ namespace fbchat_sharp.API
                     event_data.get("lastIssuedSeqId")?.Value<int>() ?? event_data.get("deltas")?.LastOrDefault()?.get("irisSeqId")?.Value<int>() ?? _seq);
                 foreach (var delta in event_data.get("deltas") ?? new JObject())
                     await this._parseDelta(new JObject() { { "delta", delta } });
-            }            
+            }
+            else if (new string[] { "/thread_typing", "/orca_typing_notifications" }.Contains(event_type))
+            {
+                var author_id = event_data.get("sender_fbid")?.Value<string>();
+                var thread_id = event_data.get("thread")?.Value<string>() ?? author_id;
+                var typing_status = (TypingStatus)(event_data.get("state")?.Value<int>());
+                await this.onTyping(
+                    author_id: author_id,
+                    status: typing_status,
+                    thread_id: thread_id,
+                    thread_type: thread_id == author_id ? ThreadType.USER : ThreadType.GROUP,
+                    msg: event_data
+                );
+            }
+            else if (event_type == "/orca_presence")
+            {
+                var statuses = new Dictionary<string, FB_ActiveStatus>();
+                foreach (var data in event_data.get("list"))
+                {
+                    var user_id = data["u"]?.Value<string>();
+
+                    bool old_in_game = false;
+                    if (this._buddylist.ContainsKey(user_id))
+                        old_in_game = this._buddylist[user_id].in_game;
+
+                    statuses[user_id] = FB_ActiveStatus._from_orca_presence(data, old_in_game);
+                    this._buddylist[user_id] = statuses[user_id];
+
+                    await this.onBuddylistOverlay(statuses: statuses, msg: event_data);
+                }
+            }
         }
 
         /// <summary>
