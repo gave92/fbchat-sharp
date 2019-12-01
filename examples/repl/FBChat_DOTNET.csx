@@ -1,11 +1,10 @@
 //cd C:\Users\Marco\source\repos\fbchat-sharp\examples\repl
 //dotnet-script -s C:\Users\Marco\source\repos\fbchat-sharp\fbchat-sharp
 
-#r "nuget: Gave.Libs.FBchat, 0.2.9"
+#r "nuget: Gave.Libs.FBchat, 0.3.1"
 #load "FBClient_Cookies.csx"
 
 using fbchat_sharp.API;
-using System.Collections.Async;
 using System.Linq;
 
 var client = new FBClient_Cookies();

@@ -92,23 +92,23 @@ namespace fbchat_sharp.API
 
         #region INTERNAL REQUEST METHODS
 
-        private async Task<JToken> _get(string url, Dictionary<string, object> query = null, int error_retries = 3)
+        private async Task<JToken> _get(string url, Dictionary<string, object> query = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (this._state == null)
             {
                 throw new FBchatNotLoggedIn(message: "Please login before calling 'fetch' methods.");
             }
-            return await this._state._get(url, query, error_retries);
+            return await this._state._get(url, query, cancellationToken);
         }
 
-        private async Task<object> _post(string url, Dictionary<string, object> query = null, Dictionary<string, FB_File> files = null, bool as_graphql = false, int error_retries = 3)
+        private async Task<object> _post(string url, Dictionary<string, object> query = null, Dictionary<string, FB_File> files = null, bool as_graphql = false, CancellationToken cancellationToken = default(CancellationToken))
         {
-            return await this._state._post(url, query, files, as_graphql, error_retries);
+            return await this._state._post(url, query, files, as_graphql, cancellationToken);
         }
 
-        private async Task<JToken> _payload_post(string url, Dictionary<string, object> data = null, Dictionary<string, FB_File> files = null)
+        private async Task<JToken> _payload_post(string url, Dictionary<string, object> data = null, Dictionary<string, FB_File> files = null, CancellationToken cancellationToken = default(CancellationToken))
         {
-            return await this._state._payload_post(url, data, files);
+            return await this._state._payload_post(url, data, files, cancellationToken);
         }
 
         private async Task<List<JToken>> graphql_requests(List<GraphQL> queries)
@@ -175,37 +175,27 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="email">Facebook ``email`` or ``id`` or ``phone number``</param>
         /// <param name="password">Facebook account password</param>
-        /// <param name="max_tries">Maximum number of times to try logging in</param>
         /// <param name="user_agent"></param>
-        public async Task login(string email, string password, int max_tries = 5, string user_agent = null)
+        public async Task login(string email, string password, string user_agent = null)
         {
             await this.onLoggingIn(email: email);
 
-            if (max_tries < 1)
-                throw new FBchatUserError("Cannot login: max_tries should be at least one");
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
                 throw new FBchatUserError("Email and password not set");
 
-            foreach (int i in Enumerable.Range(1, max_tries))
+            try
             {
-                try
-                {
-                    this._state = await State.login(
-                        email,
-                        password,
-                        on_2fa_callback: this.on2FACode,
-                        user_agent: user_agent);
-                    this._uid = this._state.get_user_id();
-                    await this.onLoggedIn(email: email);
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    if (i >= max_tries)
-                        throw ex;
-                    Debug.WriteLine(string.Format("Attempt #{0} failed, retrying", i));
-                    await Task.Delay(TimeSpan.FromSeconds(1));
-                }
+                this._state = await State.login(
+                    email,
+                    password,
+                    on_2fa_callback: this.on2FACode,
+                    user_agent: user_agent);
+                this._uid = this._state.get_user_id();
+                await this.onLoggedIn(email: email);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
             }
         }
 
@@ -2732,7 +2722,7 @@ namespace fbchat_sharp.API
 
         #region LISTEN METHODS
 
-        private async Task _ping()
+        private async Task _ping(CancellationToken cancellationToken = default(CancellationToken))
         {
             var data = new Dictionary<string, object>() {
                 { "seq", this._seq},
@@ -2747,10 +2737,10 @@ namespace fbchat_sharp.API
                 { "state", "active"},
             };
             var j = await this._get(
-                string.Format("https://{0}-edge-chat.facebook.com/active_ping", this._pull_channel), data);
+                string.Format("https://{0}-edge-chat.facebook.com/active_ping", this._pull_channel), data, cancellationToken);
         }
 
-        private async Task<JToken> _pullMessage()
+        private async Task<JToken> _pullMessage(CancellationToken cancellationToken = default(CancellationToken))
         {
             /*Call pull api with seq value to get message data.*/
             var data = new Dictionary<string, object>() {
@@ -2763,8 +2753,7 @@ namespace fbchat_sharp.API
             };
 
             return await this._get(
-                string.Format("https://{0}-edge-chat.facebook.com/pull", this._pull_channel), data
-            );
+                string.Format("https://{0}-edge-chat.facebook.com/pull", this._pull_channel), data, cancellationToken);
         }
 
         private Tuple<string, ThreadType> getThreadIdAndThreadType(JToken msg_metadata)
@@ -3554,6 +3543,7 @@ namespace fbchat_sharp.API
             var factory = new MqttFactory();
             if (this.mqttClient != null)
             {
+                this.mqttClient.UseDisconnectedHandler((e) => { });
                 try { await this.mqttClient.DisconnectAsync(); }
                 catch { }
                 this.mqttClient.Dispose();
@@ -3563,7 +3553,7 @@ namespace fbchat_sharp.API
 
             mqttClient.UseConnectedHandler(async e =>
             {
-                Debug.WriteLine("### CONNECTED WITH SERVER ###");
+                Debug.WriteLine("MQTT: connected with server");
 
                 // Subscribe to a topic
                 await mqttClient.SubscribeAsync(
@@ -3580,7 +3570,7 @@ namespace fbchat_sharp.API
 
                 // I read somewhere that not doing this might add message send limits
                 await mqttClient.UnsubscribeAsync("/orca_message_notifications");
-                Debug.WriteLine("Sending messenger sync create queue request");
+                Debug.WriteLine("MQTT: sending messenger sync create queue request");
                 // This is required to actually receive messages. The parameters probably do something.
                 var message = new MqttApplicationMessageBuilder()
                 .WithTopic("/messenger_sync_create_queue")
@@ -3595,12 +3585,12 @@ namespace fbchat_sharp.API
                     .Build();
                 await mqttClient.PublishAsync(message);
 
-                Debug.WriteLine("### SUBSCRIBED ###");
+                Debug.WriteLine("MQTT: subscribed");
             });
 
             mqttClient.UseApplicationMessageReceivedHandler(async e =>
             {
-                Debug.WriteLine("### RECEIVED APPLICATION MESSAGE ###");
+                Debug.WriteLine("MQTT: received application message");
                 Debug.WriteLine($"+ Topic = {e.ApplicationMessage.Topic}");
                 Debug.WriteLine($"+ Payload = {Encoding.UTF8.GetString(e.ApplicationMessage.Payload)}");
                 Debug.WriteLine($"+ QoS = {e.ApplicationMessage.QualityOfServiceLevel}");
@@ -3620,11 +3610,12 @@ namespace fbchat_sharp.API
 
             mqttClient.UseDisconnectedHandler(async e =>
             {
-                Debug.WriteLine("### DISCONNECTED FROM SERVER ###");
+                Debug.WriteLine("MQTT: disconnected from server");
                 try
                 {
+                    await this.stopListening();
                     await Task.Delay(TimeSpan.FromSeconds(5), _cancellationTokenSource.Token);
-                    await mqttClient.ConnectAsync(options, _cancellationTokenSource.Token);
+                    await this.startListening(_cancellationTokenSource);
                 }
                 catch (Exception ex)
                 {
@@ -3654,10 +3645,18 @@ namespace fbchat_sharp.API
         {
             if (event_type == "/t_ms")
             {
-                this._seq = Math.Max(this._seq,
-                    event_data.get("lastIssuedSeqId")?.Value<int>() ?? event_data.get("deltas")?.LastOrDefault()?.get("irisSeqId")?.Value<int>() ?? _seq);
-                foreach (var delta in event_data.get("deltas") ?? new JObject())
-                    await this._parseDelta(new JObject() { { "delta", delta } });
+                if (event_data.get("errorCode") != null)
+                {
+                    Debug.WriteLine(string.Format("MQTT error: {0}", event_data.get("errorCode")?.Value<string>()));
+                    await this.mqttClient.DisconnectAsync(); // Got error, connect again
+                }
+                else
+                {
+                    this._seq = Math.Max(this._seq,
+                        event_data.get("lastIssuedSeqId")?.Value<int>() ?? event_data.get("deltas")?.LastOrDefault()?.get("irisSeqId")?.Value<int>() ?? _seq);
+                    foreach (var delta in event_data.get("deltas") ?? new JObject())
+                        await this._parseDelta(new JObject() { { "delta", delta } });
+                }                
             }
             else if (new string[] { "/thread_typing", "/orca_typing_notifications" }.Contains(event_type))
             {
@@ -3696,8 +3695,9 @@ namespace fbchat_sharp.API
         /// This method is useful if you want to control fbchat from an external event loop
         /// </summary>
         /// <param name="markAlive">Whether this should ping the Facebook server before running</param>
+        /// <param name="cancellationToken"></param>
         /// <returns>Whether the loop should keep running</returns>
-        public async Task<bool> doOneListen(bool markAlive = true)
+        public async Task<bool> doOneListen(bool markAlive = true, CancellationToken cancellationToken = default(CancellationToken))
         {
             /*
              * Does one cycle of the listening loop.
@@ -3711,8 +3711,8 @@ namespace fbchat_sharp.API
             this._markAlive = markAlive;
             try
             {
-                if (this._markAlive) await this._ping();
-                var content = await this._pullMessage();
+                if (this._markAlive) await this._ping(cancellationToken);
+                var content = await this._pullMessage(cancellationToken);
                 if (content != null) await this._parseMessage(content);
             }
             catch (FBchatFacebookError ex)
@@ -3743,6 +3743,7 @@ namespace fbchat_sharp.API
             // Stop mqtt client
             if (this.mqttClient != null)
             {
+                this.mqttClient.UseDisconnectedHandler((e) => { });
                 try { await this.mqttClient.DisconnectAsync(); }
                 catch { }
                 this.mqttClient.Dispose();
@@ -3835,6 +3836,20 @@ namespace fbchat_sharp.API
              */
             Debug.WriteLine(string.Format("Got exception while listening: {0}", exception));
             return await Task.FromResult(true);
+        }
+
+        /// <summary>
+        /// Called when an error was encountered while listening on mqtt
+        /// </summary>
+        /// <param name="exception">The exception that was encountered</param>
+        public virtual async Task onMqttListenError(Exception exception = null)
+        {
+            /*
+             * Called when an error was encountered while listening on mqtt
+             * :param exception: The exception that was encountered
+             */
+            Debug.WriteLine(string.Format("Got mqtt exception while listening: {0}", exception));
+            await Task.Yield();
         }
 
         /// <summary>

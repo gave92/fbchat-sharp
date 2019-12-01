@@ -11,6 +11,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace fbchat_sharp.API
@@ -186,7 +187,7 @@ namespace fbchat_sharp.API
             this._logout_h = new_state._logout_h ?? this._logout_h;
         }
 
-        public async Task<HttpResponseMessage> _cleanGet<TValue>(string url, Dictionary<string, TValue> query = null, int timeout = 30)
+        public async Task<HttpResponseMessage> _cleanGet<TValue>(string url, Dictionary<string, TValue> query = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             HttpRequestMessage request = null;
 
@@ -202,33 +203,33 @@ namespace fbchat_sharp.API
                 request = new HttpRequestMessage(HttpMethod.Get, url);
             }
             foreach (var header in this._headers) request.Headers.TryAddWithoutValidation(header.Key, header.Value);
-            var response = await this._http_client.SendAsync(request);
+            var response = await this._http_client.SendAsync(request, cancellationToken);
 
             if ((int)response.StatusCode < 300 || (int)response.StatusCode > 399)
                 return response;
             else
-                return await _cleanGet(response.Headers.Location.ToString(), query, timeout);
+                return await _cleanGet(response.Headers.Location.ToString(), query, cancellationToken);
         }
 
-        public async Task<HttpResponseMessage> _cleanPost<TValue>(string url, Dictionary<string, TValue> query = null, Dictionary<string, FB_File> files = null, int timeout = 30)
+        public async Task<HttpResponseMessage> _cleanPost<TValue>(string url, Dictionary<string, TValue> query = null, Dictionary<string, FB_File> files = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (files != null)
             {
-                return await this._postFile(url, query, files, timeout);
+                return await this._postFile(url, query, files, cancellationToken);
             }
             var content = new FormUrlEncodedContent(query?.ToDictionary(k => k.Key, k => k.Value?.ToString()));
             var request = new HttpRequestMessage(HttpMethod.Post, url);
             foreach (var header in this._headers) request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             request.Content = content;
-            var response = await _http_client.SendAsync(request);
+            var response = await _http_client.SendAsync(request, cancellationToken);
 
             if ((int)response.StatusCode < 300 || (int)response.StatusCode > 399)
                 return response;
             else
-                return await _cleanPost(response.Headers.Location.ToString(), query, files, timeout);
+                return await _cleanPost(response.Headers.Location.ToString(), query, files, cancellationToken);
         }
 
-        private async Task<HttpResponseMessage> _postFile<TValue>(string url, Dictionary<string, TValue> query = null, Dictionary<string, FB_File> files = null, int timeout = 30)
+        private async Task<HttpResponseMessage> _postFile<TValue>(string url, Dictionary<string, TValue> query = null, Dictionary<string, FB_File> files = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             var content = new MultipartFormDataContent();
             foreach (var keyValuePair in query)
@@ -250,7 +251,7 @@ namespace fbchat_sharp.API
 
             foreach (var header in headers) request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             request.Content = content;
-            var r = await _http_client.SendAsync(request);
+            var r = await _http_client.SendAsync(request, cancellationToken);
 
             if ((int)r.StatusCode < 300 || (int)r.StatusCode > 399)
             {
@@ -258,7 +259,7 @@ namespace fbchat_sharp.API
             }
             else
             {
-                return await _postFile(r.Headers.Location.ToString(), query, files, timeout: timeout);
+                return await _postFile(r.Headers.Location.ToString(), query, files, cancellationToken);
             }
         }
 
@@ -443,10 +444,10 @@ namespace fbchat_sharp.API
             }
         }
 
-        public async Task<JToken> _get(string url, Dictionary<string, object> query = null, int error_retries = 3)
+        public async Task<JToken> _get(string url, Dictionary<string, object> query = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             query.update(get_params());
-            var r = await this._cleanGet(Utils.prefix_url(url), query: query);
+            var r = await this._cleanGet(Utils.prefix_url(url), query: query, cancellationToken: cancellationToken);
             var content = await State.check_request(r);
             var j = Utils.to_json(content);
             try
@@ -455,20 +456,16 @@ namespace fbchat_sharp.API
             }
             catch (FBchatPleaseRefresh ex)
             {
-                if (error_retries > 0)
-                {
-                    await this._do_refresh();
-                    return await this._get(url, query: query, error_retries: error_retries - 1);
-                }
+                //await this._do_refresh();
                 throw ex;
             }
             return j;
         }
 
-        public async Task<object> _post(string url, Dictionary<string, object> query = null, Dictionary<string, FB_File> files = null, bool as_graphql = false, int error_retries = 3)
+        public async Task<object> _post(string url, Dictionary<string, object> query = null, Dictionary<string, FB_File> files = null, bool as_graphql = false, CancellationToken cancellationToken = default(CancellationToken))
         {
             query.update(get_params());
-            var r = await this._cleanPost(Utils.prefix_url(url), query: query, files: files);
+            var r = await this._cleanPost(Utils.prefix_url(url), query: query, files: files, cancellationToken: cancellationToken);
             var content = await State.check_request(r);
             try
             {
@@ -487,23 +484,14 @@ namespace fbchat_sharp.API
             }
             catch (FBchatPleaseRefresh ex)
             {
-                if (error_retries > 0)
-                {
-                    await this._do_refresh();
-                    return await this._post(
-                        url,
-                        query: query,
-                        files: files,
-                        as_graphql: as_graphql,
-                        error_retries: error_retries - 1);
-                }
+                //await this._do_refresh();
                 throw ex;
             }
         }
 
-        public async Task<JToken> _payload_post(string url, Dictionary<string, object> data = null, Dictionary<string, FB_File> files = null)
+        public async Task<JToken> _payload_post(string url, Dictionary<string, object> data = null, Dictionary<string, FB_File> files = null, CancellationToken cancellationToken = default(CancellationToken))
         {
-            var j = await this._post(url, data, files: files);
+            var j = await this._post(url, data, files: files, cancellationToken: cancellationToken);
             try
             {
                 return ((JToken)j).get("payload");

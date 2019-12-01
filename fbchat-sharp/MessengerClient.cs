@@ -40,13 +40,12 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="email">User facebook email</param>
         /// <param name="password">User facebook password</param>
-        /// <param name="max_tries">Max. number of retries</param>
         /// <returns>Returns true if login was successful</returns>
-        public async Task<bool> DoLogin(string email, string password, int max_tries = 5)
+        public async Task<bool> DoLogin(string email, string password)
         {
             try
             {
-                await this.login(email, password, max_tries);
+                await this.login(email, password);
                 await this.WriteCookiesAsync();
                 return true;
             }
@@ -102,7 +101,7 @@ namespace fbchat_sharp.API
 
             while (!token.IsCancellationRequested)
             {
-                if (!await base.doOneListen(markAlive))
+                if (!await base.doOneListen(markAlive, token))
                     break;
                 token.WaitHandle.WaitOne((int)(1 * 1000));
             }
