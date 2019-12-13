@@ -59,6 +59,7 @@
     <Compile Include="API\GraphQl.cs" />
     <Compile Include="API\Group.cs" />
     <Compile Include="API\Location.cs" />
+    <Compile Include="API\Marketplace.cs" />
     <Compile Include="API\Message.cs" />
     <Compile Include="API\Page.cs" />
     <Compile Include="API\Plan.cs" />

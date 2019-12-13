@@ -851,6 +851,11 @@ namespace fbchat_sharp.API
                     var _id = entry.get("thread_key")?.get("thread_fbid").Value<string>();
                     rtn[_id] = FB_Group._from_graphql(entry);
                 }
+                if (entry.get("thread_type")?.Value<string>()?.Equals("MARKETPLACE") ?? false)
+                {
+                    var _id = entry.get("thread_key")?.get("thread_fbid").Value<string>();
+                    rtn[_id] = FB_Marketplace._from_graphql(entry);
+                }
                 else if (entry.get("thread_type")?.Value<string>()?.Equals("ONE_TO_ONE") ?? false)
                 {
                     var _id = entry.get("thread_key")?.get("other_user_id")?.Value<string>();
@@ -980,7 +985,7 @@ namespace fbchat_sharp.API
                 else if (_type == "ONE_TO_ONE")
                     rtn.Add(FB_User._from_thread_fetch(node));
                 else if (_type == "MARKETPLACE")
-                    Debug.WriteLine(string.Format("Unsupported thread type: {0}", _type));
+                    rtn.Add(FB_Marketplace._from_graphql(node));
                 else
                     throw new FBchatException(string.Format("Unknown thread type: {0}", _type));
             }
