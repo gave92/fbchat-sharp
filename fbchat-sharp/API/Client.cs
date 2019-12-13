@@ -979,6 +979,8 @@ namespace fbchat_sharp.API
                     rtn.Add(FB_Group._from_graphql(node));
                 else if (_type == "ONE_TO_ONE")
                     rtn.Add(FB_User._from_thread_fetch(node));
+                else if (_type == "MARKETPLACE")
+                    Debug.WriteLine(string.Format("Unsupported thread type: {0}", _type));
                 else
                     throw new FBchatException(string.Format("Unknown thread type: {0}", _type));
             }
