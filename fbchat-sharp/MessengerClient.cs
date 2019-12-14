@@ -87,21 +87,19 @@ namespace fbchat_sharp.API
         public async Task StartListening(bool markAlive = true)
         {
             this._cancellationTokenSource = new CancellationTokenSource();
-            if (await this.SafeWrapper(() => base.startListening(_cancellationTokenSource)))
+            if (await this.SafeWrapper(() => base.startListening(_cancellationTokenSource, markAlive)))
             {
                 await base.onListening();
                 // Store this references as a private member, call Cancel() on it if UI wants to stop            
-                new Task(async () => await Listen(_cancellationTokenSource.Token, markAlive), _cancellationTokenSource.Token, TaskCreationOptions.LongRunning).Start();
+                new Task(async () => await Listen(_cancellationTokenSource.Token), _cancellationTokenSource.Token, TaskCreationOptions.LongRunning).Start();
             }
         }
 
-        private async Task Listen(CancellationToken token, bool markAlive = false)
+        private async Task Listen(CancellationToken token)
         {
-            base.setActiveStatus(markAlive);
-
             while (!token.IsCancellationRequested)
             {
-                if (!await base.doOneListen(markAlive, token))
+                if (!await base.doOneListen(token))
                     break;
                 token.WaitHandle.WaitOne((int)(1 * 1000));
             }

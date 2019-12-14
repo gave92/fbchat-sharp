@@ -3483,12 +3483,16 @@ namespace fbchat_sharp.API
         /// <summary>
         /// Start listening from an external event loop
         /// </summary>
-        public async Task<bool> startListening(CancellationTokenSource _cancellationTokenSource)
+        /// <param name="_cancellationTokenSource"></param>
+        /// <param name="markAlive">Whether this should ping the Facebook server before running</param>
+        public async Task<bool> startListening(CancellationTokenSource _cancellationTokenSource, bool markAlive = true)
         {
             /*
              * Start listening from an external event loop
              * :raises: Exception if request failed
              */
+
+            this._markAlive = markAlive;
 
             // Get the sync sequence ID used for the /messenger_sync_create_queue call later.
             // This is the same request as fetch_thread_list, but with includeSeqID=true
@@ -3507,23 +3511,23 @@ namespace fbchat_sharp.API
 
             // The MQTT username. There's no password.
             var username = new Dictionary<string, object>() {
-                { "u", this._uid},
-                {"s", sid},
-                { "cp", 3},
-                { "ecp", 10},
-                { "chat_on", true},
-                { "fg", true},
+                { "u", this._uid }, // USER_ID
+                { "s", sid },
+                { "cp", 3 }, // CAPABILITIES
+                { "ecp", 10 }, // ENDPOINT_CAPABILITIES
+                { "chat_on", this._markAlive }, // MAKE_USER_AVAILABLE_IN_FOREGROUND
+                { "fg", this._markAlive }, // INITIAL_FOREGROUND_STATE
                 // Not sure if this should be some specific kind of UUID, but it's a random one now.
-                { "d", Guid.NewGuid().ToString()},
-                { "ct", "websocket"},
-                { "mqtt_sid", ""},
+                { "d", Guid.NewGuid().ToString() },
+                { "ct", "websocket" }, // CLIENT_TYPE
+                { "mqtt_sid", "" }, // CLIENT_MQTT_SESSION_ID
                 // Application ID, taken from facebook.com
-                { "aid", 219994525426954},
-                { "st", new string[0]},
-                {"pm", new string[0]},
-                {"dc", ""},
-                {"no_auto_fg", true},
-                {"gas", null}
+                { "aid", 219994525426954 },
+                { "st", new string[0] }, // SUBSCRIBE_TOPICS
+                { "pm", new string[0] },
+                { "dc", "" },
+                { "no_auto_fg", true }, // NO_AUTOMATIC_FOREGROUND
+                { "gas", null }
             };
 
             // Headers for the websocket connection. Not including Origin will cause 502's.
@@ -3622,7 +3626,7 @@ namespace fbchat_sharp.API
                 {
                     await this.stopListening();
                     await Task.Delay(TimeSpan.FromSeconds(5), _cancellationTokenSource.Token);
-                    await this.startListening(_cancellationTokenSource);
+                    await this.startListening(_cancellationTokenSource, this._markAlive);
                 }
                 catch (Exception ex)
                 {
@@ -3663,7 +3667,7 @@ namespace fbchat_sharp.API
                         event_data.get("lastIssuedSeqId")?.Value<int>() ?? event_data.get("deltas")?.LastOrDefault()?.get("irisSeqId")?.Value<int>() ?? _seq);
                     foreach (var delta in event_data.get("deltas") ?? new JObject())
                         await this._parseDelta(new JObject() { { "delta", delta } });
-                }                
+                }
             }
             else if (new string[] { "/thread_typing", "/orca_typing_notifications" }.Contains(event_type))
             {
@@ -3701,21 +3705,17 @@ namespace fbchat_sharp.API
         /// Does one cycle of the listening loop.
         /// This method is useful if you want to control fbchat from an external event loop
         /// </summary>
-        /// <param name="markAlive">Whether this should ping the Facebook server before running</param>
         /// <param name="cancellationToken"></param>
         /// <returns>Whether the loop should keep running</returns>
-        public async Task<bool> doOneListen(bool markAlive = true, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<bool> doOneListen(CancellationToken cancellationToken = default(CancellationToken))
         {
             /*
              * Does one cycle of the listening loop.
              * This method is useful if you want to control fbchat from an external event loop
-             * :param markAlive: Whether this should ping the Facebook server before running
-             * :type markAlive: bool
              * :return: Whether the loop should keep running
              * :rtype: bool
              */
 
-            this._markAlive = markAlive;
             try
             {
                 if (this._markAlive) await this._ping(cancellationToken);
@@ -3767,14 +3767,19 @@ namespace fbchat_sharp.API
         /// Changes client active status while listening
         /// </summary>
         /// <param name="markAlive">Whether to show if client is active</param>
-        public void setActiveStatus(bool markAlive)
+        public async void setActiveStatus(bool markAlive)
         {
             /*
              * Changes client active status while listening
              * :param markAlive: Whether to show if client is active
              * :type markAlive: bool
              * */
-            this._markAlive = markAlive;
+            if (this._markAlive != markAlive)
+            {
+                this._markAlive = markAlive;
+                if (this.mqttClient != null && this.mqttClient.IsConnected)
+                    await this.mqttClient.DisconnectAsync(); // Need to disconnect and connect again
+            }
         }
         #endregion
 
