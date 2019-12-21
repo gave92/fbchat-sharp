@@ -2,7 +2,7 @@
 
 # fbchat-sharp: Facebook Messenger client library for C#
 
-![logo](https://img.shields.io/badge/license-BSD-blue.svg)&nbsp;[![donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/gave92)
+![logo](https://img.shields.io/badge/license-BSD-blue.svg)&nbsp;[![donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/gave92)&nbsp;[![Build Status](https://ci.appveyor.com/api/projects/status/github/gave92/fbchat-sharp?branch=master&svg=true)](https://ci.appveyor.com/project/gave92/fbchat-sharp)
 
 Facebook ([Messenger](https://www.messenger.com/)) client library for C#. This is a porting from the excellent [fbchat](https://github.com/carpedm20/fbchat) library for Python.
 
@@ -14,7 +14,7 @@ $ Install-Package Gave.Libs.Fbchat
 
 ## Key features
 * **Powerful** (not limited to the facebook chatbot api)
-* **Portable** (designed as a PCL - supporting .NET Standard 1.2)
+* **Portable** (designed as a PCL - supporting .NET Standard 1.3)
 
 The key difference from other C# messenger libraries is that *fbchat-sharp* does not use the chatbot api. The library is able to read and send chat messages to any of the user contacts.
 
