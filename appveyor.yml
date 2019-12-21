@@ -2,9 +2,14 @@ test: off
 version: '0.3.{build}'
 image: Visual Studio 2017
 
+environment:
+  my_pfx:
+    secure: jxL/b1xngUepPiYC48vTzA==
+    
 branches:
   only:
   - master
+  - develop
 skip_tags: true
 
 assembly_info:
@@ -15,8 +20,8 @@ assembly_info:
   assembly_informational_version: '{version}'
 
 dotnet_csproj:
-  patch: false
-  file: '**\*.csproj'
+  patch: true
+  file: '**\netcore.csproj'
   version: '{version}'
   package_version: '{version}'
   assembly_version: '{version}'
@@ -29,31 +34,50 @@ init:
       
 install:
   # Install repo specific stuff here
+  - ps: Import-PfxCertificate -FilePath .\examples\uwpapp\uwpapp_TemporaryKey.pfx -CertStoreLocation cert:\CurrentUser\My -Password (ConvertTo-SecureString $env:my_pfx -AsPlainText -Force)
 
 before_build:
   # Restore packages
-  - cmd: msbuild /t:restore ./fbchat-sharp/fbchat-sharp.csproj
+  - cmd: echo %CD%
+  - cmd: nuget restore ./fbchat-sharp.sln
   
 build_script:
   # Build project
-  cmd: msbuild /t:build /p:Configuration=Release ./fbchat-sharp/fbchat-sharp.csproj
+  cmd: msbuild /t:build /p:Configuration=Release /p:Platform=x64 ./fbchat-sharp.sln
 
 after_build:
+  - ps: .\examples\uwpapp\runAppcert.ps1 -target 'examples\uwpapp\AppPackages\uwpapp_1.0.0.0_Release_Test\uwpapp_1.0.0.0_x64_Release.appxbundle'
   - cmd: nuget pack ./fbchat-sharp/fbchat-sharp.nuspec
+  - cmd: for /D %%x in (.\examples\uwpapp\AppPackages\uwpapp_*) do set "f=%%~fx"
+  - cmd: 7z a uwp_fbchat_sharp.zip %f%
+  - cmd: 7z a wpf_fbchat_sharp.zip .\examples\wpfapp\bin\Release
 
 artifacts:
   - path: '**\*.nupkg'
-
+    
 deploy:
-  release: $(appveyor_build_version)
-  description: fbchat-sharp AppVeyor build.
-  provider: GitHub
-  auth_token:
-    secure: HzG3BylRrdqU49wZmjr6asVW70vqKv03uHai403G6PkHjpmD9s8C17IlpnxHPy8h # your encrypted token from GitHub
-  artifact: /.*\.nupkg/            # upload all NuGet packages to release assets
-  draft: true
-  prerelease: false
-  force_update: true
-  on:
-    branch: master                 # release from master branch only
-    appveyor_repo_tag: false       # deploy on tag push only (--> always)
+  - provider: GitHub
+    release: $(appveyor_build_version)
+    description: fbchat-sharp AppVeyor build.
+    auth_token:
+      secure: HzG3BylRrdqU49wZmjr6asVW70vqKv03uHai403G6PkHjpmD9s8C17IlpnxHPy8h # your encrypted token from GitHub
+    artifact: '/.*\.nupkg/,uwp_fbchat_sharp.zip,wpf_fbchat_sharp.zip'
+    draft: true
+    prerelease: false
+    force_update: true
+    on:
+      branch: master                    # release from master branch only
+      appveyor_repo_tag: false          # deploy on tag push only (--> always)
+
+  - provider: GitHub
+    release: $(appveyor_build_version)
+    description: fbchat-sharp AppVeyor build.  
+    auth_token:
+      secure: HzG3BylRrdqU49wZmjr6asVW70vqKv03uHai403G6PkHjpmD9s8C17IlpnxHPy8h # your encrypted token from GitHub
+    artifact: '/.*\.nupkg/,uwp_fbchat_sharp.zip,wpf_fbchat_sharp.zip'
+    draft: true
+    prerelease: true
+    force_update: true
+    on:
+      branch: develop                   # pre-release from develop branch only
+      appveyor_repo_tag: false          # deploy on tag push only (--> always)
