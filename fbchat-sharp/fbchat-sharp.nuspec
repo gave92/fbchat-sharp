@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>Gave.Libs.Fbchat</id>
-    <version>0.3.1</version>
+    <version>0.3.2</version>
     <title>fbchat-sharp</title>
     <authors>Marco Gavelli</authors>
     <owners>Marco Gavelli</owners>
@@ -11,14 +11,14 @@
     <iconUrl>https://github.com/gave92/fbchat-sharp/raw/master/fbchat-icon.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Facebook Messenger client library for C#</description>
-    <releaseNotes>Updated to support messenger MQTT. Fixes onMessage() not called.</releaseNotes>
+    <releaseNotes>Parse buddylist updates from MQTT. Support for MARKETPLACE threads. Fixes release build for UWP apps.</releaseNotes>
     <copyright>Copyright 2017-2018 Marco Gavelli</copyright>
     <tags>facebook messenger chat</tags>
     <dependencies>
       <group>
         <dependency id="AngleSharp" version="0.9.11" />
         <dependency id="Newtonsoft.Json" version="11.0.2" />
-		<dependency id="MQTTnet" version="3.0.8" />
+        <dependency id="MQTTnet" version="3.0.8" />
       </group>
     </dependencies>
   </metadata>
