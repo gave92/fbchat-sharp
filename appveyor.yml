@@ -53,7 +53,7 @@ after_build:
   - cmd: 7z a wpf_fbchat_sharp.zip .\examples\wpfapp\bin\Release
 
 artifacts:
-  - path: 'fbchat-sharp\*.nupkg'
+  - path: '*.nupkg'
   - path: 'uwp_fbchat_sharp.zip'
   - path: 'wpf_fbchat_sharp.zip'
     
