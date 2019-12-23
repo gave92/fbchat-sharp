@@ -61,7 +61,7 @@ deploy:
     description: fbchat-sharp AppVeyor build.
     auth_token:
       secure: HzG3BylRrdqU49wZmjr6asVW70vqKv03uHai403G6PkHjpmD9s8C17IlpnxHPy8h # your encrypted token from GitHub
-    artifact: '/.*\.nupkg/,uwp_fbchat_sharp.zip,wpf_fbchat_sharp.zip'
+    artifact: Gave.Libs.Fbchat(.*?)\.nupkg,uwp_fbchat_sharp.zip,wpf_fbchat_sharp.zip
     draft: true
     prerelease: false
     force_update: true
@@ -74,7 +74,7 @@ deploy:
     description: fbchat-sharp AppVeyor build.  
     auth_token:
       secure: HzG3BylRrdqU49wZmjr6asVW70vqKv03uHai403G6PkHjpmD9s8C17IlpnxHPy8h # your encrypted token from GitHub
-    artifact: '/.*\.nupkg/,uwp_fbchat_sharp.zip,wpf_fbchat_sharp.zip'
+    artifact: Gave.Libs.Fbchat(.*?)\.nupkg,uwp_fbchat_sharp.zip,wpf_fbchat_sharp.zip
     draft: true
     prerelease: true
     force_update: true
