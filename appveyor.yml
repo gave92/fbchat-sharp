@@ -72,7 +72,7 @@ deploy:
       appveyor_repo_tag: false          # deploy on tag push only (--> always)
 
   - provider: GitHub
-    release: $(appveyor_build_version)
+    release: $(appveyor_build_version) beta
     description: fbchat-sharp AppVeyor build.  
     auth_token:
       secure: HzG3BylRrdqU49wZmjr6asVW70vqKv03uHai403G6PkHjpmD9s8C17IlpnxHPy8h # your encrypted token from GitHub
