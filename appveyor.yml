@@ -53,7 +53,9 @@ after_build:
   - cmd: 7z a wpf_fbchat_sharp.zip .\examples\wpfapp\bin\Release
 
 artifacts:
-  - path: '**\*.nupkg'
+  - path: 'fbchat-sharp\*.nupkg'
+  - path: 'uwp_fbchat_sharp.zip'
+  - path: 'wpf_fbchat_sharp.zip'
     
 deploy:
   - provider: GitHub
@@ -61,7 +63,7 @@ deploy:
     description: fbchat-sharp AppVeyor build.
     auth_token:
       secure: HzG3BylRrdqU49wZmjr6asVW70vqKv03uHai403G6PkHjpmD9s8C17IlpnxHPy8h # your encrypted token from GitHub
-    artifact: Gave.Libs.Fbchat(.*?)\.nupkg,uwp_fbchat_sharp.zip,wpf_fbchat_sharp.zip
+    artifact: /.*\.nupkg/,uwp_fbchat_sharp.zip,wpf_fbchat_sharp.zip
     draft: true
     prerelease: false
     force_update: true
@@ -74,7 +76,7 @@ deploy:
     description: fbchat-sharp AppVeyor build.  
     auth_token:
       secure: HzG3BylRrdqU49wZmjr6asVW70vqKv03uHai403G6PkHjpmD9s8C17IlpnxHPy8h # your encrypted token from GitHub
-    artifact: Gave.Libs.Fbchat(.*?)\.nupkg,uwp_fbchat_sharp.zip,wpf_fbchat_sharp.zip
+    artifact: /.*\.nupkg/,uwp_fbchat_sharp.zip,wpf_fbchat_sharp.zip
     draft: true
     prerelease: true
     force_update: true
