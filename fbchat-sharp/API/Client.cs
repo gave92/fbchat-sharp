@@ -544,25 +544,21 @@ namespace fbchat_sharp.API
         /// <param name="limit">Max. number of messages to retrieve</param>
         /// <param name="thread_id">User/Group ID to search in. See :ref:`intro_threads`</param>
         /// <returns>Found Message IDs</returns>
-        public IAsyncEnumerable<string> searchForMessageIDs(string query, int offset = 0, int limit = 5, string thread_id = null)
+        public async Task<IEnumerable<string>> searchForMessageIDs(string query, int offset = 0, int limit = 5, string thread_id = null)
         {
-            return new AsyncEnumerable<string>(async yield =>
-            {
-                var thread = this._getThread(thread_id, null);
-                thread_id = thread.Item1;
+            var thread = this._getThread(thread_id, null);
+            thread_id = thread.Item1;
 
-                var data = new Dictionary<string, object>() {
-                    { "query", query },
-                    { "snippetOffset", offset.ToString() },
-                    { "snippetLimit", limit.ToString() },
-                    { "identifier", "thread_fbid"},
-                    { "thread_fbid", thread_id} };
-                var j = await this._payload_post("/ajax/mercury/search_snippets.php?dpr=1", data);
+            var data = new Dictionary<string, object>() {
+                { "query", query },
+                { "snippetOffset", offset.ToString() },
+                { "snippetLimit", limit.ToString() },
+                { "identifier", "thread_fbid"},
+                { "thread_fbid", thread_id} };
+            var j = await this._payload_post("/ajax/mercury/search_snippets.php?dpr=1", data);
 
-                var result = j.get("search_snippets")?.get(query);
-                foreach (var snippet in result[thread_id]?.get("snippets"))
-                    await yield.ReturnAsync(snippet.get("message_id")?.Value<string>());
-            });
+            var result = j.get("search_snippets")?.get(query);
+            return result[thread_id]?.get("snippets").Select((snippet) => snippet.get("message_id")?.Value<string>());
         }
 
         /// <summary>
@@ -592,11 +588,11 @@ namespace fbchat_sharp.API
 
             return new AsyncEnumerable<FB_Message>(async yield =>
             {
-                var message_ids = this.searchForMessageIDs(
+                var message_ids = await this.searchForMessageIDs(
                     query, offset: offset, limit: limit, thread_id: thread_id
                 );
-                await message_ids.ForEachAsync(async (mid) =>
-                    await yield.ReturnAsync(await this.fetchMessageInfo(mid, thread_id)));
+                foreach (var mid in message_ids)
+                    await yield.ReturnAsync(await this.fetchMessageInfo(mid, thread_id));
             });
         }
 
