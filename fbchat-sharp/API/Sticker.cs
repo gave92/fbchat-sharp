@@ -22,12 +22,8 @@ namespace fbchat_sharp.API
         public int frames_per_col { get; set; }
         /// The frame rate the spritemap is intended to be played in
         public float frame_rate { get; set; }
-        /// URL to the sticker's image
-        public string url { get; set; }
-        /// Width of the sticker
-        public float width { get; set; }
-        /// Height of the sticker
-        public float height { get; set; }
+        /// The sticker's image
+        public FB_Image image { get; set; }
         /// The sticker's label/name
         public string label { get; set; }
 
@@ -55,9 +51,7 @@ namespace fbchat_sharp.API
                 sticker.frames_per_col = data.get("frames_per_column")?.Value<int>() ?? 0;
                 sticker.frame_rate = data.get("frame_rate")?.Value<float>() ?? 0;
             }
-            sticker.url = data.get("url")?.Value<string>();
-            sticker.width = data.get("width")?.Value<int>() ?? 0;
-            sticker.height = data.get("height")?.Value<int>() ?? 0;
+            sticker.image = FB_Image._from_url_or_none(data);
             if (data.get("label") != null)
             {
                 sticker.label = data.get("label")?.Value<string>();

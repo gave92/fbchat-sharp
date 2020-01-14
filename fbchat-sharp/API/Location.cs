@@ -13,12 +13,8 @@ namespace fbchat_sharp.API
         public double latitude { get; set; }
         /// Longitude of the location
         public double longitude { get; set; }
-        /// URL of image showing the map of the location
-        public string image_url { get; set; }
-        /// Width of the image
-        public int image_width { get; set; }
-        /// Height of the image
-        public int image_height { get; set; }
+        /// Image showing the map of the location
+        public FB_Image image { get; set; }
         /// URL to Bing maps with the location
         public string url { get; set; }
         /// Address of the location
@@ -31,19 +27,15 @@ namespace fbchat_sharp.API
         /// <param name="uid"></param>
         /// <param name="latitude"></param>
         /// <param name="longitude"></param>
-        /// <param name="image_url"></param>
-        /// <param name="image_width"></param>
-        /// <param name="image_height"></param>
+        /// <param name="image"></param>
         /// <param name="url"></param>
         /// <param name="address"></param>
-        public FB_LocationAttachment(string uid = null, double latitude = 0, double longitude = 0, string image_url = null, int image_width = 0, int image_height = 0, string url = null, string address = null)
+        public FB_LocationAttachment(string uid = null, double latitude = 0, double longitude = 0, FB_Image image = null, string url = null, string address = null)
             : base(uid)
         {
             this.latitude = latitude;
             this.longitude = longitude;
-            this.image_url = image_url;
-            this.image_width = image_width;
-            this.image_height = image_height;
+            this.image = image;
             this.url = url;
             this.address = address;
         }
@@ -73,10 +65,7 @@ namespace fbchat_sharp.API
             var media = data.get("media");
             if (media != null && media.get("image") != null)
             {
-                var image = media.get("image");
-                rtn.image_url = image?.get("uri")?.Value<string>();
-                rtn.image_width = image?.get("width")?.Value<int>() ?? 0;
-                rtn.image_height = image?.get("height")?.Value<int>() ?? 0;
+                rtn.image = FB_Image._from_uri_or_none(media?.get("image"));
             }
             rtn.url = url;
 
@@ -102,16 +91,14 @@ namespace fbchat_sharp.API
         /// <param name="uid"></param>
         /// <param name="latitude"></param>
         /// <param name="longitude"></param>
-        /// <param name="image_url"></param>
-        /// <param name="image_width"></param>
-        /// <param name="image_height"></param>
+        /// <param name="image"></param>
         /// <param name="url"></param>
         /// <param name="address"></param>
         /// <param name="name"></param>
         /// <param name="expiration_time"></param>
         /// <param name="is_expired"></param>
-        public FB_LiveLocationAttachment(string uid = null, double latitude = 0, double longitude = 0, string image_url = null, int image_width = 0, int image_height = 0, string url = null, string address = null, string name = null, string expiration_time = null, bool is_expired = false)
-            : base(uid, latitude, longitude, image_url, image_width, image_height, url, address)
+        public FB_LiveLocationAttachment(string uid = null, double latitude = 0, double longitude = 0, FB_Image image = null, string url = null, string address = null, string name = null, string expiration_time = null, bool is_expired = false)
+            : base(uid, latitude, longitude, image, url, address)
         {
             this.name = name;
             this.expiration_time = expiration_time;
@@ -142,10 +129,7 @@ namespace fbchat_sharp.API
 
             var media = data.get("media");
             if (media != null && media.get("image") != null) {
-                var image = media.get("image");
-                rtn.image_url = image?.get("uri")?.Value<string>();
-                rtn.image_width = image?.get("width")?.Value<int>() ?? 0;
-                rtn.image_height = image?.get("height")?.Value<int>() ?? 0;
+                rtn.image = FB_Image._from_uri_or_none(media?.get("image"));
             }                
             rtn.url = data.get("url")?.Value<string>();
 

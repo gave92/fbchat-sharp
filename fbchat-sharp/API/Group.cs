@@ -43,7 +43,7 @@ namespace fbchat_sharp.API
         /// <param name="approval_mode"></param>
         /// <param name="approval_requests"></param>
         /// <param name="join_link"></param>
-        public FB_Group(string uid, string photo = null, string name = null, int message_count = 0, string last_message_timestamp = null, FB_Plan plan = null, ISet<string> participants = null, Dictionary<string, string> nicknames = null, string color = null, JToken emoji = null, ISet<string> admins = null, bool approval_mode = false, ISet<string> approval_requests = null, string join_link = null)
+        public FB_Group(string uid, FB_Image photo = null, string name = null, int message_count = 0, string last_message_timestamp = null, FB_Plan plan = null, ISet<string> participants = null, Dictionary<string, string> nicknames = null, string color = null, JToken emoji = null, ISet<string> admins = null, bool approval_mode = false, ISet<string> approval_requests = null, string join_link = null)
             : base(ThreadType.GROUP, uid, photo, name, message_count: message_count, last_message_timestamp: last_message_timestamp, plan: plan)
         {
             this.participants = participants ?? new HashSet<string>();
@@ -84,7 +84,7 @@ namespace fbchat_sharp.API
                 admins: new HashSet<string>(data.get("thread_admins")?.Select(node => node.get("id")?.Value<string>())),
                 approval_mode: data.get("approval_mode")?.Value<bool>() ?? false,
                 approval_requests: data.get("group_approval_queue") != null ? new HashSet<string>(data.get("group_approval_queue")?.get("nodes")?.Select(node => node.get("requester")?.get("id")?.Value<string>())) : null,
-                photo: data.get("image")?.get("uri")?.Value<string>(),
+                photo: FB_Image._from_uri_or_none(data?.get("image")?.get("uri")?.Value<string>()),
                 name: data.get("name")?.Value<string>(),
                 message_count: data.get("messages_count")?.Value<int>() ?? 0,
                 last_message_timestamp: last_message_timestamp,
@@ -123,7 +123,7 @@ namespace fbchat_sharp.API
         /// <param name="approval_requests"></param>
         /// <param name="join_link"></param>
         /// <param name="privacy_mode"></param>
-        public FB_Room(string uid, string photo = null, string name = null, int message_count = 0, string last_message_timestamp = null, FB_Plan plan = null, ISet<string> participants = null, Dictionary<string, string> nicknames = null, string color = null, string emoji = null, ISet<string> admins = null, bool approval_mode = false, ISet<string> approval_requests = null, string join_link = null, bool privacy_mode = false) 
+        public FB_Room(string uid, FB_Image photo = null, string name = null, int message_count = 0, string last_message_timestamp = null, FB_Plan plan = null, ISet<string> participants = null, Dictionary<string, string> nicknames = null, string color = null, string emoji = null, ISet<string> admins = null, bool approval_mode = false, ISet<string> approval_requests = null, string join_link = null, bool privacy_mode = false) 
             : base(uid, photo, name, message_count, last_message_timestamp, plan, participants, nicknames, color, emoji, admins, approval_mode, approval_requests, join_link)
         {
             this.type = ThreadType.ROOM;

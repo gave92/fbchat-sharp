@@ -93,7 +93,7 @@ namespace fbchat_sharp.API
         /// <param name="own_nickname"></param>
         /// <param name="color"></param>
         /// <param name="emoji"></param>
-        public FB_User(string uid, string photo = null, string name = null, int message_count = 0, string last_message_timestamp = null, FB_Plan plan = null, string url = null, string first_name = null, string last_name = null, bool is_friend = false, string gender = null, float affinity = 0, string nickname = null, string own_nickname = null, string color = null, JToken emoji = null) :
+        public FB_User(string uid, FB_Image photo = null, string name = null, int message_count = 0, string last_message_timestamp = null, FB_Plan plan = null, string url = null, string first_name = null, string last_name = null, bool is_friend = false, string gender = null, float affinity = 0, string nickname = null, string own_nickname = null, string color = null, JToken emoji = null) :
             base(ThreadType.USER, uid, photo, name, message_count: message_count, last_message_timestamp: last_message_timestamp, plan: plan)
         {
             this.url = url;
@@ -169,7 +169,7 @@ namespace fbchat_sharp.API
                 color: (string)c_info.GetValueOrDefault("color"),
                 emoji: (JToken)c_info.GetValueOrDefault("emoji"),
                 own_nickname: (string)c_info.GetValueOrDefault("own_nickname"),
-                photo: data.get("profile_picture")?.get("uri")?.Value<string>(),
+                photo: FB_Image._from_uri_or_none(data?.get("profile_picture")),
                 message_count: data.get("messages_count")?.Value<int>() ?? 0,
                 plan: plan);
         }
@@ -219,7 +219,7 @@ namespace fbchat_sharp.API
                 color: (string)c_info.GetValueOrDefault("color"),
                 emoji: (JToken)c_info.GetValueOrDefault("emoji"),
                 own_nickname: (string)c_info.GetValueOrDefault("own_nickname"),
-                photo: user.get("big_image_src")?.get("uri")?.Value<string>(),
+                photo: FB_Image._from_uri_or_none(user?.get("big_image_src")),
                 message_count: data.get("messages_count")?.Value<int>() ?? 0,
                 last_message_timestamp: last_message_timestamp,
                 plan: plan);
@@ -245,7 +245,7 @@ namespace fbchat_sharp.API
                 uid: data.get("id")?.Value<string>(),
                 first_name: data.get("firstName")?.Value<string>(),
                 url: data.get("uri")?.Value<string>(),
-                photo: data.get("thumbSrc")?.Value<string>(),
+                photo: new FB_Image(url: data.get("thumbSrc")?.Value<string>()),
                 name: data.get("name")?.Value<string>(),
                 is_friend: data.get("is_friend")?.Value<bool>() ?? false,
                 gender: gender

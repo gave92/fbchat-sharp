@@ -108,14 +108,10 @@ namespace fbchat_sharp.API
         public string description { get; set; }
         /// Name of the source
         public string source { get; set; }
-        /// URL of the attachment image
-        public string image_url { get; set; }
+        /// The attached image
+        public FB_Image image { get; set; }
         /// URL of the original image if Facebook uses `safe_image`
-        public string original_image_url { get; set; }
-        /// Width of the image
-        public int image_width { get; set; }
-        /// Height of the image
-        public int image_height { get; set; }
+        public string original_image_url { get; set; }        
         /// A list of attachments
         public List<FB_Attachment> attachments { get; set; }
 
@@ -129,12 +125,10 @@ namespace fbchat_sharp.API
         /// <param name="title"></param>
         /// <param name="description"></param>
         /// <param name="source"></param>
-        /// <param name="image_url"></param>
+        /// <param name="image"></param>
         /// <param name="original_image_url"></param>
-        /// <param name="image_width"></param>
-        /// <param name="image_height"></param>
         /// <param name="attachments"></param>
-        public FB_ShareAttachment(string uid = null, string author = null, string url = null, string original_url = null, string title = null, string description = null, string source = null, string image_url = null, string original_image_url = null, int image_width = 0, int image_height = 0, List<FB_Attachment> attachments = null) : base(uid)
+        public FB_ShareAttachment(string uid = null, string author = null, string url = null, string original_url = null, string title = null, string description = null, string source = null, FB_Image image = null, string original_image_url = null, List<FB_Attachment> attachments = null) : base(uid)
         {
             this.author = author;
             this.url = url;
@@ -142,10 +136,8 @@ namespace fbchat_sharp.API
             this.title = title;
             this.description = description;
             this.source = source;
-            this.image_url = image_url;
+            this.image = image;
             this.original_image_url = original_image_url;
-            this.image_width = image_width;
-            this.image_height = image_height;
             this.attachments = attachments;
         }
 
@@ -168,10 +160,8 @@ namespace fbchat_sharp.API
             if (media != null && media.get("image") != null)
             {
                 JToken image = media.get("image");
-                rtn.image_url = image.get("uri")?.Value<string>();
-                rtn.original_image_url = (rtn.image_url?.Contains("/safe_image.php") ?? false) ? Utils.get_url_parameter(rtn.image_url, "url") : rtn.image_url;
-                rtn.image_width = image.get("width")?.Value<int>() ?? 0;
-                rtn.image_height = image.get("height")?.Value<int>() ?? 0;
+                rtn.image = FB_Image._from_uri(image);
+                rtn.original_image_url = (rtn.image.url?.Contains("/safe_image.php") ?? false) ? Utils.get_url_parameter(rtn.image.url, "url") : rtn.image.url;
             }
 
             return rtn;

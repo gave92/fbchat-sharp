@@ -32,7 +32,7 @@ namespace fbchat_sharp.API
         /// <param name="likes"></param>
         /// <param name="sub_title"></param>
         /// <param name="category"></param>
-        public FB_Page(string uid, string photo = null, string name = null, int message_count = 0, FB_Plan plan = null, string url = null, string city = null, int likes = 0, string sub_title = null, string category = null)
+        public FB_Page(string uid, FB_Image photo = null, string name = null, int message_count = 0, FB_Plan plan = null, string url = null, string city = null, int likes = 0, string sub_title = null, string category = null)
             : base(ThreadType.PAGE, uid, photo, name, message_count: message_count, plan: plan)
         {
             // Represents a Facebook page. Inherits `Thread`
@@ -68,7 +68,7 @@ namespace fbchat_sharp.API
                 url: data.get("url")?.Value<string>(),
                 city: data.get("city")?.get("name")?.Value<string>(),
                 category: data.get("category_type")?.Value<string>(),
-                photo: data.get("profile_picture")?.get("uri")?.Value<string>(),
+                photo: FB_Image._from_uri_or_none(data?.get("profile_picture")),
                 name: data.get("name")?.Value<string>(),
                 message_count: data.get("messages_count")?.Value<int>() ?? 0,
                 plan: plan
