@@ -2299,11 +2299,14 @@ namespace fbchat_sharp.API
             return true;
         }
 
-        private async Task _readStatus(bool read, List<string> thread_ids)
+        private async Task _readStatus(bool read, List<string> thread_ids, long? timestamp = null)
         {
             var uthread_ids = Utils.require_list<string>(thread_ids);
 
-            var data = new Dictionary<string, object> { { "watermarkTimestamp", Utils.now() }, { "shouldSendReadReceipt", "true" } };
+            var data = new Dictionary<string, object> {
+                { "watermarkTimestamp", timestamp ?? Utils.now() },
+                { "shouldSendReadReceipt", "true" }
+            };
 
             foreach (var thread_id in uthread_ids)
                 data[string.Format("ids[{0}]", thread_id)] = read ? "true" : "false";
@@ -2316,8 +2319,9 @@ namespace fbchat_sharp.API
         /// All messages inside the threads will be marked as read
         /// </summary>
         /// <param name="thread_ids">User/Group IDs to set as read.See :ref:`intro_threads`</param>
+        /// <param name="timestamp">Timestamp to signal the read cursor at, in milliseconds, default is now()</param>
         /// <returns></returns>
-        public async Task markAsRead(List<string> thread_ids = null)
+        public async Task markAsRead(List<string> thread_ids = null, long? timestamp = null)
         {
             /*
              * Mark threads as read
@@ -2325,7 +2329,7 @@ namespace fbchat_sharp.API
              * :param thread_ids: User/Group IDs to set as read.See :ref:`intro_threads`
              * :raises: FBchatException if request failed
              * */
-            await this._readStatus(true, thread_ids);
+            await this._readStatus(true, thread_ids, timestamp);
         }
 
         /// <summary>
@@ -2333,8 +2337,9 @@ namespace fbchat_sharp.API
         /// All messages inside the threads will be marked as unread
         /// </summary>
         /// <param name="thread_ids">User/Group IDs to set as unread.See :ref:`intro_threads`</param>
+        /// <param name="timestamp">Timestamp to signal the read cursor at, in milliseconds, default is now()</param>
         /// <returns></returns>
-        public async Task markAsUnread(List<string> thread_ids = null)
+        public async Task markAsUnread(List<string> thread_ids = null, long? timestamp = null)
         {
             /*
              * Mark threads as unread
@@ -2342,7 +2347,7 @@ namespace fbchat_sharp.API
              * :param thread_ids: User/Group IDs to set as unread.See :ref:`intro_threads`
              * :raises: FBchatException if request failed
              * */
-            await this._readStatus(false, thread_ids);
+            await this._readStatus(false, thread_ids, timestamp);
         }
 
         public async Task markAsSeen()
