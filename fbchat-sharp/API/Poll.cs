@@ -11,7 +11,7 @@ namespace fbchat_sharp.API
     {
         /// Title of the poll
         public string title { get; set; }
-        /// List of :class:`PollOption`, can be fetched with :func:`fbchat-sharp.Client.fetchPollOptions`
+        /// List of `PollOption`, can be fetched with :func:`fbchat-sharp.Client.fetchPollOptions`
         public List<FB_PollOption> options { get; set; }
         /// Options count
         public int options_count { get; set; }

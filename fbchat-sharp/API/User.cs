@@ -69,7 +69,7 @@ namespace fbchat_sharp.API
         public string nickname { get; set; }
         /// The clients nickname, as seen by the user
         public string own_nickname { get; set; }
-        /// A :class:`ThreadColor`. The message color
+        /// A `ThreadColor`. The message color
         public string color { get; set; }
         /// The default emoji
         public JToken emoji { get; set; }

@@ -88,7 +88,7 @@ namespace fbchat_sharp.API
         public string last_message_timestamp { get; set; }
         /// Number of messages in the thread
         public int message_count { get; set; }
-        /// Set :class:`Plan`
+        /// Set `Plan`
         public FB_Plan plan { get; set; }
 
         /// <summary>

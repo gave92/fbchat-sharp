@@ -121,6 +121,34 @@ namespace fbchat_sharp.API
         {
             return string.Format("<Mention {0}: offset={1} length={2}>", this.thread_id, this.offset, this.length);
         }
+
+        public static FB_Mention _from_range(JToken data)
+        {
+            return new FB_Mention(
+                thread_id: data?.get("entity")?.get("id")?.Value<string>(),
+                offset: data?.get("offset")?.Value<int>() ?? 0,
+                length: data?.get("length")?.Value<int>() ?? 0
+            );
+        }
+
+        public static FB_Mention _from_prng(JToken data)
+        {
+            return new FB_Mention(
+                thread_id: data?.get("i")?.Value<string>(),
+                offset: data?.get("o")?.Value<int>() ?? 0,
+                length: data?.get("l")?.Value<int>() ?? 0
+            );
+        }
+
+        public Dictionary<string,object> _to_send_data(int i)
+        {
+            var data = new Dictionary<string, object>();
+            data[string.Format("profile_xmd[{0}][id]", i)] = this.thread_id;
+            data[string.Format("profile_xmd[{0}][offset]", i)] = this.offset.ToString();
+            data[string.Format("profile_xmd[{0}][length]", i)] = this.length.ToString();
+            data[string.Format("profile_xmd[{0}][type]", i)] = "p";
+            return data;
+        }
     }
 
     /// <summary>
@@ -130,9 +158,9 @@ namespace fbchat_sharp.API
     {
         /// The actual message
         public string text { get; set; }
-        /// A list of :class:`Mention` objects
+        /// A list of `Mention` objects
         public List<FB_Mention> mentions { get; set; }
-        /// A :class:`EmojiSize`. Size of a sent emoji
+        /// A `EmojiSize`. Size of a sent emoji
         public EmojiSize? emoji_size { get; set; }
         /// The message ID
         public string uid { get; set; }
@@ -144,13 +172,13 @@ namespace fbchat_sharp.API
         public bool is_read { get; set; }
         /// A list of pepole IDs who read the message, works only with :func:`fbchat-sharp.Client.fetchThreadMessages`
         public List<string> read_by { get; set; }
-        /// A dict with user's IDs as keys, and their :class:`MessageReaction` as values
+        /// A dict with user's IDs as keys, and their `MessageReaction` as values
         public Dictionary<string, MessageReaction> reactions { get; set; }
         /// An ID of a sent sticker
         public FB_Sticker sticker { get; set; }
         /// A list of attachments
         public List<FB_Attachment> attachments { get; set; }
-        /// A list of :class:`QuickReply`
+        /// A list of `QuickReply`
         public List<FB_QuickReply> quick_replies { get; set; }
         /// Whether the message is unsent (deleted for everyone)
         public bool unsent { get; set; }
@@ -248,10 +276,7 @@ namespace fbchat_sharp.API
 
             foreach (var item in this.mentions.Select((mention, i) => new { i, mention }))
             {
-                data[string.Format("profile_xmd[{0}][id]", item.i)] = item.mention.thread_id;
-                data[string.Format("profile_xmd[{0}][offset]", item.i)] = item.mention.offset.ToString();
-                data[string.Format("profile_xmd[{0}][length]", item.i)] = item.mention.length.ToString();
-                data[string.Format("profile_xmd[{0}][type]", item.i)] = "p";
+                data.update(item.mention._to_send_data(item.i));
             }
 
             if (this.emoji_size != null)
@@ -308,10 +333,7 @@ namespace fbchat_sharp.API
             var rtn = new FB_Message(
                 text: data.get("message")?.get("text")?.Value<string>(),
                 mentions: data.get("message")?.get("ranges")?.Select((m) => 
-                    new FB_Mention(
-                        thread_id: m.get("entity")?.get("id")?.Value<string>(),
-                        offset: data.get("offset")?.Value<int>() ?? 0,
-                        length: data.get("length")?.Value<int>() ?? 0)
+                    FB_Mention._from_range(m)
                 ).ToList(),
                 emoji_size: EmojiSizeMethods._from_tags(tags),
                 sticker: FB_Sticker._from_graphql(data.get("sticker")));
@@ -375,10 +397,7 @@ namespace fbchat_sharp.API
             var rtn = new FB_Message(
                 text: data.get("body")?.Value<string>(),
                 mentions: JToken.Parse(data.get("data")?.get("prng")?.Value<string>() ?? "{}")?.Select((m) =>
-                    new FB_Mention(
-                        thread_id: m.get("i")?.Value<string>(),
-                        offset: data.get("o")?.Value<int>() ?? 0,
-                        length: data.get("l")?.Value<int>() ?? 0)
+                    FB_Mention._from_prng(m)
                 ).ToList(),
                 emoji_size: EmojiSizeMethods._from_tags(tags));
 
@@ -434,10 +453,7 @@ namespace fbchat_sharp.API
             rtn.timestamp = timestamp;
 
             rtn.mentions = JToken.Parse(data.get("data")?.get("prng")?.Value<string>() ?? "{}")?.Select((m) =>
-                    new FB_Mention(
-                        thread_id: m.get("i")?.Value<string>(),
-                        offset: data.get("o")?.Value<int>() ?? 0,
-                        length: data.get("l")?.Value<int>() ?? 0)
+                    FB_Mention._from_prng(m)
                 ).ToList();
 
             if (data.get("attachments") != null)

@@ -236,7 +236,7 @@ namespace fbchat_sharp.API
              * : param before: Fetch only thread before this epoch(in ms)(default all threads)
              * :param after: Fetch only thread after this epoch(in ms)(default all threads)
              * :param limit: The max. amount of threads to fetch(default all threads)
-             * :return: :class:`Thread` objects
+             * :return: `Thread` objects
              * :rtype: list:raises: FBchatException if request failed
              * */
             List<FB_Thread> threads = new List<FB_Thread>();
@@ -286,13 +286,13 @@ namespace fbchat_sharp.API
         /// Get all users involved in threads.
         /// </summary>
         /// <param name="threads">threads: Thread: List of threads to check for users</param>
-        /// <returns>:class:`FB_User` objects</returns>
+        /// <returns>`FB_User` objects</returns>
         public async Task<List<FB_User>> fetchAllUsersFromThreads(List<FB_Thread> threads)
         {
             /*
              * Get all users involved in threads.
              * :param threads: Thread: List of threads to check for users
-             * :return: :class:`User` objects
+             * :return: `User` objects
              * :rtype: list
              * :raises: FBchatException if request failed
              * */
@@ -325,12 +325,12 @@ namespace fbchat_sharp.API
         /// <summary>
         /// Gets all users the client is currently chatting with
         /// </summary>
-        /// <returns>:class:`FB_User` objects</returns>
+        /// <returns>`FB_User` objects</returns>
         public async Task<List<FB_User>> fetchAllUsers()
         {
             /*
              * Gets all users the client is currently chatting with
-             * : return: :class:`User` objects
+             * : return: `User` objects
              * :rtype: list
              * :raises: FBchatException if request failed
              * */
@@ -363,14 +363,14 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="name">Name of the user</param>
         /// <param name="limit">The max. amount of users to fetch</param>
-        /// <returns>:class:`FB_User` objects, ordered by relevance</returns>
+        /// <returns>`FB_User` objects, ordered by relevance</returns>
         public async Task<List<FB_User>> searchForUsers(string name, int limit = 10)
         {
             /*
              * Find and get user by his/ her name
              * : param name: Name of the user
              * :param limit: The max. amount of users to fetch
-             * : return: :class:`User` objects, ordered by relevance
+             * : return: `User` objects, ordered by relevance
              * :rtype: list
              * :raises: FBchatException if request failed
              * */
@@ -388,13 +388,13 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="name">Name of the page</param>
         /// <param name="limit">The max. amount of pages to fetch</param>
-        /// <returns>:class:`FB_Page` objects, ordered by relevance</returns>
+        /// <returns>`FB_Page` objects, ordered by relevance</returns>
         public async Task<List<FB_Page>> searchForPages(string name, int limit = 1)
         {
             /*
              * Find and get page by its name
              * : param name: Name of the page
-             * :return: :class:`Page` objects, ordered by relevance
+             * :return: `Page` objects, ordered by relevance
              * :rtype: list
              * :raises: FBchatException if request failed
              * */
@@ -412,14 +412,14 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="name">Name of the group</param>
         /// <param name="limit">The max. amount of groups to fetch</param>
-        /// <returns>:class:`FB_Group` objects, ordered by relevance</returns>
+        /// <returns>`FB_Group` objects, ordered by relevance</returns>
         public async Task<List<FB_Group>> searchForGroups(string name, int limit = 1)
         {
             /*
              * Find and get group thread by its name
              * :param name: Name of the group thread
              * :param limit: The max. amount of groups to fetch
-             * :return: :class:`Group` objects, ordered by relevance
+             * :return: `Group` objects, ordered by relevance
              * :rtype: list
              * :raises: FBchatException if request failed
              * */
@@ -437,14 +437,14 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="name">Name of the thread</param>
         /// <param name="limit">The max. amount of threads to fetch</param>
-        /// <returns>:class:`FB_User`, :class:`FB_Group` and :class:`FB_Page` objects, ordered by relevance</returns>
+        /// <returns>`FB_User`, `FB_Group` and `FB_Page` objects, ordered by relevance</returns>
         public async Task<List<FB_Thread>> searchForThreads(string name, int limit = 1)
         {
             /*
              * Find and get a thread by its name
              * :param name: Name of the thread
              * :param limit: The max. amount of groups to fetch
-             * : return: :class:`User`, :class:`Group` and :class:`Page` objects, ordered by relevance
+             * : return: `User`, `Group` and `Page` objects, ordered by relevance
              * :rtype: list
              * :raises: FBchatException if request failed
              * */
@@ -507,17 +507,17 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Find and get:class:`FB_Message` objects by query
+        /// Find and get`FB_Message` objects by query
         /// </summary>
         /// <param name="query">Text to search for</param>
         /// <param name="offset">Number of messages to skip</param>
         /// <param name="limit">Max.number of messages to retrieve</param>
         /// <param name="thread_id">User/Group ID to search in. See :ref:`intro_threads`</param>
-        /// <returns>Found :class:`FB_Message` objects</returns>
+        /// <returns>Found `FB_Message` objects</returns>
         public IAsyncEnumerable<FB_Message> searchForMessages(string query, int offset = 0, int limit = 5, string thread_id = null)
         {
             /*
-             * Find and get:class:`Message` objects by query
+             * Find and get`Message` objects by query
              * ..warning::
              * This method sends request for every found message ID.
              * :param query: Text to search for
@@ -526,7 +526,7 @@ namespace fbchat_sharp.API
              * :param thread_id: User/Group ID to search in. See :ref:`intro_threads`
              * :type offset: int
              * :type limit: int
-             * :return: Found :class:`Message` objects
+             * :return: Found `Message` objects
              * :rtype: typing.Iterable
              * :raises: FBchatException if request failed
              * */
@@ -545,7 +545,7 @@ namespace fbchat_sharp.API
         /// Searches for messages in all threads
         /// </summary>
         /// <param name="query">Text to search for</param>
-        /// <param name="fetch_messages">Whether to fetch :class:`Message` objects or IDs only</param>
+        /// <param name="fetch_messages">Whether to fetch `Message` objects or IDs only</param>
         /// <param name="thread_limit">Max. number of threads to retrieve</param>
         /// <param name="message_limit">Max. number of messages to retrieve</param>
         /// <returns>Dictionary with thread IDs as keys and iterables to get messages as values</returns>
@@ -643,7 +643,7 @@ namespace fbchat_sharp.API
              * ..warning::
              * Sends two requests, to fetch all available info!
              * :param user_ids: One or more user ID(s) to query
-             * :return: :class:`models.User` objects, labeled by their ID
+             * :return: `models.User` objects, labeled by their ID
              * :rtype: dict
              * :raises: Exception if request failed
              */
@@ -677,7 +677,7 @@ namespace fbchat_sharp.API
              * ..warning::
              * Sends two requests, to fetch all available info!
              * :param page_ids: One or more page ID(s) to query
-             * :return: :class:`models.Page` objects, labeled by their ID
+             * :return: `models.Page` objects, labeled by their ID
              * :rtype: dict
              * :raises: Exception if request failed
              */
@@ -709,7 +709,7 @@ namespace fbchat_sharp.API
             /*
              * Get groups" info from IDs, unordered
              * :param group_ids: One or more group ID(s) to query
-             * :return: :class:`models.FGroup` objects, labeled by their ID
+             * :return: `models.FGroup` objects, labeled by their ID
              * :rtype: dict
              * :raises: Exception if request failed
              */
@@ -743,7 +743,7 @@ namespace fbchat_sharp.API
              * ..warning::
              * Sends two requests if users or pages are present, to fetch all available info!
              * :param thread_ids: One or more thread ID(s) to query
-             * :return: :class:`models.Thread` objects, labeled by their ID
+             * :return: `models.Thread` objects, labeled by their ID
              * :rtype: dict
              * :raises: Exception if request failed
              */
@@ -842,7 +842,7 @@ namespace fbchat_sharp.API
              * : param before: A timestamp, indicating from which point to retrieve messages
              * :type limit: int
              * :type before: int
-             * :return: :class:`models.Message` objects
+             * :return: `models.Message` objects
              * :rtype: list
              * :raises: Exception if request failed
              */
@@ -894,7 +894,7 @@ namespace fbchat_sharp.API
              * :param thread_location: models.ThreadLocation: INBOX, PENDING, ARCHIVED or OTHER
              * :param before: A timestamp (in milliseconds), indicating from which point to retrieve threads
              * :type limit: int
-             * :return: :class:`models.Thread` objects
+             * :return: `models.Thread` objects
              * :rtype: list
              * :raises: Exception if request failed
              */
@@ -1008,18 +1008,18 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Fetches:class:`Message` object from the message id
+        /// Fetches`Message` object from the message id
         /// </summary>
         /// <param name="mid">Message ID to fetch from</param>
         /// <param name="thread_id">User/Group ID to get message info from.See :ref:`intro_threads`</param>
-        /// <returns>:class:`FB_Message` object</returns>
+        /// <returns>`FB_Message` object</returns>
         public async Task<FB_Message> fetchMessageInfo(string mid, string thread_id = null)
         {
             /*
-             * Fetches:class:`Message` object from the message id
+             * Fetches`Message` object from the message id
              * :param mid: Message ID to fetch from
              * :param thread_id: User/Group ID to get message info from.See :ref:`intro_threads`
-             * :return: :class:`Message` object
+             * :return: `Message` object
              * :rtype: Message
              * :raises: FBchatException if request failed
              * */
@@ -1028,14 +1028,14 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Fetches list of:class:`PollOption` objects from the poll id
+        /// Fetches list of`PollOption` objects from the poll id
         /// </summary>
         /// <param name="poll_id">Poll ID to fetch from</param>
         /// <returns></returns>
         public async Task<List<FB_PollOption>> fetchPollOptions(string poll_id)
         {
             /*
-             * Fetches list of:class:`PollOption` objects from the poll id
+             * Fetches list of`PollOption` objects from the poll id
              * :param poll_id: Poll ID to fetch from
              * :rtype: list
              * :raises: FBchatException if request failed
@@ -1050,16 +1050,16 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Fetches a :class:`Plan` object from the plan id
+        /// Fetches a `Plan` object from the plan id
         /// </summary>
         /// <param name="plan_id">Plan ID to fetch from</param>
         /// <returns></returns>
         public async Task<FB_Plan> fetchPlanInfo(string plan_id)
         {
             /*
-             * Fetches a :class:`Plan` object from the plan id
+             * Fetches a `Plan` object from the plan id
              * :param plan_id: Plan ID to fetch from
-             * :return: :class:`Plan` object
+             * :return: `Plan` object
              * :rtype: Plan
              * :raises: FBchatException if request failed
              * */
@@ -1111,7 +1111,7 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Gets friend active status as an :class:`ActiveStatus` object.
+        /// Gets friend active status as an `ActiveStatus` object.
         /// Returns ``null`` if status isn't known.
         /// .. warning::
         /// Only works when listening.
@@ -1121,7 +1121,7 @@ namespace fbchat_sharp.API
         public FB_ActiveStatus getUserActiveStatus(string user_id)
         {
             /*
-             * Gets friend active status as an :class:`ActiveStatus` object.
+             * Gets friend active status as an `ActiveStatus` object.
              * Returns ``null`` if status isn't known.
              * .. warning::
              * Only works when listening.
@@ -1159,13 +1159,13 @@ namespace fbchat_sharp.API
         /// Creates generator object for fetching images posted in thread.
         /// </summary>
         /// <param name="thread_id">ID of the thread</param>
-        /// <returns>:class:`ImageAttachment` or :class:`VideoAttachment`.</returns>
+        /// <returns>`ImageAttachment` or `VideoAttachment`.</returns>
         public IAsyncEnumerable<FB_Attachment> fetchThreadImages(string thread_id = null)
         {
             /*
              * Creates generator object for fetching images posted in thread.
              * :param thread_id: ID of the thread
-             * :return: :class:`ImageAttachment` or :class:`VideoAttachment`.
+             * :return: `ImageAttachment` or `VideoAttachment`.
              * :rtype: iterable
              * */
             return new AsyncEnumerable<FB_Attachment>(async yield =>
@@ -4624,7 +4624,7 @@ namespace fbchat_sharp.API
         ///<summary>
         /// Called when the client is listening and client receives information about friend active status
         ///</summary>
-        /// <param name="statuses">Dictionary with user IDs as keys and :class:`ActiveStatus` as values</param>
+        /// <param name="statuses">Dictionary with user IDs as keys and `ActiveStatus` as values</param>
         /// <param name="msg">A full set of the data recieved</param>
         protected virtual async Task onBuddylistOverlay(object statuses = null, JToken msg = null)
         {
