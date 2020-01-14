@@ -47,8 +47,6 @@ namespace fbchat_sharp.API
         private string _sticky = null;
         private string _pool = null;
         private int _seq = 0;
-        private string _default_thread_id = null;
-        private ThreadType? _default_thread_type = null;
         private int _pull_channel = 0;
         private bool _markAlive = false;
         private Dictionary<string, FB_ActiveStatus> _buddylist = null;
@@ -65,8 +63,6 @@ namespace fbchat_sharp.API
             this._sticky = null;
             this._pool = null;
             this._seq = 0;
-            this._default_thread_id = null;
-            this._default_thread_type = null;
             this._pull_channel = 0;
             this._markAlive = true;
             this._buddylist = new Dictionary<string, FB_ActiveStatus>();
@@ -213,54 +209,6 @@ namespace fbchat_sharp.API
             }
             return false;
         }
-        #endregion
-
-        #region DEFAULT THREAD METHODS
-
-        /// <summary>
-        /// Checks if thread ID is given, checks if default is set and returns correct values
-        /// </summary>
-        /// <param name="given_thread_id"></param>
-        /// <param name="given_thread_type"></param>
-        /// <returns>Thread ID and thread type</returns>
-        private Tuple<string, ThreadType?> _getThread(string given_thread_id = null, ThreadType? given_thread_type = null)
-        {
-            if (given_thread_id == null)
-            {
-                if (this._default_thread_id != null)
-                {
-                    return Tuple.Create(this._default_thread_id, this._default_thread_type);
-                }
-                else
-                {
-                    throw new ArgumentException("Thread ID is not set");
-                }
-            }
-            else
-            {
-                return Tuple.Create(given_thread_id, given_thread_type);
-            }
-        }
-
-        /// <summary>
-        /// Sets default thread to send messages to
-        /// </summary>
-        /// <param name="thread_id">User / FGroup ID to default to.See :ref:`intro_threads`</param>
-        /// <param name="thread_type"></param>
-        private void setDefaultThread(string thread_id, ThreadType? thread_type)
-        {
-            this._default_thread_id = thread_id;
-            this._default_thread_type = thread_type;
-        }
-
-        /// <summary>
-        /// Resets default thread
-        /// </summary>
-        private void resetDefaultThread()
-        {
-            this.setDefaultThread(null, null);
-        }
-
         #endregion
 
         #region FETCH METHODS
@@ -546,9 +494,6 @@ namespace fbchat_sharp.API
         /// <returns>Found Message IDs</returns>
         public async Task<IEnumerable<string>> searchForMessageIDs(string query, int offset = 0, int limit = 5, string thread_id = null)
         {
-            var thread = this._getThread(thread_id, null);
-            thread_id = thread.Item1;
-
             var data = new Dictionary<string, object>() {
                 { "query", query },
                 { "snippetOffset", offset.ToString() },
@@ -902,9 +847,6 @@ namespace fbchat_sharp.API
              * :raises: Exception if request failed
              */
 
-            var thread = this._getThread(thread_id, null);
-            thread_id = thread.Item1;
-
             var dict = new Dictionary<string, object>() {
                 { "id", thread_id},
                 { "message_limit", limit},
@@ -1081,8 +1023,6 @@ namespace fbchat_sharp.API
              * :rtype: Message
              * :raises: FBchatException if request failed
              * */
-            var thread = this._getThread(thread_id, null);
-            thread_id = thread.Item1;
             var message_info = ((JToken)await this._forcedFetch(thread_id, mid))?.get("message");
             return FB_Message._from_graphql(message_info, thread_id);
         }
@@ -1230,8 +1170,7 @@ namespace fbchat_sharp.API
              * */
             return new AsyncEnumerable<FB_Attachment>(async yield =>
             {
-                var thread = this._getThread(thread_id, null);
-                var data = new Dictionary<string, object>() { { "id", thread.Item1 }, { "first", 48 } };
+                var data = new Dictionary<string, object>() { { "id", thread_id }, { "first", 48 } };
                 var j = await this.graphql_request(GraphQL.from_query_id("515216185516880", data));
                 while (true)
                 {
@@ -1296,8 +1235,7 @@ namespace fbchat_sharp.API
              * :raises: FBchatException if request failed
              */
 
-            var thread = this._getThread(thread_id, thread_type);
-            var tmp = (FB_Thread)Activator.CreateInstance(thread.Item2.Value._to_class(), thread.Item1);
+            var tmp = (FB_Thread)Activator.CreateInstance(thread_type.Value._to_class(), thread_id);
             var data = tmp._to_send_data();
             data.update(message._to_send_data());
             return await this._doSendRequest(data);
@@ -1339,14 +1277,13 @@ namespace fbchat_sharp.API
              * :return: :ref:`Message ID<intro_message_ids>` of the sent message
              * :raises: FBchatException if request failed
              * */
-            var thread = this._getThread(thread_id, thread_type);
-            var tmp = (FB_Thread)Activator.CreateInstance(thread.Item2.Value._to_class(), thread.Item1);
+            var tmp = (FB_Thread)Activator.CreateInstance(thread_type.Value._to_class(), thread_id);
             var data = tmp._to_send_data();
             data["action_type"] = "ma-type:user-generated-message";
             data["lightweight_action_attachment[lwa_state]"] = wave_first ? "INITIATED" : "RECIPROCATED";
             data["lightweight_action_attachment[lwa_type]"] = "WAVE";
-            if (thread.Item2 == ThreadType.USER)
-                data["specific_to_list[0]"] = string.Format("fbid:{0}", thread.Item1);
+            if (thread_type == ThreadType.USER)
+                data["specific_to_list[0]"] = string.Format("fbid:{0}", thread_id);
             return await this._doSendRequest(data);
         }
 
@@ -1426,8 +1363,7 @@ namespace fbchat_sharp.API
             FB_LocationAttachment location, bool current = true, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null
         )
         {
-            var thread = this._getThread(thread_id, thread_type);
-            var tmp = (FB_Thread)Activator.CreateInstance(thread.Item2.Value._to_class(), thread.Item1);
+            var tmp = (FB_Thread)Activator.CreateInstance(thread_type.Value._to_class(), thread_id);
             var data = tmp._to_send_data();
             if (message != null)
                 data.update(message._to_send_data());
@@ -1512,8 +1448,7 @@ namespace fbchat_sharp.API
              * Sends files from file IDs to a thread
              * `files` should be a list of tuples, with a file's ID and mimetype
              * */
-            var thread = this._getThread(thread_id, thread_type);
-            var tmp = (FB_Thread)Activator.CreateInstance(thread.Item2.Value._to_class(), thread.Item1);
+            var tmp = (FB_Thread)Activator.CreateInstance(thread_type.Value._to_class(), thread_id);
             var data = tmp._to_send_data();
             data.update(this._oldMessage(message)._to_send_data());
 
@@ -1724,10 +1659,9 @@ namespace fbchat_sharp.API
              * :param thread_id: User/Group ID to send to.See :ref:`intro_threads`
              * :raises: FBchatException if request failed
              * */
-            var thread = this._getThread(thread_id, null);
             var data = new Dictionary<string, object>(){
                 { "attachment_id", attachment_id },
-                { string.Format("recipient_map[{0]",Utils.generateOfflineThreadingID()), thread.Item1 }
+                { string.Format("recipient_map[{0]",Utils.generateOfflineThreadingID()), thread_id }
             };
             var j = await this._payload_post("/mercury/attachments/forward/", data);
             if (j.get("success") == null)
@@ -1783,7 +1717,6 @@ namespace fbchat_sharp.API
              * :type user_ids: list
              * :raises: FBchatException if request failed
              * */
-            var thread = this._getThread(thread_id, null);
             var data = new FB_Group(thread_id)._to_send_data();
 
             data["action_type"] = "ma-type:log-message";
@@ -1819,17 +1752,13 @@ namespace fbchat_sharp.API
              * :param thread_id: Group ID to remove people from.See: ref:`intro_threads`
              * :raises: FBchatException if request failed
              * */
-            var thread = this._getThread(thread_id, null);
-
-            var data = new Dictionary<string, object>() { { "uid", user_id }, { "tid", thread.Item1 } };
+            var data = new Dictionary<string, object>() { { "uid", user_id }, { "tid", thread_id } };
             var j = await this._payload_post("/chat/remove_participants/", data);
         }
 
         private async Task _adminStatus(List<string> admin_ids, bool admin, string thread_id = null)
         {
-            var thread = this._getThread(thread_id, null);
-
-            var data = new Dictionary<string, object>() { { "add", admin.ToString() }, { "thread_fbid", thread.Item1 } };
+            var data = new Dictionary<string, object>() { { "add", admin.ToString() }, { "thread_fbid", thread_id } };
 
             var uadmin_ids = Utils.require_list<string>(admin_ids);
 
@@ -1888,20 +1817,18 @@ namespace fbchat_sharp.API
              * : param thread_id: Group ID to remove people from.See: ref:`intro_threads`
              * :raises: FBchatException if request failed
              * */
-            var thread = this._getThread(thread_id, null);
-            var data = new Dictionary<string, object>() { { "set_mode", require_admin_approval ? 1 : 0 }, { "thread_fbid", thread.Item1 } };
+            var data = new Dictionary<string, object>() { { "set_mode", require_admin_approval ? 1 : 0 }, { "thread_fbid", thread_id } };
             var j = await this._payload_post("/messaging/set_approval_mode/?dpr=1", data);
         }
 
         private async Task _usersApproval(List<string> user_ids, bool approve, string thread_id = null)
         {
-            var thread = this._getThread(thread_id, null);
             var uuser_ids = Utils.require_list<string>(user_ids).ToList();
 
             var data = new Dictionary<string, object>(){
                 { "client_mutation_id", "0"},
                 {"actor_id", this._uid },
-                { "thread_fbid", thread.Item1 },
+                { "thread_fbid", thread_id },
                 { "user_ids", user_ids },
                 { "response", approve ? "ACCEPT" : "DENY"},
                 { "surface", "ADMIN_MODEL_APPROVAL_CENTER"}
@@ -1960,9 +1887,7 @@ namespace fbchat_sharp.API
              * :param thread_id: User / Group ID to change image.See: ref:`intro_threads`
              * :raises: FBchatException if request failed
              * */
-            var thread = this._getThread(thread_id, null);
-
-            var data = new Dictionary<string, object>() { { "thread_image_id", image_id }, { "thread_id", thread.Item1 } };
+            var data = new Dictionary<string, object>() { { "thread_image_id", image_id }, { "thread_id", thread_id } };
 
             var j = await this._payload_post("/messaging/set_thread_image/?dpr=1", data);
             return image_id;
@@ -2025,15 +1950,13 @@ namespace fbchat_sharp.API
              * :type thread_type: ThreadType
              * : raises: FBchatException if request failed
              * */
-            var thread = this._getThread(thread_id, thread_type);
-
             if (thread_type == ThreadType.USER)
                 // The thread is a user, so we change the user's nickname
                 await this.changeNickname(
-                    title, thread.Item1, thread_id: thread.Item1, thread_type: thread.Item2
+                    title, thread_id, thread_id: thread_id, thread_type: thread_type
                 );
 
-            var data = new Dictionary<string, object>() { { "thread_name", title }, { "thread_id", thread.Item1 } };
+            var data = new Dictionary<string, object>() { { "thread_name", title }, { "thread_id", thread_id } };
             var j = await this._payload_post("/messaging/set_thread_name/?dpr=1", data);
         }
 
@@ -2058,12 +1981,10 @@ namespace fbchat_sharp.API
              * :type thread_type: ThreadType
              * : raises: FBchatException if request failed
              * */
-            var thread = this._getThread(thread_id, thread_type);
-
             var data = new Dictionary<string, object>() {
                 {    "nickname", nickname },
                 { "participant_id", user_id },
-                { "thread_or_other_fbid", thread.Item1 }
+                { "thread_or_other_fbid", thread_id }
             };
             var j = await this._payload_post(
                 "/messaging/save_thread_nickname/?source=thread_settings&dpr=1", data);
@@ -2084,11 +2005,9 @@ namespace fbchat_sharp.API
              * :type color: ThreadColor
              * : raises: FBchatException if request failed
              * */
-            var thread = this._getThread(thread_id, null);
-
             var data = new Dictionary<string, object>() {
                 { "color_choice", color != ThreadColor.MESSENGER_BLUE ? color : ""},
-                { "thread_or_other_fbid", thread.Item1}
+                { "thread_or_other_fbid", thread_id}
             };
             var j = await this._payload_post(
                 "/messaging/save_thread_color/?source=thread_settings&dpr=1", data);
@@ -2109,9 +2028,7 @@ namespace fbchat_sharp.API
              * : param thread_id: User / Group ID to change emoji of.See :ref:`intro_threads`
              * :raises: FBchatException if request failed
              * */
-            var thread = this._getThread(thread_id, null);
-
-            var data = new Dictionary<string, object>() { { "emoji_choice", emoji }, { "thread_or_other_fbid", thread.Item1 } };
+            var data = new Dictionary<string, object>() { { "emoji_choice", emoji }, { "thread_or_other_fbid", thread_id } };
             var j = await this._payload_post(
                 "/messaging/save_thread_emoji/?source=thread_settings&dpr=1", data);
         }
@@ -2159,13 +2076,11 @@ namespace fbchat_sharp.API
              * :type plan: Plan
              * : raises: FBchatException if request failed
              * */
-            var thread = this._getThread(thread_id, null);
-
             var data = new Dictionary<string, object>() {
                 { "event_type", "EVENT" },
                 {"event_time", plan.time},
                 { "title", plan.title},
-                {"thread_id", thread.Item1},
+                {"thread_id", thread_id},
                 {"location_id", plan.location_id ?? ""},
                 {"location_name", plan.location ?? ""},
                 {"acontext", Client_Constants.ACONTEXT},
@@ -2269,14 +2184,12 @@ namespace fbchat_sharp.API
              * : raises: FBchatException if request failed
              * */
 
-            var thread = this._getThread(thread_id, null);
-
             // We're using ordered dicts, because the Facebook endpoint that parses the POST
             // parameters is badly implemented, and deals with ordering the options wrongly.
             // If you can find a way to fix this for the endpoint, or if you find another
             // endpoint, please do suggest it ;)
             var data = new Dictionary<string, object>(){
-                { "question_text", poll.title }, {"target_id", thread.Item1 }};
+                { "question_text", poll.title }, {"target_id", thread_id }};
 
             foreach (var obj in poll.options.Select((x, index) => new { option = x, i = index }))
             {
@@ -2351,12 +2264,10 @@ namespace fbchat_sharp.API
              * : type thread_type: ThreadType
              * : raises: FBchatException if request failed
              * */
-            var thread = this._getThread(thread_id, thread_type);
-
             var data = new Dictionary<string, object>() {
                 { "typ", (int)status },
-                { "thread", thread.Item1 },
-                { "to", thread_type == ThreadType.USER ? thread.Item1 : ""},
+                { "thread", thread_id },
+                { "to", thread_type == ThreadType.USER ? thread_id : ""},
                 {"source", "mercury-chat"}
             };
             var j = await this._payload_post("/ajax/messaging/typ.php", data);
@@ -2598,8 +2509,7 @@ namespace fbchat_sharp.API
              * :return: true
              * :raises: FBchatException if request failed
              * */
-            var thread = this._getThread(thread_id, null);
-            var j = await this._payload_post("/ajax/mercury/mark_spam.php?dpr=1", new Dictionary<string, object>() { { "id", thread.Item1 } });
+            var j = await this._payload_post("/ajax/mercury/mark_spam.php?dpr=1", new Dictionary<string, object>() { { "id", thread_id } });
             return true;
         }
 
@@ -2637,8 +2547,7 @@ namespace fbchat_sharp.API
              * :param mute_time: Mute time in seconds, leave blank to mute forever
              * :param thread_id: User/Group ID to mute.See :ref:`intro_threads`
              * */
-            var thread = this._getThread(thread_id, null);
-            var data = new Dictionary<string, object> { { "mute_settings", mute_time.ToString() }, { "thread_fbid", thread.Item1 } };
+            var data = new Dictionary<string, object> { { "mute_settings", mute_time.ToString() }, { "thread_fbid", thread_id } };
             var j = await this._payload_post("/ajax/mercury/change_mute_thread.php?dpr=1", data);
         }
 
@@ -2669,8 +2578,7 @@ namespace fbchat_sharp.API
              * :param mute: Boolean.true to mute, false to unmute
              * :param thread_id: User/Group ID to mute.See :ref:`intro_threads`
              * */
-            var thread = this._getThread(thread_id, null);
-            var data = new Dictionary<string, object> { { "reactions_mute_mode", mute ? 1 : 0 }, { "thread_fbid", thread.Item1 } };
+            var data = new Dictionary<string, object> { { "reactions_mute_mode", mute ? 1 : 0 }, { "thread_fbid", thread_id } };
             var j = await this._payload_post(
                 "/ajax/mercury/change_reactions_mute_thread/?dpr=1", data
             );
@@ -2703,8 +2611,7 @@ namespace fbchat_sharp.API
              * :param mute: Boolean.true to mute, false to unmute
              * :param thread_id: User/Group ID to mute.See :ref:`intro_threads`
              * */
-            var thread = this._getThread(thread_id, null);
-            var data = new Dictionary<string, object> { { "mentions_mute_mode", mute ? 1 : 0 }, { "thread_fbid", thread.Item1 } };
+            var data = new Dictionary<string, object> { { "mentions_mute_mode", mute ? 1 : 0 }, { "thread_fbid", thread_id } };
             var j = await this._payload_post("/ajax/mercury/change_mentions_mute_thread/?dpr=1", data);
         }
 
