@@ -1209,12 +1209,6 @@ namespace fbchat_sharp.API
             return message is FB_Message ? (FB_Message)message : new FB_Message((string)message);
         }
 
-        private async Task<dynamic> _doSendRequest(Dictionary<string, object> data, bool get_thread_id = false)
-        {
-            /* Sends the data to `SendURL`, and returns the message ID or null on failure */
-            return await this._session._do_send_request(data, get_thread_id);
-        }
-
         /// <summary>
         /// Sends a message to a thread
         /// </summary>
@@ -1238,7 +1232,7 @@ namespace fbchat_sharp.API
             var tmp = (FB_Thread)Activator.CreateInstance(thread_type.Value._to_class(), thread_id);
             var data = tmp._to_send_data();
             data.update(message._to_send_data());
-            return await this._doSendRequest(data);
+            return await this._session._do_send_request(data);
         }
 
         /// <summary>
@@ -1284,7 +1278,7 @@ namespace fbchat_sharp.API
             data["lightweight_action_attachment[lwa_type]"] = "WAVE";
             if (thread_type == ThreadType.USER)
                 data["specific_to_list[0]"] = string.Format("fbid:{0}", thread_id);
-            return await this._doSendRequest(data);
+            return await this._session._do_send_request(data);
         }
 
         /// <summary>
@@ -1371,7 +1365,7 @@ namespace fbchat_sharp.API
             data["location_attachment[coordinates][latitude]"] = location.latitude;
             data["location_attachment[coordinates][longitude]"] = location.longitude;
             data["location_attachment[is_current_location]"] = current;
-            return await this._doSendRequest(data);
+            return await this._session._do_send_request(data);
         }
 
         /// <summary>
@@ -1436,11 +1430,6 @@ namespace fbchat_sharp.API
             );
         }
 
-        private async Task<List<Tuple<string, string>>> _upload(List<FB_File> files, bool voice_clip = false)
-        {
-            return await this._session._upload(files, voice_clip);
-        }
-
         private async Task<dynamic> _sendFiles(
             List<Tuple<string, string>> files, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
         {
@@ -1458,7 +1447,7 @@ namespace fbchat_sharp.API
             foreach (var obj in files.Select((x, index) => new { f = x, i = index }))
                 data[string.Format("{0}s[{1}]", Utils.mimetype_to_key(obj.f.Item2), obj.i)] = obj.f.Item1;
 
-            return await this._doSendRequest(data);
+            return await this._session._do_send_request(data);
         }
 
         /// <summary>
@@ -1483,7 +1472,7 @@ namespace fbchat_sharp.API
              * :raises: FBchatException if request failed
              * */
             var ufile_urls = Utils.require_list<string>(file_urls);
-            var files = await this._upload(await this._session.get_files_from_urls(ufile_urls));
+            var files = await this._session._upload(await this._session.get_files_from_urls(ufile_urls));
             return await this._sendFiles(
                 files: files, message: message, thread_id: thread_id, thread_type: thread_type
             );
@@ -1510,7 +1499,7 @@ namespace fbchat_sharp.API
              * :raises: FBchatException if request failed
              */
 
-            var files = await this._upload(this._session.get_files_from_paths(file_paths));
+            var files = await this._session._upload(this._session.get_files_from_paths(file_paths));
             return await this._sendFiles(files: files, message: message, thread_id: thread_id, thread_type: thread_type);
         }
 
@@ -1536,7 +1525,7 @@ namespace fbchat_sharp.API
              * :raises: FBchatException if request failed
              * */
             var uclip_urls = Utils.require_list<string>(clip_urls);
-            var files = await this._upload(await this._session.get_files_from_urls(uclip_urls), voice_clip: true);
+            var files = await this._session._upload(await this._session.get_files_from_urls(uclip_urls), voice_clip: true);
             return await this._sendFiles(
                 files: files, message: message, thread_id: thread_id, thread_type: thread_type
             );
@@ -1563,7 +1552,7 @@ namespace fbchat_sharp.API
              * :raises: FBchatException if request failed
              */
 
-            var files = await this._upload(this._session.get_files_from_paths(clip_paths), voice_clip: true);
+            var files = await this._session._upload(this._session.get_files_from_paths(clip_paths), voice_clip: true);
             return await this._sendFiles(files: files, message: message, thread_id: thread_id, thread_type: thread_type);
         }
 
@@ -1694,241 +1683,12 @@ namespace fbchat_sharp.API
             foreach (var obj in user_ids.Concat(new string[] { this._uid }).Select((x, index) => new { user_id = x, i = index }))
                 data[string.Format("specific_to_list[{0}]", obj.i)] = string.Format("fbid:{0}", obj.user_id);
 
-            var req = await this._doSendRequest(data, get_thread_id: true);
+            var req = await this._session._do_send_request(data, get_thread_id: true);
             if (req.THR == null)
                 throw new FBchatException(
                     "Error when creating group: No thread_id could be found"
                 );
             return req.THR;
-        }
-
-        /// <summary>
-        /// Adds users to a group.
-        /// </summary>
-        /// <param name="user_ids">One or more user IDs to add</param>
-        /// <param name="thread_id">Group ID to add people to.See :ref:`intro_threads`</param>
-        /// <returns></returns>
-        public async Task<dynamic> addUsersToGroup(List<string> user_ids, string thread_id = null)
-        {
-            /*
-             * Adds users to a group.
-             * :param user_ids: One or more user IDs to add
-             * :param thread_id: Group ID to add people to.See :ref:`intro_threads`
-             * :type user_ids: list
-             * :raises: FBchatException if request failed
-             * */
-            var data = new FB_Group(thread_id, _session)._to_send_data();
-
-            data["action_type"] = "ma-type:log-message";
-            data["log_message_type"] = "log:subscribe";
-
-            var uuser_ids = Utils.require_list<string>(user_ids);
-
-            foreach (var obj in user_ids.Select((x, index) => new { user_id = x, i = index }))
-            {
-                if (obj.user_id == this._uid)
-                    throw new FBchatUserError(
-                            "Error when adding users: Cannot add self to group thread"
-                    );
-                else
-                    data[
-                        string.Format("log_message_data[added_participants][{0}]", obj.i)
-                    ] = string.Format("fbid:{0}", obj.user_id);
-            }
-            return await this._doSendRequest(data);
-        }
-
-        /// <summary>
-        /// Removes users from a group.
-        /// </summary>
-        /// <param name="user_id">User ID to remove</param>
-        /// <param name="thread_id">Group ID to remove people from</param>
-        /// <returns></returns>
-        public async Task removeUserFromGroup(string user_id, string thread_id = null)
-        {
-            /*
-             * Removes users from a group.
-             * :param user_id: User ID to remove
-             * :param thread_id: Group ID to remove people from.See: ref:`intro_threads`
-             * :raises: FBchatException if request failed
-             * */
-            var data = new Dictionary<string, object>() { { "uid", user_id }, { "tid", thread_id } };
-            var j = await this._payload_post("/chat/remove_participants/", data);
-        }
-
-        private async Task _adminStatus(List<string> admin_ids, bool admin, string thread_id = null)
-        {
-            var data = new Dictionary<string, object>() { { "add", admin.ToString() }, { "thread_fbid", thread_id } };
-
-            var uadmin_ids = Utils.require_list<string>(admin_ids);
-
-            foreach (var obj in admin_ids.Select((x, index) => new { admin_id = x, i = index }))
-                data[string.Format("admin_ids[{0}]", obj.i)] = obj.admin_id;
-
-            var j = await this._payload_post("/messaging/save_admins/?dpr=1", data);
-        }
-
-
-        /// <summary>
-        /// Sets specifed users as group admins.
-        /// </summary>
-        /// <param name="admin_ids">One or more user IDs to set admin</param>
-        /// <param name="thread_id">Group ID to remove people from</param>
-        /// <returns></returns>
-        public async Task addGroupAdmins(List<string> admin_ids, string thread_id = null)
-        {
-            /*
-             * Sets specifed users as group admins.
-             * :param admin_ids: One or more user IDs to set admin
-             * :param thread_id: Group ID to remove people from. See: ref:`intro_threads`
-             * :raises: FBchatException if request failed
-             * */
-            await this._adminStatus(admin_ids, true, thread_id);
-        }
-
-        /// <summary>
-        /// Removes admin status from specifed users.
-        /// </summary>
-        /// <param name="admin_ids">One or more user IDs to remove admin</param>
-        /// <param name="thread_id">Group ID to remove people from</param>
-        /// <returns></returns>
-        public async Task removeGroupAdmins(List<string> admin_ids, string thread_id = null)
-        {
-            /*
-             * Removes admin status from specifed users.
-             * :param admin_ids: One or more user IDs to remove admin
-             * :param thread_id: Group ID to remove people from. See: ref:`intro_threads`
-             * :raises: FBchatException if request failed
-             * */
-            await this._adminStatus(admin_ids, false, thread_id);
-        }
-
-        /// <summary>
-        /// Changes group's approval mode
-        /// </summary>
-        /// <param name="require_admin_approval">true or false</param>
-        /// <param name="thread_id">Group ID</param>
-        /// <returns></returns>
-        public async Task changeGroupApprovalMode(bool require_admin_approval, string thread_id = null)
-        {
-            /*
-             * Changes group's approval mode
-             * :param require_admin_approval: true or false
-             * : param thread_id: Group ID to remove people from.See: ref:`intro_threads`
-             * :raises: FBchatException if request failed
-             * */
-            var data = new Dictionary<string, object>() { { "set_mode", require_admin_approval ? 1 : 0 }, { "thread_fbid", thread_id } };
-            var j = await this._payload_post("/messaging/set_approval_mode/?dpr=1", data);
-        }
-
-        private async Task _usersApproval(List<string> user_ids, bool approve, string thread_id = null)
-        {
-            var uuser_ids = Utils.require_list<string>(user_ids).ToList();
-
-            var data = new Dictionary<string, object>(){
-                { "client_mutation_id", "0"},
-                {"actor_id", this._uid },
-                { "thread_fbid", thread_id },
-                { "user_ids", user_ids },
-                { "response", approve ? "ACCEPT" : "DENY"},
-                { "surface", "ADMIN_MODEL_APPROVAL_CENTER"}
-            };
-            var j = await this.graphql_request(
-                GraphQL.from_doc_id("1574519202665847", new Dictionary<string, object>(){
-                { "data", data} })
-            );
-        }
-
-        /// <summary>
-        /// Accepts users to the group from the group's approval
-        /// </summary>
-        /// <param name="user_ids">One or more user IDs to accept</param>
-        /// <param name="thread_id">Group ID</param>
-        /// <returns></returns>
-        public async Task acceptUsersToGroup(List<string> user_ids, string thread_id = null)
-        {
-            /*
-             * Accepts users to the group from the group's approval
-             * :param user_ids: One or more user IDs to accept
-             * : param thread_id: Group ID to accept users to.See: ref:`intro_threads`
-             * :raises: FBchatException if request failed
-             * */
-            await this._usersApproval(user_ids, true, thread_id);
-        }
-
-        /// <summary>
-        /// Denies users from the group 's approval
-        /// </summary>
-        /// <param name="user_ids">One or more user IDs to deny</param>
-        /// <param name="thread_id">Group ID</param>
-        /// <returns></returns>
-        public async Task denyUsersFromGroup(List<string> user_ids, string thread_id = null)
-        {
-            /*
-             * Denies users from the group 's approval
-             * :param user_ids: One or more user IDs to deny
-             * : param thread_id: Group ID to deny users from.See: ref:`intro_threads`
-             * :raises: FBchatException if request failed
-             * */
-            await this._usersApproval(user_ids, false, thread_id);
-        }
-
-        /// <summary>
-        /// Changes a thread image from an image id
-        /// </summary>
-        /// <param name="image_id">ID of uploaded image</param>
-        /// <param name="thread_id">User / Group ID to change image.See: ref:`intro_threads`</param>
-        /// <returns></returns>
-        public async Task<string> _changeGroupImage(string image_id, string thread_id = null)
-        {
-            /*
-             * Changes a thread image from an image id
-             * :param image_id: ID of uploaded image
-             * :param thread_id: User / Group ID to change image.See: ref:`intro_threads`
-             * :raises: FBchatException if request failed
-             * */
-            var data = new Dictionary<string, object>() { { "thread_image_id", image_id }, { "thread_id", thread_id } };
-
-            var j = await this._payload_post("/messaging/set_thread_image/?dpr=1", data);
-            return image_id;
-        }
-
-        /// <summary>
-        /// Changes a thread image from a URL
-        /// </summary>
-        /// <param name="image_url">URL of an image to upload and change</param>
-        /// <param name="thread_id">User / Group ID to change image.</param>
-        /// <returns></returns>
-        public async Task<string> changeGroupImageRemote(string image_url, string thread_id = null)
-        {
-            /*
-             * Changes a thread image from a URL
-             * :param image_url: URL of an image to upload and change
-             * :param thread_id: User / Group ID to change image.See: ref:`intro_threads`
-             * :raises: FBchatException if request failed
-             * */
-            var upl = await this._upload(await this._session.get_files_from_urls(new HashSet<string>() { image_url }));
-            return await this._changeGroupImage(upl[0].Item1, thread_id);
-        }
-
-        /// <summary>
-        /// Changes a thread image from a local path
-        /// </summary>
-        /// <param name="image_path">Path of an image to upload and change</param>
-        /// <param name="image_stream"></param>
-        /// <param name="thread_id">User / Group ID to change image.</param>
-        /// <returns></returns>
-        public async Task<string> changeGroupImageLocal(string image_path, Stream image_stream, string thread_id = null)
-        {
-            /*
-             * Changes a thread image from a local path
-             * :param image_path: Path of an image to upload and change
-             * :param thread_id: User / Group ID to change image.See: ref:`intro_threads`
-             * :raises: FBchatException if request failed
-             * */
-            var files = this._session.get_files_from_paths(new Dictionary<string, Stream>() { { image_path, image_stream } });
-            var upl = await this._upload(files);
-            return await this._changeGroupImage(upl[0].Item1, thread_id);
         }
 
         /// <summary>
