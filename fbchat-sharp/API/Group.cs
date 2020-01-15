@@ -47,7 +47,7 @@ namespace fbchat_sharp.API
         /// <param name="approval_requests"></param>
         /// <param name="join_link"></param>
         public FB_Group(string uid, Session session, FB_Image photo = null, string name = null, int message_count = 0, string last_message_timestamp = null, FB_Plan plan = null, ISet<string> participants = null, Dictionary<string, string> nicknames = null, string color = null, JToken emoji = null, ISet<string> admins = null, bool approval_mode = false, ISet<string> approval_requests = null, string join_link = null)
-            : base(ThreadType.GROUP, uid, session, photo, name, message_count: message_count, last_message_timestamp: last_message_timestamp, plan: plan)
+            : base(uid, session, photo, name, message_count: message_count, last_message_timestamp: last_message_timestamp, plan: plan)
         {
             this.participants = participants ?? new HashSet<string>();
             this.nicknames = nicknames ?? new Dictionary<string, string>();
@@ -65,7 +65,7 @@ namespace fbchat_sharp.API
         /// <param name="uid"></param>
         /// <param name="session"></param>
         public FB_Group(string uid, Session session) :
-            base(ThreadType.GROUP, uid, session)
+            base(uid, session)
         {
 
         }
@@ -341,7 +341,6 @@ namespace fbchat_sharp.API
         public FB_Room(string uid, Session session, FB_Image photo = null, string name = null, int message_count = 0, string last_message_timestamp = null, FB_Plan plan = null, ISet<string> participants = null, Dictionary<string, string> nicknames = null, string color = null, string emoji = null, ISet<string> admins = null, bool approval_mode = false, ISet<string> approval_requests = null, string join_link = null, bool privacy_mode = false) 
             : base(uid, session, photo, name, message_count, last_message_timestamp, plan, participants, nicknames, color, emoji, admins, approval_mode, approval_requests, join_link)
         {
-            this.type = ThreadType.ROOM;
             this.privacy_mode = privacy_mode;
         }
 
@@ -353,7 +352,7 @@ namespace fbchat_sharp.API
         public FB_Room(string uid, Session session) :
             base(uid, session)
         {
-            this.type = ThreadType.ROOM;
+
         }
     }
 }

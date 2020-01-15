@@ -34,7 +34,7 @@ namespace fbchat_sharp.API
         /// <param name="sub_title"></param>
         /// <param name="category"></param>
         public FB_Page(string uid, Session session, FB_Image photo = null, string name = null, int message_count = 0, FB_Plan plan = null, string url = null, string city = null, int likes = 0, string sub_title = null, string category = null)
-            : base(ThreadType.PAGE, uid, session, photo, name, message_count: message_count, plan: plan)
+            : base(uid, session, photo, name, message_count: message_count, plan: plan)
         {
             // Represents a Facebook page. Inherits `Thread`
             this.url = url;
@@ -48,7 +48,7 @@ namespace fbchat_sharp.API
         /// Represents a Facebook page. Inherits `Thread`
         /// </summary>
         public FB_Page(string uid, Session session) :
-            base(ThreadType.PAGE, uid, session)
+            base(uid, session)
         {
 
         }

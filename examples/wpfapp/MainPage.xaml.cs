@@ -83,7 +83,7 @@ namespace wpfapp
         {
             var text = SendText.Text;
             if (SelectedThread.Value == null || string.IsNullOrWhiteSpace(text)) return;
-            await Client.sendMessage(text, SelectedThread.Value.uid, SelectedThread.Value.type);
+            await Client.sendMessage(text, SelectedThread.Value.uid, SelectedThread.Value.get_thread_type());
             SendText.Clear();
         }
 

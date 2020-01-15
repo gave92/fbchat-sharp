@@ -96,7 +96,7 @@ namespace fbchat_sharp.API
         /// <param name="color"></param>
         /// <param name="emoji"></param>
         public FB_User(string uid, Session session, FB_Image photo = null, string name = null, int message_count = 0, string last_message_timestamp = null, FB_Plan plan = null, string url = null, string first_name = null, string last_name = null, bool is_friend = false, string gender = null, float affinity = 0, string nickname = null, string own_nickname = null, string color = null, JToken emoji = null) :
-            base(ThreadType.USER, uid, session, photo, name, message_count: message_count, last_message_timestamp: last_message_timestamp, plan: plan)
+            base(uid, session, photo, name, message_count: message_count, last_message_timestamp: last_message_timestamp, plan: plan)
         {
             this.url = url;
             this.first_name = first_name;
@@ -116,7 +116,7 @@ namespace fbchat_sharp.API
         /// <param name="uid"></param>
         /// <param name="session"></param>
         public FB_User(string uid, Session session) :
-            base(ThreadType.USER, uid, session)
+            base(uid, session)
         {
 
         }
@@ -129,7 +129,7 @@ namespace fbchat_sharp.API
 
         private string __unicode__()
         {
-            return string.Format("<{0} {1} {2} ({3})>", this.type.ToString(), this.first_name, this.last_name, this.uid);
+            return string.Format("<{0} {1} {2} ({3})>", this.GetType().Name, this.first_name, this.last_name, this.uid);
         }
 
         public static FB_User _from_graphql(Session session, JToken data)

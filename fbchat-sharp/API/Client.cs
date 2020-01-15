@@ -301,12 +301,12 @@ namespace fbchat_sharp.API
 
             foreach (var thread in threads)
             {
-                if (thread.type == ThreadType.USER)
+                if (thread is FB_User)
                 {
                     if (!users.Select((u) => u.uid).Contains(thread.uid))
                         users.Add((FB_User)thread);
                 }
-                else if (thread.type == ThreadType.GROUP)
+                else if (thread is FB_Group)
                 {
                     foreach (var user_id in ((FB_Group)thread).participants)
                     {
@@ -652,7 +652,7 @@ namespace fbchat_sharp.API
             var users = new Dictionary<string, FB_User>();
             foreach (var k in threads.Keys)
             {
-                if (threads[k].type == ThreadType.USER)
+                if (threads[k] is FB_User)
                 {
                     users[k] = (FB_User)threads[k];
                 }
@@ -686,7 +686,7 @@ namespace fbchat_sharp.API
             var pages = new Dictionary<string, FB_Page>();
             foreach (var k in threads.Keys)
             {
-                if (threads[k].type == ThreadType.PAGE)
+                if (threads[k] is FB_Page)
                 {
                     pages[k] = (FB_Page)threads[k];
                 }
@@ -718,7 +718,7 @@ namespace fbchat_sharp.API
             var groups = new Dictionary<string, FB_Group>();
             foreach (var k in threads.Keys)
             {
-                if (threads[k].type == ThreadType.GROUP)
+                if (threads[k] is FB_Group)
                 {
                     groups[k] = (FB_Group)threads[k];
                 }

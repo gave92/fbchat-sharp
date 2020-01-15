@@ -80,8 +80,6 @@ namespace fbchat_sharp.API
         public Session session { get; set; }
         /// The unique identifier of the thread. Can be used a `thread_id`. See :ref:`intro_threads` for more info
         public string uid { get; set; }
-        /// Specifies the type of thread. Can be used a `thread_type`. See :ref:`intro_threads` for more info
-        public ThreadType type { get; set; }
         /// The thread's picture
         public FB_Image photo { get; set; }
         /// The name of the thread
@@ -96,7 +94,6 @@ namespace fbchat_sharp.API
         /// <summary>
         /// Represents a Facebook thread
         /// </summary>
-        /// <param name="type"></param>
         /// <param name="uid"></param>
         /// <param name="session"></param>
         /// <param name="photo"></param>
@@ -104,10 +101,9 @@ namespace fbchat_sharp.API
         /// <param name="last_message_timestamp"></param>
         /// <param name="message_count"></param>
         /// <param name="plan"></param>
-        public FB_Thread(ThreadType type, string uid, Session session, FB_Image photo = null, string name = null, string last_message_timestamp = null, int message_count = 0, FB_Plan plan = null)
+        public FB_Thread(string uid, Session session, FB_Image photo = null, string name = null, string last_message_timestamp = null, int message_count = 0, FB_Plan plan = null)
         {
             this.uid = uid;
-            this.type = type;
             this.session = session;
             this.photo = photo;
             this.name = name;
@@ -161,6 +157,25 @@ namespace fbchat_sharp.API
         {
             // TODO: Only implement this in subclasses
             return new Dictionary<string, object>() { { "other_user_fbid", this.uid } };
+        }
+
+        public ThreadType get_thread_type()
+        {
+            switch (this)
+            {
+                case FB_User t:
+                    return ThreadType.USER;
+                case FB_Room t:
+                    return ThreadType.ROOM;
+                case FB_Group t:
+                    return ThreadType.GROUP;                
+                case FB_Page t:
+                    return ThreadType.PAGE;
+                case FB_Marketplace t:
+                    return ThreadType.MARKETPLACE;
+                default:
+                    return ThreadType.INVALID;
+            }
         }
     }
 }

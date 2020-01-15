@@ -46,7 +46,7 @@ namespace fbchat_sharp.API
         /// <param name="approval_requests"></param>
         /// <param name="join_link"></param>
         public FB_Marketplace(string uid, Session session, FB_Image photo = null, string name = null, int message_count = 0, string last_message_timestamp = null, FB_Plan plan = null, ISet<string> participants = null, Dictionary<string, string> nicknames = null, string color = null, JToken emoji = null, ISet<string> admins = null, bool approval_mode = false, ISet<string> approval_requests = null, string join_link = null)
-            : base(ThreadType.MARKETPLACE, uid, session, photo, name, message_count: message_count, last_message_timestamp: last_message_timestamp, plan: plan)
+            : base(uid, session, photo, name, message_count: message_count, last_message_timestamp: last_message_timestamp, plan: plan)
         {
             this.participants = participants ?? new HashSet<string>();
             this.nicknames = nicknames ?? new Dictionary<string, string>();
@@ -64,7 +64,7 @@ namespace fbchat_sharp.API
         /// <param name="uid"></param>
         /// <param name="session"></param>
         public FB_Marketplace(string uid, Session session) :
-            base(ThreadType.MARKETPLACE, uid, session)
+            base(uid, session)
         {
 
         }
