@@ -22,7 +22,6 @@ namespace fbchat_sharp.API
         private const string facebookEncoding = "UTF-8";
         private HtmlParser _parser = null;
         private string _fb_dtsg = null;
-        private string user_id = null;
         private string _revision = null;
         private int _counter = 0;
         public string _client_id = null;
@@ -145,13 +144,12 @@ namespace fbchat_sharp.API
             return r;
         }
 
-        public static async Task<Session> from_session(Session state)
+        public static async Task<Session> from_session(Session session)
         {
             // TODO: Automatically set user_id when the cookie changes in the session
-            var user_id = state.get_user_id();
-            var r = await state._cleanGet<string>(Utils.prefix_url("/"));
+            var r = await session._cleanGet<string>(Utils.prefix_url("/"));
             string content = await Session.check_request(r);
-            var soup = state.find_input_fields(content);
+            var soup = session.find_input_fields(content);
             var fb_dtsg = soup.Where(i => i.GetAttribute("name").Equals("fb_dtsg")).Select(i => i.GetAttribute("value")).FirstOrDefault();
             if (fb_dtsg == null)
             {
@@ -166,10 +164,9 @@ namespace fbchat_sharp.API
 
             return new Session()
             {
-                user_id = user_id,
                 _fb_dtsg = fb_dtsg,
                 _revision = client_revision,
-                _session = state._session,
+                _session = session._session,
                 _logout_h = logout_h
             };
         }
@@ -179,8 +176,7 @@ namespace fbchat_sharp.API
             // TODO: Raise the error instead, and make the user do the refresh manually
             // It may be a bad idea to do this in an exception handler, if you have a better method, please suggest it!
             Debug.WriteLine("Refreshing state and resending request");
-            var new_state = await Session.from_session(state: this);
-            this.user_id = new_state.user_id;
+            var new_state = await Session.from_session(session: this);
             this._fb_dtsg = new_state._fb_dtsg;
             this._revision = new_state._revision;
             this._counter = new_state._counter;
@@ -323,15 +319,15 @@ namespace fbchat_sharp.API
 
         public async static Task<Session> login(string email, string password, Func<Task<string>> on_2fa_callback, string user_agent = null)
         {
-            var state = new Session(user_agent);
+            var session = new Session(user_agent);
 
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
             {
                 throw new Exception("Email and password not set.");
             }
 
-            var r = await state._cleanGet<string>("https://m.facebook.com/");
-            var soup = state.find_input_fields(await Session.check_request(r));
+            var r = await session._cleanGet<string>("https://m.facebook.com/");
+            var soup = session.find_input_fields(await Session.check_request(r));
 
             var data = soup.Where(i => i.HasAttribute("name") && i.HasAttribute("value")).Select(i => new { Key = i.GetAttribute("name"), Value = i.GetAttribute("value") })
                 .GroupBy(c => c.Key, StringComparer.OrdinalIgnoreCase)
@@ -341,25 +337,25 @@ namespace fbchat_sharp.API
             data["pass"] = password;
             data["login"] = "Log In";
 
-            r = await state._cleanPost("https://m.facebook.com/login.php?login_attempt=1", data);
+            r = await session._cleanPost("https://m.facebook.com/login.php?login_attempt=1", data);
             var content = (string)await Session.check_request(r);
 
             if (r.RequestMessage.RequestUri.ToString().Contains("checkpoint") &&
                 (content.ToLower().Contains("id=\"approvals_code\"")))
             {
                 var code = await on_2fa_callback();
-                r = await state._2fa_helper(r, code);
+                r = await session._2fa_helper(r, code);
             }
 
             // Sometimes Facebook tries to show the user a "Save Device" dialog
             if (r.RequestMessage.RequestUri.ToString().Contains("save-device"))
             {
-                r = await state._cleanGet<string>("https://m.facebook.com/login/save-device/cancel/");
+                r = await session._cleanGet<string>("https://m.facebook.com/login/save-device/cancel/");
             }
 
-            if (state.is_home(r.RequestMessage.RequestUri.ToString()))
+            if (session.is_home(r.RequestMessage.RequestUri.ToString()))
             {
-                return await Session.from_session(state);
+                return await Session.from_session(session);
             }
             else
             {
@@ -401,7 +397,7 @@ namespace fbchat_sharp.API
 
         public async static Task<Session> from_cookies(Dictionary<string, List<Cookie>> session_cookies, string user_agent)
         {
-            var state = new Session(user_agent: user_agent);
+            var session = new Session(user_agent: user_agent);
 
             try
             {
@@ -411,7 +407,7 @@ namespace fbchat_sharp.API
                     // Need this because of new Uri(...)
                     var url = string.Format("https://{0}/", rawurl[0] == '.' ? rawurl.Substring(1) : rawurl);
 
-                    var current_cookies = state._session.GetCookies(new Uri(url)).Cast<Cookie>();
+                    var current_cookies = session._session.GetCookies(new Uri(url)).Cast<Cookie>();
 
                     foreach (var cookie in session_cookies[rawurl])
                     {
@@ -422,25 +418,25 @@ namespace fbchat_sharp.API
                             if (domain.StartsWith("facebook.com"))
                             {
                                 // Add cookie to every subdomain
-                                state._session.Add(new Uri(string.Format("https://{0}/", domain)), new Cookie(cookie.Name, cookie.Value));
-                                state._session.Add(new Uri(string.Format("https://www.{0}/", domain)), new Cookie(cookie.Name, cookie.Value));
-                                state._session.Add(new Uri(string.Format("https://m.{0}/", domain)), new Cookie(cookie.Name, cookie.Value));
-                                state._session.Add(new Uri(string.Format("https://upload.{0}/", domain)), new Cookie(cookie.Name, cookie.Value));
+                                session._session.Add(new Uri(string.Format("https://{0}/", domain)), new Cookie(cookie.Name, cookie.Value));
+                                session._session.Add(new Uri(string.Format("https://www.{0}/", domain)), new Cookie(cookie.Name, cookie.Value));
+                                session._session.Add(new Uri(string.Format("https://m.{0}/", domain)), new Cookie(cookie.Name, cookie.Value));
+                                session._session.Add(new Uri(string.Format("https://upload.{0}/", domain)), new Cookie(cookie.Name, cookie.Value));
                                 foreach (var i in Enumerable.Range(0, 10))
-                                    state._session.Add(new Uri(string.Format("https://{0}-edge-chat.{1}/", i, domain)), new Cookie(cookie.Name, cookie.Value)); // yuck!!
+                                    session._session.Add(new Uri(string.Format("https://{0}-edge-chat.{1}/", i, domain)), new Cookie(cookie.Name, cookie.Value)); // yuck!!
                             }
                             else
                             {
-                                state._session.Add(new Uri(url), new Cookie(cookie.Name, cookie.Value));
+                                session._session.Add(new Uri(url), new Cookie(cookie.Name, cookie.Value));
                             }
                         }
                     }
                 }
-                return await Session.from_session(state);
+                return await Session.from_session(session);
             }
             catch (Exception)
             {
-                return await Session.from_session(state);
+                return await Session.from_session(session);
             }
         }
 
@@ -563,7 +559,7 @@ namespace fbchat_sharp.API
             var date = DateTime.Now;
             data.update(new Dictionary<string, object> {
                 { "client", "mercury" },
-                { "author" , "fbid:" + this.user_id },
+                { "author" , "fbid:" + this.get_user_id() },
                 { "timestamp" , timestamp },
                 { "source" , "source:chat:web" },
                 { "offline_threading_id", messageAndOTID },
