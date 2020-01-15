@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 
 namespace fbchat_sharp.API
 {
-    internal class State
+    internal class Session
     {
         private const string FB_DTSG_REGEX = "name=\"fb_dtsg\" value=\"(.*?)\"";
         private const string facebookEncoding = "UTF-8";
@@ -42,7 +42,7 @@ namespace fbchat_sharp.API
             }
         }
 
-        public State(string user_agent = null)
+        public Session(string user_agent = null)
         {
             this.HttpClientHandler = new HttpClientHandler() { UseCookies = true, CookieContainer = new CookieContainer(), AllowAutoRedirect = false };
             this._http_client = new HttpClient(this.HttpClientHandler);
@@ -145,18 +145,18 @@ namespace fbchat_sharp.API
             return r;
         }
 
-        public static async Task<State> from_session(State state)
+        public static async Task<Session> from_session(Session state)
         {
             // TODO: Automatically set user_id when the cookie changes in the session
             var user_id = state.get_user_id();
             var r = await state._cleanGet<string>(Utils.prefix_url("/"));
-            string content = await State.check_request(r);
+            string content = await Session.check_request(r);
             var soup = state.find_input_fields(content);
             var fb_dtsg = soup.Where(i => i.GetAttribute("name").Equals("fb_dtsg")).Select(i => i.GetAttribute("value")).FirstOrDefault();
             if (fb_dtsg == null)
             {
                 // Fall back to searching with a regex
-                var regex = new Regex(State.FB_DTSG_REGEX);
+                var regex = new Regex(Session.FB_DTSG_REGEX);
                 fb_dtsg = regex.Match(content).Groups[1].Value;
             }
 
@@ -164,7 +164,7 @@ namespace fbchat_sharp.API
 
             var logout_h = soup.Where(i => i.GetAttribute("name").Equals("h")).Select(i => i.GetAttribute("value")).FirstOrDefault();
 
-            return new State()
+            return new Session()
             {
                 user_id = user_id,
                 _fb_dtsg = fb_dtsg,
@@ -179,7 +179,7 @@ namespace fbchat_sharp.API
             // TODO: Raise the error instead, and make the user do the refresh manually
             // It may be a bad idea to do this in an exception handler, if you have a better method, please suggest it!
             Debug.WriteLine("Refreshing state and resending request");
-            var new_state = await State.from_session(state: this);
+            var new_state = await Session.from_session(state: this);
             this.user_id = new_state.user_id;
             this._fb_dtsg = new_state._fb_dtsg;
             this._revision = new_state._revision;
@@ -321,9 +321,9 @@ namespace fbchat_sharp.API
             return payload;
         }
 
-        public async static Task<State> login(string email, string password, Func<Task<string>> on_2fa_callback, string user_agent = null)
+        public async static Task<Session> login(string email, string password, Func<Task<string>> on_2fa_callback, string user_agent = null)
         {
-            var state = new State(user_agent);
+            var state = new Session(user_agent);
 
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
             {
@@ -331,7 +331,7 @@ namespace fbchat_sharp.API
             }
 
             var r = await state._cleanGet<string>("https://m.facebook.com/");
-            var soup = state.find_input_fields(await State.check_request(r));
+            var soup = state.find_input_fields(await Session.check_request(r));
 
             var data = soup.Where(i => i.HasAttribute("name") && i.HasAttribute("value")).Select(i => new { Key = i.GetAttribute("name"), Value = i.GetAttribute("value") })
                 .GroupBy(c => c.Key, StringComparer.OrdinalIgnoreCase)
@@ -342,7 +342,7 @@ namespace fbchat_sharp.API
             data["login"] = "Log In";
 
             r = await state._cleanPost("https://m.facebook.com/login.php?login_attempt=1", data);
-            var content = (string)await State.check_request(r);
+            var content = (string)await Session.check_request(r);
 
             if (r.RequestMessage.RequestUri.ToString().Contains("checkpoint") &&
                 (content.ToLower().Contains("id=\"approvals_code\"")))
@@ -359,7 +359,7 @@ namespace fbchat_sharp.API
 
             if (state.is_home(r.RequestMessage.RequestUri.ToString()))
             {
-                return await State.from_session(state);
+                return await Session.from_session(state);
             }
             else
             {
@@ -386,7 +386,7 @@ namespace fbchat_sharp.API
             {
                 var h_r = await this._cleanPost(url, query: new Dictionary<string, string>() { { "pmid", "4" } });
                 Regex regex = new Regex("name=\\\"h\\\" value=\\\"(.*?)\\\"");
-                this._logout_h = regex.Match(await State.check_request(h_r)).Groups[1].Value;
+                this._logout_h = regex.Match(await Session.check_request(h_r)).Groups[1].Value;
             }
 
             var data = new Dictionary<string, string>() {
@@ -399,9 +399,9 @@ namespace fbchat_sharp.API
             return r.IsSuccessStatusCode;
         }
 
-        public async static Task<State> from_cookies(Dictionary<string, List<Cookie>> session_cookies, string user_agent)
+        public async static Task<Session> from_cookies(Dictionary<string, List<Cookie>> session_cookies, string user_agent)
         {
-            var state = new State(user_agent: user_agent);
+            var state = new Session(user_agent: user_agent);
 
             try
             {
@@ -436,11 +436,11 @@ namespace fbchat_sharp.API
                         }
                     }
                 }
-                return await State.from_session(state);
+                return await Session.from_session(state);
             }
             catch (Exception)
             {
-                return await State.from_session(state);
+                return await Session.from_session(state);
             }
         }
 
@@ -448,7 +448,7 @@ namespace fbchat_sharp.API
         {
             query.update(get_params());
             var r = await this._cleanGet(Utils.prefix_url(url), query: query, cancellationToken: cancellationToken);
-            var content = await State.check_request(r);
+            var content = await Session.check_request(r);
             var j = Utils.to_json(content);
             try
             {
@@ -466,7 +466,7 @@ namespace fbchat_sharp.API
         {
             query.update(get_params());
             var r = await this._cleanPost(Utils.prefix_url(url), query: query, files: files, cancellationToken: cancellationToken);
-            var content = await State.check_request(r);
+            var content = await Session.check_request(r);
             try
             {
                 if (as_graphql)

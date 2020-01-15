@@ -40,7 +40,7 @@ namespace fbchat_sharp.API
         /// Whether the client is listening. Used when creating an external event loop to determine when to stop listening.
         private bool listening { get; set; }
         /// Stores and manages state required for most Facebook requests.
-        private State _state { get; set; }
+        private Session _session { get; set; }
         /// Mqtt client for receiving messages
         private IMqttClient mqttClient;
 
@@ -90,31 +90,31 @@ namespace fbchat_sharp.API
 
         private async Task<JToken> _get(string url, Dictionary<string, object> query = null, CancellationToken cancellationToken = default(CancellationToken))
         {
-            if (this._state == null)
+            if (this._session == null)
             {
                 throw new FBchatNotLoggedIn(message: "Please login before calling 'fetch' methods.");
             }
-            return await this._state._get(url, query, cancellationToken);
+            return await this._session._get(url, query, cancellationToken);
         }
 
         private async Task<object> _post(string url, Dictionary<string, object> query = null, Dictionary<string, FB_File> files = null, bool as_graphql = false, CancellationToken cancellationToken = default(CancellationToken))
         {
-            return await this._state._post(url, query, files, as_graphql, cancellationToken);
+            return await this._session._post(url, query, files, as_graphql, cancellationToken);
         }
 
         private async Task<JToken> _payload_post(string url, Dictionary<string, object> data = null, Dictionary<string, FB_File> files = null, CancellationToken cancellationToken = default(CancellationToken))
         {
-            return await this._state._payload_post(url, data, files, cancellationToken);
+            return await this._session._payload_post(url, data, files, cancellationToken);
         }
 
         private async Task<List<JToken>> graphql_requests(List<GraphQL> queries)
         {
-            return await this._state.graphql_requests(queries);
+            return await this._session.graphql_requests(queries);
         }
 
         private async Task<JToken> graphql_request(GraphQL query)
         {
-            return await this._state.graphql_request(query);
+            return await this._session.graphql_request(query);
         }
 
         #endregion
@@ -127,7 +127,7 @@ namespace fbchat_sharp.API
         /// <returns>true if the client is still logged in</returns>
         public async Task<bool> isLoggedIn()
         {
-            return await this._state.is_logged_in();
+            return await this._session.is_logged_in();
         }
 
         /// <summary>
@@ -141,7 +141,7 @@ namespace fbchat_sharp.API
              * :return: A list containing session cookies
              * : rtype: IEnumerable
              */
-            return this._state.get_cookies();
+            return this._session.get_cookies();
         }
 
         /// <summary>
@@ -155,8 +155,8 @@ namespace fbchat_sharp.API
             try
             {
                 // Load cookies into current session
-                this._state = await State.from_cookies(session_cookies, user_agent: user_agent);
-                this._uid = this._state.get_user_id();
+                this._session = await Session.from_cookies(session_cookies, user_agent: user_agent);
+                this._uid = this._session.get_user_id();
             }
             catch (Exception)
             {
@@ -181,12 +181,12 @@ namespace fbchat_sharp.API
 
             try
             {
-                this._state = await State.login(
+                this._session = await Session.login(
                     email,
                     password,
                     on_2fa_callback: this.on2FACode,
                     user_agent: user_agent);
-                this._uid = this._state.get_user_id();
+                this._uid = this._session.get_user_id();
                 await this.onLoggedIn(email: email);
             }
             catch (Exception ex)
@@ -201,9 +201,9 @@ namespace fbchat_sharp.API
         /// <returns>true if the action was successful</returns>
         public async Task<bool> logout()
         {
-            if (await this._state.logout())
+            if (await this._session.logout())
             {
-                this._state = null;
+                this._session = null;
                 this._uid = null;
                 return true;
             }
@@ -1212,7 +1212,7 @@ namespace fbchat_sharp.API
         private async Task<dynamic> _doSendRequest(Dictionary<string, object> data, bool get_thread_id = false)
         {
             /* Sends the data to `SendURL`, and returns the message ID or null on failure */
-            return await this._state._do_send_request(data, get_thread_id);
+            return await this._session._do_send_request(data, get_thread_id);
         }
 
         /// <summary>
@@ -1438,7 +1438,7 @@ namespace fbchat_sharp.API
 
         private async Task<List<Tuple<string, string>>> _upload(List<FB_File> files, bool voice_clip = false)
         {
-            return await this._state._upload(files, voice_clip);
+            return await this._session._upload(files, voice_clip);
         }
 
         private async Task<dynamic> _sendFiles(
@@ -1483,7 +1483,7 @@ namespace fbchat_sharp.API
              * :raises: FBchatException if request failed
              * */
             var ufile_urls = Utils.require_list<string>(file_urls);
-            var files = await this._upload(await this._state.get_files_from_urls(ufile_urls));
+            var files = await this._upload(await this._session.get_files_from_urls(ufile_urls));
             return await this._sendFiles(
                 files: files, message: message, thread_id: thread_id, thread_type: thread_type
             );
@@ -1510,7 +1510,7 @@ namespace fbchat_sharp.API
              * :raises: FBchatException if request failed
              */
 
-            var files = await this._upload(this._state.get_files_from_paths(file_paths));
+            var files = await this._upload(this._session.get_files_from_paths(file_paths));
             return await this._sendFiles(files: files, message: message, thread_id: thread_id, thread_type: thread_type);
         }
 
@@ -1536,7 +1536,7 @@ namespace fbchat_sharp.API
              * :raises: FBchatException if request failed
              * */
             var uclip_urls = Utils.require_list<string>(clip_urls);
-            var files = await this._upload(await this._state.get_files_from_urls(uclip_urls), voice_clip: true);
+            var files = await this._upload(await this._session.get_files_from_urls(uclip_urls), voice_clip: true);
             return await this._sendFiles(
                 files: files, message: message, thread_id: thread_id, thread_type: thread_type
             );
@@ -1563,7 +1563,7 @@ namespace fbchat_sharp.API
              * :raises: FBchatException if request failed
              */
 
-            var files = await this._upload(this._state.get_files_from_paths(clip_paths), voice_clip: true);
+            var files = await this._upload(this._session.get_files_from_paths(clip_paths), voice_clip: true);
             return await this._sendFiles(files: files, message: message, thread_id: thread_id, thread_type: thread_type);
         }
 
@@ -1907,7 +1907,7 @@ namespace fbchat_sharp.API
              * :param thread_id: User / Group ID to change image.See: ref:`intro_threads`
              * :raises: FBchatException if request failed
              * */
-            var upl = await this._upload(await this._state.get_files_from_urls(new HashSet<string>() { image_url }));
+            var upl = await this._upload(await this._session.get_files_from_urls(new HashSet<string>() { image_url }));
             return await this._changeGroupImage(upl[0].Item1, thread_id);
         }
 
@@ -1926,7 +1926,7 @@ namespace fbchat_sharp.API
              * :param thread_id: User / Group ID to change image.See: ref:`intro_threads`
              * :raises: FBchatException if request failed
              * */
-            var files = this._state.get_files_from_paths(new Dictionary<string, Stream>() { { image_path, image_stream } });
+            var files = this._session.get_files_from_paths(new Dictionary<string, Stream>() { { image_path, image_stream } });
             var upl = await this._upload(files);
             return await this._changeGroupImage(upl[0].Item1, thread_id);
         }
@@ -2642,7 +2642,7 @@ namespace fbchat_sharp.API
             var data = new Dictionary<string, object>() {
                 { "seq", this._seq},
                 {"channel", "p_" + this._uid},
-                { "clientid", this._state._client_id},
+                { "clientid", this._session._client_id},
                 { "partition", -2},
                 { "cap", 0},
                 { "uid", this._uid},
@@ -2663,7 +2663,7 @@ namespace fbchat_sharp.API
                 { "msgs_recv", 0 },
                 { "sticky_token", this._sticky },
                 { "sticky_pool", this._pool },
-                { "clientid", this._state._client_id },
+                { "clientid", this._session._client_id },
                 { "state", this._markAlive ? "active" : "offline"},
             };
 
@@ -3441,7 +3441,7 @@ namespace fbchat_sharp.API
             // Headers for the websocket connection. Not including Origin will cause 502's.
             // User agent and Referer also probably required. Cookie is how it auths.
             // Accept is there just for fun.
-            var cookies = this._state.get_cookies();
+            var cookies = this._session.get_cookies();
 
             var headers = new Dictionary<string, string>() {
                 { "Referer", "https://www.facebook.com" },
