@@ -31,9 +31,9 @@ namespace fbchat_sharp.API
 
     /// <summary>
     /// A client for the Facebook Chat (Messenger).
-    /// This is the main class of `fbchat-sharp`, which contains all the methods you use to
-    /// interact with Facebook.You can extend this class, and overwrite the `on` methods,
-    /// to provide custom event handling (mainly useful while listening).
+    /// This contains all the methods you use to interact with Facebook.You can extend this
+    /// class, and overwrite the ``on`` methods, to provide custom event handling (mainly
+    /// useful while listening).
     /// </summary>
     public class Client
     {
@@ -351,7 +351,7 @@ namespace fbchat_sharp.API
                         // Skip invalid users
                         continue;
                     }
-                    users.Add(FB_User._from_all_fetch(k));
+                    users.Add(FB_User._from_all_fetch(_session, k));
                 }
             }
 
@@ -380,7 +380,7 @@ namespace fbchat_sharp.API
              };
             var j = await this.graphql_request(GraphQL.from_query(GraphQL.SEARCH_USER, param));
 
-            return j[name]?.get("users")?.get("nodes").Select(node => FB_User._from_graphql(node)).ToList();
+            return j[name]?.get("users")?.get("nodes").Select(node => FB_User._from_graphql(_session, node)).ToList();
         }
 
         /// <summary>
@@ -404,7 +404,7 @@ namespace fbchat_sharp.API
             };
             var j = await this.graphql_request(GraphQL.from_query(GraphQL.SEARCH_PAGE, param));
 
-            return j[name]?.get("pages")?.get("nodes").Select(node => FB_Page._from_graphql(node)).ToList();
+            return j[name]?.get("pages")?.get("nodes").Select(node => FB_Page._from_graphql(_session, node)).ToList();
         }
 
         /// <summary>
@@ -429,7 +429,7 @@ namespace fbchat_sharp.API
             };
             var j = await this.graphql_request(GraphQL.from_query(GraphQL.SEARCH_GROUP, param));
 
-            return j.get("viewer")?.get("groups")?.get("nodes").Select(node => FB_Group._from_graphql(node)).ToList();
+            return j.get("viewer")?.get("groups")?.get("nodes").Select(node => FB_Group._from_graphql(_session, node)).ToList();
         }
 
         /// <summary>
@@ -459,16 +459,16 @@ namespace fbchat_sharp.API
             {
                 if (node.get("__typename").Value<string>().Equals("User"))
                 {
-                    rtn.Add(FB_User._from_graphql(node));
+                    rtn.Add(FB_User._from_graphql(_session, node));
                 }
                 else if (node.get("__typename").Value<string>().Equals("MessageThread"))
                 {
                     // MessageThread => Group thread
-                    rtn.Add(FB_Group._from_graphql(node));
+                    rtn.Add(FB_Group._from_graphql(_session, node));
                 }
                 else if (node.get("__typename").Value<string>().Equals("Page"))
                 {
-                    rtn.Add(FB_Page._from_graphql(node));
+                    rtn.Add(FB_Page._from_graphql(_session, node));
                 }
                 else if (node.get("__typename").Value<string>().Equals("Group"))
                 {
@@ -790,12 +790,12 @@ namespace fbchat_sharp.API
                 if (entry.get("thread_type")?.Value<string>()?.Equals("GROUP") ?? false)
                 {
                     var _id = entry.get("thread_key")?.get("thread_fbid").Value<string>();
-                    rtn[_id] = FB_Group._from_graphql(entry);
+                    rtn[_id] = FB_Group._from_graphql(_session, entry);
                 }
                 if (entry.get("thread_type")?.Value<string>()?.Equals("MARKETPLACE") ?? false)
                 {
                     var _id = entry.get("thread_key")?.get("thread_fbid").Value<string>();
-                    rtn[_id] = FB_Marketplace._from_graphql(entry);
+                    rtn[_id] = FB_Marketplace._from_graphql(_session, entry);
                 }
                 else if (entry.get("thread_type")?.Value<string>()?.Equals("ONE_TO_ONE") ?? false)
                 {
@@ -810,11 +810,11 @@ namespace fbchat_sharp.API
                     }
                     if (entry.get("type")?.Value<int>() == (int)ThreadType.USER)
                     {
-                        rtn[_id] = FB_User._from_graphql(entry);
+                        rtn[_id] = FB_User._from_graphql(_session, entry);
                     }
                     else
                     {
-                        rtn[_id] = FB_Page._from_graphql(entry);
+                        rtn[_id] = FB_Page._from_graphql(_session, entry);
                     }
                 }
                 else
@@ -919,11 +919,11 @@ namespace fbchat_sharp.API
             {
                 var _type = node.get("thread_type")?.Value<string>();
                 if (_type == "GROUP")
-                    rtn.Add(FB_Group._from_graphql(node));
+                    rtn.Add(FB_Group._from_graphql(_session, node));
                 else if (_type == "ONE_TO_ONE")
-                    rtn.Add(FB_User._from_thread_fetch(node));
+                    rtn.Add(FB_User._from_thread_fetch(_session, node));
                 else if (_type == "MARKETPLACE")
-                    rtn.Add(FB_Marketplace._from_graphql(node));
+                    rtn.Add(FB_Marketplace._from_graphql(_session, node));
                 else
                     throw new FBchatException(string.Format("Unknown thread type: {0}", _type));
             }
@@ -1717,7 +1717,7 @@ namespace fbchat_sharp.API
              * :type user_ids: list
              * :raises: FBchatException if request failed
              * */
-            var data = new FB_Group(thread_id)._to_send_data();
+            var data = new FB_Group(thread_id, _session)._to_send_data();
 
             data["action_type"] = "ma-type:log-message";
             data["log_message_type"] = "log:subscribe";
@@ -2357,72 +2357,7 @@ namespace fbchat_sharp.API
              * Documenting this
              * */
             var j = await this._payload_post("/ajax/mercury/mark_seen.php", new Dictionary<string, object>() { { "seen_timestamp", Utils.now() } });
-        }
-
-        public async Task friendConnect(string friend_id)
-        {
-            /*
-             * .. todo::
-             * Documenting this
-             * */
-            var data = new Dictionary<string, object> { { "to_friend", friend_id }, { "action", "confirm" } };
-
-            var j = await this._payload_post("/ajax/add_friend/action.php?dpr=1", data);
-        }
-
-        /// <summary>
-        /// Removes a specifed friend from your friend list
-        /// </summary>
-        /// <param name="friend_id">The ID of the friend that you want to remove</param>
-        /// <returns>true</returns>
-        public async Task<bool> removeFriend(string friend_id = null)
-        {
-            /*
-             * Removes a specifed friend from your friend list
-             * :param friend_id: The ID of the friend that you want to remove
-             * :return: true
-             * :raises: FBchatException if request failed
-             * */
-            var data = new Dictionary<string, object> { { "uid", friend_id } };
-            var j = await this._payload_post("/ajax/profile/removefriendconfirm.php", data);
-            return true;
-        }
-
-        /// <summary>
-        /// Blocks messages from a specifed user
-        /// </summary>
-        /// <param name="user_id">The ID of the user that you want to block</param>
-        /// <returns>true</returns>
-        public async Task<bool> blockUser(string user_id)
-        {
-            /*
-             * Blocks messages from a specifed user
-             * :param user_id: The ID of the user that you want to block
-             * :return: true
-             * :raises: FBchatException if request failed
-             * */
-            var data = new Dictionary<string, object> { { "fbid", user_id } };
-            var j = await this._payload_post("/messaging/block_messages/?dpr=1", data);
-            return true;
-        }
-
-        /// <summary>
-        /// The ID of the user that you want to block
-        /// </summary>
-        /// <param name="user_id">The ID of the user that you want to unblock</param>
-        /// <returns>Whether the request was successful</returns>
-        public async Task<bool> unblockUser(string user_id)
-        {
-            /*
-             * Unblocks messages from a blocked user
-             * :param user_id: The ID of the user that you want to unblock
-             * :return: Whether the request was successful
-             * :raises: FBchatException if request failed
-             * */
-            var data = new Dictionary<string, object> { { "fbid", user_id } };
-            var j = await this._payload_post("/messaging/unblock_messages/?dpr=1", data);
-            return true;
-        }
+        }        
 
         /// <summary>
         /// Moves threads to specifed location
@@ -2642,7 +2577,7 @@ namespace fbchat_sharp.API
             var data = new Dictionary<string, object>() {
                 { "seq", this._seq},
                 {"channel", "p_" + this._uid},
-                { "clientid", this._session._client_id},
+                { "clientid", this._session.get_client_id()},
                 { "partition", -2},
                 { "cap", 0},
                 { "uid", this._uid},
@@ -2663,7 +2598,7 @@ namespace fbchat_sharp.API
                 { "msgs_recv", 0 },
                 { "sticky_token", this._sticky },
                 { "sticky_pool", this._pool },
-                { "clientid", this._session._client_id },
+                { "clientid", this._session.get_client_id() },
                 { "state", this._markAlive ? "active" : "offline"},
             };
 

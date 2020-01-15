@@ -16,7 +16,11 @@ using System.Threading.Tasks;
 
 namespace fbchat_sharp.API
 {
-    internal class Session
+    /// <summary>
+    /// Stores and manages state required for most Facebook requests.
+    /// This is the main class, which is used to login to Facebook.
+    /// </summary>
+    public class Session
     {
         private const string FB_DTSG_REGEX = "name=\"fb_dtsg\" value=\"(.*?)\"";
         private const string facebookEncoding = "UTF-8";
@@ -24,7 +28,7 @@ namespace fbchat_sharp.API
         private string _fb_dtsg = null;
         private string _revision = null;
         private int _counter = 0;
-        public string _client_id = null;
+        private string _client_id = null;
         private string _logout_h = null;
         private Dictionary<string, string> _headers = null;
 
@@ -293,6 +297,11 @@ namespace fbchat_sharp.API
                 files.Add(file);
             }
             return files;
+        }
+
+        public string get_client_id()
+        {
+            return this._client_id;
         }
 
         public string get_user_id()

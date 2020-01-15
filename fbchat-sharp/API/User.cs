@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace fbchat_sharp.API
 {
@@ -78,6 +79,7 @@ namespace fbchat_sharp.API
         /// Represents a Facebook user. Inherits `Thread`
         /// </summary>
         /// <param name="uid"></param>
+        /// <param name="session"></param>
         /// <param name="photo"></param>
         /// <param name="name"></param>
         /// <param name="message_count"></param>
@@ -93,8 +95,8 @@ namespace fbchat_sharp.API
         /// <param name="own_nickname"></param>
         /// <param name="color"></param>
         /// <param name="emoji"></param>
-        public FB_User(string uid, FB_Image photo = null, string name = null, int message_count = 0, string last_message_timestamp = null, FB_Plan plan = null, string url = null, string first_name = null, string last_name = null, bool is_friend = false, string gender = null, float affinity = 0, string nickname = null, string own_nickname = null, string color = null, JToken emoji = null) :
-            base(ThreadType.USER, uid, photo, name, message_count: message_count, last_message_timestamp: last_message_timestamp, plan: plan)
+        public FB_User(string uid, Session session, FB_Image photo = null, string name = null, int message_count = 0, string last_message_timestamp = null, FB_Plan plan = null, string url = null, string first_name = null, string last_name = null, bool is_friend = false, string gender = null, float affinity = 0, string nickname = null, string own_nickname = null, string color = null, JToken emoji = null) :
+            base(ThreadType.USER, uid, session, photo, name, message_count: message_count, last_message_timestamp: last_message_timestamp, plan: plan)
         {
             this.url = url;
             this.first_name = first_name;
@@ -112,8 +114,9 @@ namespace fbchat_sharp.API
         /// Represents a Facebook user. Inherits `Thread`
         /// </summary>
         /// <param name="uid"></param>
-        public FB_User(string uid) :
-            base(ThreadType.USER, uid)
+        /// <param name="session"></param>
+        public FB_User(string uid, Session session) :
+            base(ThreadType.USER, uid, session)
         {
 
         }
@@ -129,7 +132,7 @@ namespace fbchat_sharp.API
             return string.Format("<{0} {1} {2} ({3})>", this.type.ToString(), this.first_name, this.last_name, this.uid);
         }
 
-        public static FB_User _from_graphql(JToken data)
+        public static FB_User _from_graphql(Session session, JToken data)
         {
             if (data.get("profile_picture") == null)
             {
@@ -158,6 +161,7 @@ namespace fbchat_sharp.API
 
             return new FB_User(
                 uid: data.get("id")?.Value<string>(),
+                session: session,
                 url: data.get("url")?.Value<string>(),
                 name: name,
                 first_name: first_name,
@@ -174,7 +178,7 @@ namespace fbchat_sharp.API
                 plan: plan);
         }
 
-        public static FB_User _from_thread_fetch(JToken data)
+        public static FB_User _from_thread_fetch(Session session, JToken data)
         {
             var c_info = FB_User._parse_customization_info(data);
             var participants = data.get("all_participants")?.get("nodes")?.Select(node => node.get("messaging_actor"));
@@ -206,8 +210,9 @@ namespace fbchat_sharp.API
 
             var plan = data.get("event_reminders")?.get("nodes")?.FirstOrDefault() != null ? FB_Plan._from_graphql(data.get("event_reminders")?.get("nodes")?.FirstOrDefault()) : null;
 
-            return new FB_User(
+            return new FB_User(                
                 uid: user.get("id")?.Value<string>(),
+                session: session,
                 url: user.get("url")?.Value<string>(),
                 name: name,
                 first_name: first_name,
@@ -225,7 +230,7 @@ namespace fbchat_sharp.API
                 plan: plan);
         }
 
-        public static FB_User _from_all_fetch(JToken data)
+        public static FB_User _from_all_fetch(Session session, JToken data)
         {
             var gender = GENDER.graphql_GENDERS["UNKNOWN"];
             if (data.get("gender")?.Type == JTokenType.Integer)
@@ -243,6 +248,7 @@ namespace fbchat_sharp.API
 
             return new FB_User(
                 uid: data.get("id")?.Value<string>(),
+                session: session,
                 first_name: data.get("firstName")?.Value<string>(),
                 url: data.get("uri")?.Value<string>(),
                 photo: new FB_Image(url: data.get("thumbSrc")?.Value<string>()),
@@ -250,6 +256,68 @@ namespace fbchat_sharp.API
                 is_friend: data.get("is_friend")?.Value<bool>() ?? false,
                 gender: gender
             );
+        }
+
+        /// <summary>
+        /// Confirm a friend request, adding the user to your friend list.
+        /// </summary>
+        /// <returns></returns>
+        public async Task confirmFriendRequest()
+        {
+            var data = new Dictionary<string, object> { { "to_friend", this.uid }, { "action", "confirm" } };
+
+            var j = await this.session._payload_post("/ajax/add_friend/action.php?dpr=1", data);
+        }
+
+        /// <summary>
+        /// Removes a specifed friend from your friend list
+        /// </summary>
+        /// <returns>true</returns>
+        public async Task<bool> removeFriend()
+        {
+            /*
+             * Removes a specifed friend from your friend list
+             * :param friend_id: The ID of the friend that you want to remove
+             * :return: true
+             * :raises: FBchatException if request failed
+             * */
+            var data = new Dictionary<string, object> { { "uid", this.uid } };
+            var j = await this.session._payload_post("/ajax/profile/removefriendconfirm.php", data);
+            return true;
+        }
+
+        /// <summary>
+        /// Blocks messages from a specifed user
+        /// </summary>
+        /// <returns>true</returns>
+        public async Task<bool> block()
+        {
+            /*
+             * Blocks messages from a specifed user
+             * :param user_id: The ID of the user that you want to block
+             * :return: true
+             * :raises: FBchatException if request failed
+             * */
+            var data = new Dictionary<string, object> { { "fbid", this.uid } };
+            var j = await this.session._payload_post("/messaging/block_messages/?dpr=1", data);
+            return true;
+        }
+
+        /// <summary>
+        /// The ID of the user that you want to block
+        /// </summary>
+        /// <returns>Whether the request was successful</returns>
+        public async Task<bool> unblock()
+        {
+            /*
+             * Unblocks messages from a blocked user
+             * :param user_id: The ID of the user that you want to unblock
+             * :return: Whether the request was successful
+             * :raises: FBchatException if request failed
+             * */
+            var data = new Dictionary<string, object> { { "fbid", this.uid } };
+            var j = await this.session._payload_post("/messaging/unblock_messages/?dpr=1", data);
+            return true;
         }
     }
 

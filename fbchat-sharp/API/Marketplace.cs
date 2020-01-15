@@ -31,6 +31,7 @@ namespace fbchat_sharp.API
         /// Represents a Facebook marketplace. Inherits `Thread`
         /// </summary>
         /// <param name="uid"></param>
+        /// <param name="session"></param>
         /// <param name="photo"></param>
         /// <param name="name"></param>
         /// <param name="message_count"></param>
@@ -44,8 +45,8 @@ namespace fbchat_sharp.API
         /// <param name="approval_mode"></param>
         /// <param name="approval_requests"></param>
         /// <param name="join_link"></param>
-        public FB_Marketplace(string uid, FB_Image photo = null, string name = null, int message_count = 0, string last_message_timestamp = null, FB_Plan plan = null, ISet<string> participants = null, Dictionary<string, string> nicknames = null, string color = null, JToken emoji = null, ISet<string> admins = null, bool approval_mode = false, ISet<string> approval_requests = null, string join_link = null)
-            : base(ThreadType.MARKETPLACE, uid, photo, name, message_count: message_count, last_message_timestamp: last_message_timestamp, plan: plan)
+        public FB_Marketplace(string uid, Session session, FB_Image photo = null, string name = null, int message_count = 0, string last_message_timestamp = null, FB_Plan plan = null, ISet<string> participants = null, Dictionary<string, string> nicknames = null, string color = null, JToken emoji = null, ISet<string> admins = null, bool approval_mode = false, ISet<string> approval_requests = null, string join_link = null)
+            : base(ThreadType.MARKETPLACE, uid, session, photo, name, message_count: message_count, last_message_timestamp: last_message_timestamp, plan: plan)
         {
             this.participants = participants ?? new HashSet<string>();
             this.nicknames = nicknames ?? new Dictionary<string, string>();
@@ -61,13 +62,14 @@ namespace fbchat_sharp.API
         /// Represents a Facebook marketplace. Inherits `Thread`
         /// </summary>
         /// <param name="uid"></param>
-        public FB_Marketplace(string uid) :
-            base(ThreadType.MARKETPLACE, uid)
+        /// <param name="session"></param>
+        public FB_Marketplace(string uid, Session session) :
+            base(ThreadType.MARKETPLACE, uid, session)
         {
 
         }
 
-        public static FB_Marketplace _from_graphql(JToken data)
+        public static FB_Marketplace _from_graphql(Session session, JToken data)
         {
             if (data.get("image") == null)
                 data["image"] = new JObject(new JProperty("uri", ""));
@@ -78,6 +80,7 @@ namespace fbchat_sharp.API
 
             return new FB_Marketplace(
                 uid: data.get("thread_key")?.get("thread_fbid")?.Value<string>(),
+                session: session,
                 participants: new HashSet<string>(data.get("all_participants")?.get("nodes")?.Select(node => node.get("messaging_actor")?.get("id")?.Value<string>())),
                 nicknames: (Dictionary<string, string>)c_info.GetValueOrDefault("nicknames"),
                 color: (string)c_info.GetValueOrDefault("color"),

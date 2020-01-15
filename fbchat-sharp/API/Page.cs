@@ -23,6 +23,7 @@ namespace fbchat_sharp.API
         /// Represents a Facebook page. Inherits `Thread`
         /// </summary>
         /// <param name="uid"></param>
+        /// <param name="session"></param>
         /// <param name="photo"></param>
         /// <param name="name"></param>
         /// <param name="message_count"></param>
@@ -32,8 +33,8 @@ namespace fbchat_sharp.API
         /// <param name="likes"></param>
         /// <param name="sub_title"></param>
         /// <param name="category"></param>
-        public FB_Page(string uid, FB_Image photo = null, string name = null, int message_count = 0, FB_Plan plan = null, string url = null, string city = null, int likes = 0, string sub_title = null, string category = null)
-            : base(ThreadType.PAGE, uid, photo, name, message_count: message_count, plan: plan)
+        public FB_Page(string uid, Session session, FB_Image photo = null, string name = null, int message_count = 0, FB_Plan plan = null, string url = null, string city = null, int likes = 0, string sub_title = null, string category = null)
+            : base(ThreadType.PAGE, uid, session, photo, name, message_count: message_count, plan: plan)
         {
             // Represents a Facebook page. Inherits `Thread`
             this.url = url;
@@ -46,13 +47,13 @@ namespace fbchat_sharp.API
         /// <summary>
         /// Represents a Facebook page. Inherits `Thread`
         /// </summary>
-        public FB_Page(string uid) :
-            base(ThreadType.PAGE, uid)
+        public FB_Page(string uid, Session session) :
+            base(ThreadType.PAGE, uid, session)
         {
 
         }
 
-        public static FB_Page _from_graphql(JToken data)
+        public static FB_Page _from_graphql(Session session, JToken data)
         {
             if (data.get("profile_picture") == null)
                 data["profile_picture"] = new JObject(new JProperty("uri", ""));
@@ -65,6 +66,7 @@ namespace fbchat_sharp.API
 
             return new FB_Page(
                 uid: data.get("id")?.Value<string>(),
+                session: session,
                 url: data.get("url")?.Value<string>(),
                 city: data.get("city")?.get("name")?.Value<string>(),
                 category: data.get("category_type")?.Value<string>(),
