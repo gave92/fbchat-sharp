@@ -1885,17 +1885,18 @@ namespace fbchat_sharp.API
                     {
                         var i = d.get("deltaMessageReply");
                         metadata = i.get("message")?.get("messageMetadata");
-                        var thread = getThreadIdAndThreadType(metadata);
-                        var message = FB_Message._from_reply(i.get("message"), thread.Item1);
-                        message.replied_to = FB_Message._from_reply(i.get("repliedToMessage"), thread.Item1);
+                        var threadIdAndType = getThreadIdAndThreadType(metadata);
+                        var thread = (FB_Thread)Activator.CreateInstance(threadIdAndType.Item2._to_class(), threadIdAndType.Item1, _session);
+                        var message = FB_Message._from_reply(i.get("message"), thread);
+                        message.replied_to = FB_Message._from_reply(i.get("repliedToMessage"), thread);
                         message.reply_to_id = message.replied_to.uid;
                         await this.onMessage(
                             mid: message.uid,
                             author_id: message.author,
                             message: message.text,
                             message_object: message,
-                            thread_id: thread.Item1,
-                            thread_type: thread.Item2,
+                            thread_id: threadIdAndType.Item1,
+                            thread_type: threadIdAndType.Item2,
                             ts: long.Parse(message.timestamp),
                             metadata: metadata,
                             msg: m
@@ -1906,21 +1907,22 @@ namespace fbchat_sharp.API
             // New message
             else if (delta.get("class")?.Value<string>() == "NewMessage")
             {
-                var thread = getThreadIdAndThreadType(metadata);
+                var threadIdAndType = getThreadIdAndThreadType(metadata);
+                var thread = (FB_Thread)Activator.CreateInstance(threadIdAndType.Item2._to_class(), threadIdAndType.Item1, _session);
                 await this.onMessage(
                     mid: mid,
                     author_id: author_id,
                     message: delta.get("body")?.Value<string>() ?? "",
                     message_object: FB_Message._from_pull(
                         delta,
-                        thread.Item1,
+                        thread,
                         mid: mid,
                         tags: metadata.get("tags")?.ToObject<List<string>>(),
                         author: author_id,
                         timestamp: ts.ToString()
                     ),
-                    thread_id: thread.Item1,
-                    thread_type: thread.Item2,
+                    thread_id: threadIdAndType.Item1,
+                    thread_type: threadIdAndType.Item2,
                     ts: ts,
                     metadata: metadata,
                     msg: m

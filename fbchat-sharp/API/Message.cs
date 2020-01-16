@@ -157,14 +157,16 @@ namespace fbchat_sharp.API
     /// </summary>
     public class FB_Message
     {
+        /// The session to use when making requests
+        public Session session { get; set; }
+        /// The message ID
+        public string uid { get; set; }
         /// The actual message
         public string text { get; set; }
         /// A list of `Mention` objects
         public List<FB_Mention> mentions { get; set; }
         /// A `EmojiSize`. Size of a sent emoji
-        public EmojiSize? emoji_size { get; set; }
-        /// The message ID
-        public string uid { get; set; }
+        public EmojiSize? emoji_size { get; set; }        
         /// ID of the sender
         public string author { get; set; }
         /// Timestamp of when the message was sent
@@ -197,6 +199,7 @@ namespace fbchat_sharp.API
         /// <summary>
         /// Facebook messenger message class
         /// </summary>
+        /// <param name="session"></param>
         /// <param name="text"></param>
         /// <param name="mentions"></param>
         /// <param name="emoji_size"></param>
@@ -215,8 +218,9 @@ namespace fbchat_sharp.API
         /// <param name="forwarded"></param>
         /// <param name="is_from_me"></param>
         /// <param name="thread_id"></param>
-        public FB_Message(string text = null, List<FB_Mention> mentions = null, EmojiSize? emoji_size = null, string uid = null, string author = null, string timestamp = null, bool is_read = false, List<string> read_by = null, Dictionary<string, MessageReaction> reactions = null, FB_Sticker sticker = null, List<FB_Attachment> attachments = null, List<FB_QuickReply> quick_replies = null, bool unsent = false, string reply_to_id = null, FB_Message replied_to = null, bool forwarded = false, bool is_from_me = false, string thread_id = null)
+        public FB_Message(Session session, string text = null, List<FB_Mention> mentions = null, EmojiSize? emoji_size = null, string uid = null, string author = null, string timestamp = null, bool is_read = false, List<string> read_by = null, Dictionary<string, MessageReaction> reactions = null, FB_Sticker sticker = null, List<FB_Attachment> attachments = null, List<FB_QuickReply> quick_replies = null, bool unsent = false, string reply_to_id = null, FB_Message replied_to = null, bool forwarded = false, bool is_from_me = false, string thread_id = null)
         {
+            this.session = session;
             this.text = text;
             this.mentions = mentions ?? new List<FB_Mention>();
             this.emoji_size = emoji_size;
@@ -339,10 +343,10 @@ namespace fbchat_sharp.API
              * :raises: FBchatException if request failed
              * */
             var message_info = ((JToken)await thread._forcedFetch(mid))?.get("message");
-            return FB_Message._from_graphql(message_info, thread.uid);
+            return FB_Message._from_graphql(message_info, thread);
         }
 
-        public static FB_Message _from_graphql(JToken data, string thread_id)
+        public static FB_Message _from_graphql(JToken data, FB_Thread thread)
         {
             if (data["message_sender"] == null)
                 data["message_sender"] = new JObject(new JProperty("id", 0));
@@ -352,6 +356,7 @@ namespace fbchat_sharp.API
             var tags = data.get("tags_list")?.ToObject<List<string>>();
 
             var rtn = new FB_Message(
+                session: thread.session,
                 text: data.get("message")?.get("text")?.Value<string>(),
                 mentions: data.get("message")?.get("ranges")?.Select((m) =>
                     FB_Mention._from_range(m)
@@ -361,7 +366,7 @@ namespace fbchat_sharp.API
 
             rtn.forwarded = FB_Message._get_forwarded_from_tags(tags);
             rtn.uid = data.get("message_id")?.Value<string>();
-            rtn.thread_id = thread_id; // Added
+            rtn.thread_id = thread.uid; // Added
             rtn.author = data.get("message_sender")?.get("id")?.Value<string>();
             rtn.timestamp = data.get("timestamp_precise")?.Value<string>();
             rtn.unsent = false;
@@ -404,18 +409,19 @@ namespace fbchat_sharp.API
             }
             if (data.get("replied_to_message") != null)
             {
-                rtn.replied_to = FB_Message._from_graphql(data.get("replied_to_message")?.get("message"), thread_id);
+                rtn.replied_to = FB_Message._from_graphql(data.get("replied_to_message")?.get("message"), thread);
                 rtn.reply_to_id = rtn.replied_to.uid;
             }
 
             return rtn;
         }
 
-        public static FB_Message _from_reply(JToken data, string thread_id)
+        public static FB_Message _from_reply(JToken data, FB_Thread thread)
         {
             var tags = data.get("messageMetadata")?.get("tags")?.ToObject<List<string>>();
 
             var rtn = new FB_Message(
+                session: thread.session,
                 text: data.get("body")?.Value<string>(),
                 mentions: JToken.Parse(data.get("data")?.get("prng")?.Value<string>() ?? "{}")?.Select((m) =>
                     FB_Mention._from_prng(m)
@@ -425,7 +431,7 @@ namespace fbchat_sharp.API
             var metadata = data.get("messageMetadata");
             rtn.forwarded = FB_Message._get_forwarded_from_tags(tags);
             rtn.uid = metadata?.get("messageId")?.Value<string>();
-            rtn.thread_id = thread_id; // Added
+            rtn.thread_id = thread.uid; // Added
             rtn.author = metadata?.get("actorFbId")?.Value<string>();
             rtn.timestamp = metadata?.get("timestamp")?.Value<string>();
             rtn.unsent = false;
@@ -465,12 +471,13 @@ namespace fbchat_sharp.API
             return rtn;
         }
 
-        public static FB_Message _from_pull(JToken data, string thread_id, string mid = null, List<string> tags = null, string author = null, string timestamp = null)
+        public static FB_Message _from_pull(JToken data, FB_Thread thread, string mid = null, List<string> tags = null, string author = null, string timestamp = null)
         {
             var rtn = new FB_Message(
+                session: thread.session,
                 text: data.get("body")?.Value<string>());
             rtn.uid = mid;
-            rtn.thread_id = thread_id; // Added
+            rtn.thread_id = thread.uid; // Added
             rtn.author = author;
             rtn.timestamp = timestamp;
 

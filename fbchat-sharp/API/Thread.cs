@@ -81,7 +81,7 @@ namespace fbchat_sharp.API
     /// </summary>
     public class FB_Thread
     {
-        /// The profile url
+        /// The session to use when making requests
         public Session session { get; set; }
         /// The unique identifier of the thread. Can be used a `thread_id`. See :ref:`intro_threads` for more info
         public string uid { get; set; }
@@ -214,7 +214,7 @@ namespace fbchat_sharp.API
         /// </summary>
         public async Task<string> sendText(string message = null)
         {
-            return await this.send(new FB_Message(text: message));
+            return await this.send(new FB_Message(session: this.session, text: message));
         }
 
         /// <summary>
@@ -223,7 +223,7 @@ namespace fbchat_sharp.API
         [Obsolete("Deprecated. Use :func:`fbchat.Client.send` instead")]
         public async Task<string> sendEmoji(string emoji = null, EmojiSize size = EmojiSize.SMALL)
         {
-            return await this.send(new FB_Message(text: emoji, emoji_size: size));
+            return await this.send(new FB_Message(session: this.session, text: emoji, emoji_size: size));
         }
 
         /// <summary>
@@ -268,7 +268,7 @@ namespace fbchat_sharp.API
             if (quick_reply is FB_QuickReplyText)
             {
                 return await this.send(
-                    new FB_Message(text: ((FB_QuickReplyText)quick_reply).title, quick_replies: new List<FB_QuickReply>() { quick_reply })
+                    new FB_Message(session: this.session, text: ((FB_QuickReplyText)quick_reply).title, quick_replies: new List<FB_QuickReply>() { quick_reply })
                 );
             }
             else if (quick_reply is FB_QuickReplyLocation)
@@ -285,7 +285,7 @@ namespace fbchat_sharp.API
                 //    payload = (await this.getEmails())[0];
                 quick_reply.external_payload = quick_reply.payload;
                 quick_reply.payload = payload;
-                return await this.send(new FB_Message(text: payload, quick_replies: new List<FB_QuickReply>() { quick_reply }));
+                return await this.send(new FB_Message(session: this.session, text: payload, quick_replies: new List<FB_QuickReply>() { quick_reply }));
             }
             else if (quick_reply is FB_QuickReplyPhoneNumber)
             {
@@ -293,7 +293,7 @@ namespace fbchat_sharp.API
                 //    payload = (await this.getPhoneNumbers())[0];
                 quick_reply.external_payload = quick_reply.payload;
                 quick_reply.payload = payload;
-                return await this.send(new FB_Message(text: payload, quick_replies: new List<FB_QuickReply>() { quick_reply }));
+                return await this.send(new FB_Message(session: this.session, text: payload, quick_replies: new List<FB_QuickReply>() { quick_reply }));
             }
             return null;
         }
@@ -467,7 +467,7 @@ namespace fbchat_sharp.API
                 throw new FBchatException(string.Format("Could not fetch thread {0}", this.uid));
             }
 
-            var messages = j?.get("message_thread")?.get("messages")?.get("nodes")?.Select(message => FB_Message._from_graphql(message, this.uid))?.Reverse()?.ToList();
+            var messages = j?.get("message_thread")?.get("messages")?.get("nodes")?.Select(message => FB_Message._from_graphql(message, this))?.Reverse()?.ToList();
 
             var read_receipts = j?.get("message_thread")?.get("read_receipts")?.get("nodes");
             foreach (var message in messages)
