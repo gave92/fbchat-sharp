@@ -803,22 +803,15 @@ namespace fbchat_sharp.API
                 "/messaging/save_thread_emoji/?source=thread_settings&dpr=1", data);
         }
 
-        [Obsolete("Deprecated. Use :func:`fbchat.Client.createPlan` instead")]
-        public async Task eventReminder(string time, string title, string location = "", string location_id = "")
-        {
-            /*
-             * Deprecated.Use :func:`fbchat.Client.createPlan` instead
-             * */
-            var plan = new FB_Plan(session: session, time: time, title: title, location: location, location_id: location_id);
-            await this.createPlan(plan: plan);
-        }
-
         /// <summary>
         /// Sets a plan
         /// </summary>
-        /// <param name="plan">Plan to set</param>
+        /// <param name="name"></param>
+        /// <param name="time"></param>
+        /// <param name="location_name"></param>
+        /// <param name="location_id"></param>
         /// <returns></returns>
-        public async Task createPlan(FB_Plan plan)
+        public async Task createPlan(string name, string time, string location_name = null, string location_id = null)
         {
             /*
              * Sets a plan
@@ -826,21 +819,7 @@ namespace fbchat_sharp.API
              * :type plan: Plan
              * : raises: FBchatException if request failed
              * */
-            var data = new Dictionary<string, object>() {
-                { "event_type", "EVENT" },
-                {"event_time", plan.time},
-                { "title", plan.title},
-                {"thread_id", this.uid},
-                {"location_id", plan.location_id ?? ""},
-                {"location_name", plan.location ?? ""},
-                {"acontext", Client_Constants.ACONTEXT},
-            };
-
-            var j = await this.session._payload_post("/ajax/eventreminder/create", data);
-            if (j.get("error") != null)
-                throw new FBchatFacebookError(
-                        string.Format("Failed creating plan: {0}", j.get("error")),
-                        fb_error_message: j.get("error")?.Value<string>());
+            await FB_Plan._create(this, name, time, location_name, location_id);
         }
 
         /// <summary>

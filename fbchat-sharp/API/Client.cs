@@ -899,29 +899,6 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Fetches a `Plan` object from the plan id
-        /// </summary>
-        /// <param name="plan_id">Plan ID to fetch from</param>
-        /// <returns></returns>
-        public async Task<FB_Plan> fetchPlanInfo(string plan_id)
-        {
-            /*
-             * Fetches a `Plan` object from the plan id
-             * :param plan_id: Plan ID to fetch from
-             * :return: `Plan` object
-             * :rtype: Plan
-             * :raises: FBchatException if request failed
-             * */
-
-            var data = new Dictionary<string, object>()
-            {
-                { "event_reminder_id", plan_id }
-            };
-            var j = await this._payload_post("/ajax/eventreminder", data);
-            return FB_Plan._from_fetch(j, _session);
-        }
-
-        /// <summary>
         /// Gets friend active status as an `ActiveStatus` object.
         /// Returns ``null`` if status isn't known.
         /// .. warning::
@@ -965,75 +942,10 @@ namespace fbchat_sharp.API
                 this._buddylist[buddy.get("id")?.Value<string>()] = FB_ActiveStatus._from_buddylist_update(buddy);
             return j.get("buddylist")?.Select((b) => b.get("id")?.Value<string>())?.ToList();
         }
-        
+
         #endregion
 
         #region SEND METHODS
-
-        /// <summary>
-        /// Edits a plan
-        /// </summary>
-        /// <param name="plan">Plan to edit</param>
-        /// <param name="new_plan">New plan</param>
-        /// <returns></returns>
-        public async Task editPlan(FB_Plan plan, FB_Plan new_plan)
-        {
-            /*
-             * Edits a plan
-             * : param plan: Plan to edit
-             * : param new_plan: New plan
-             * :type plan: Plan
-             * : raises: FBchatException if request failed
-             * */
-            var data = new Dictionary<string, object>() {
-                { "event_reminder_id", plan.uid},
-                {"delete", "false"},
-                {"date", new_plan.time},
-                {"location_name", new_plan.location ?? ""},
-                {"location_id", new_plan.location_id ?? ""},
-                {"title", new_plan.title},
-                {"acontext", Client_Constants.ACONTEXT },
-            };
-            var j = await this._payload_post("/ajax/eventreminder/submit", data);
-        }
-
-        /// <summary>
-        /// Deletes a plan
-        /// </summary>
-        /// <param name="plan">Plan to delete.</param>
-        /// <returns></returns>
-        public async Task deletePlan(FB_Plan plan)
-        {
-            /*
-             * Deletes a plan
-             * : param plan: Plan to delete
-             * : raises: FBchatException if request failed
-             * */
-            var data = new Dictionary<string, object>() { { "event_reminder_id", plan.uid }, { "delete", "true" }, { "acontext", Client_Constants.ACONTEXT } };
-            var j = await this._payload_post("/ajax/eventreminder/submit", data);
-        }
-
-        /// <summary>
-        /// Changes participation in a plan
-        /// </summary>
-        /// <param name="plan">Plan to take part in or not</param>
-        /// <param name="take_part">Whether to take part in the plan</param>
-        /// <returns></returns>
-        public async Task changePlanParticipation(FB_Plan plan, bool take_part = true)
-        {
-            /*
-             * Changes participation in a plan
-             * :param plan: Plan to take part in or not
-             * :param take_part: Whether to take part in the plan
-             * :raises: FBchatException if request failed
-             * */
-            var data = new Dictionary<string, object>() {
-                { "event_reminder_id", plan.uid },
-                {"guest_state", take_part ? "GOING" : "DECLINED"},
-                { "acontext", Client_Constants.ACONTEXT },
-            };
-            var j = await this._payload_post("/ajax/eventreminder/rsvp", data);
-        }        
 
         /// <summary>
         /// Updates a poll vote
