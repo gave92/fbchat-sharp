@@ -985,166 +985,7 @@ namespace fbchat_sharp.API
              * */
             var data = new Dictionary<string, object>() { { "message_id", mid } };
             var j = await this._payload_post("/messaging/unsend_message/?dpr=1", data);
-        }
-
-        /// <summary>
-        /// Forwards an attachment
-        /// </summary>
-        /// <param name="attachment_id">Attachment ID to forward</param>
-        /// <param name="thread_id">User/Group ID to send to.See :ref:`intro_threads`</param>
-        /// <returns></returns>
-        public async Task forwardAttachment(string attachment_id, string thread_id = null)
-        {
-            /*
-             * Forwards an attachment
-             * :param attachment_id: Attachment ID to forward
-             * :param thread_id: User/Group ID to send to.See :ref:`intro_threads`
-             * :raises: FBchatException if request failed
-             * */
-            var data = new Dictionary<string, object>(){
-                { "attachment_id", attachment_id },
-                { string.Format("recipient_map[{0]",Utils.generateOfflineThreadingID()), thread_id }
-            };
-            var j = await this._payload_post("/mercury/attachments/forward/", data);
-            if (j.get("success") == null)
-                throw new FBchatFacebookError(
-                string.Format("Failed forwarding attachment: {0}", j.get("error")),
-                fb_error_message: j.get("error")?.Value<string>()
-            );
-        }
-
-        /// <summary>
-        /// Creates a group with the given ids
-        /// </summary>
-        /// <param name="message">The initial message</param>
-        /// <param name="user_ids">A list of users to create the group with.</param>
-        /// <returns>ID of the new group</returns>
-        public async Task<string> createGroup(string message, List<string> user_ids)
-        {
-            /*
-             * Creates a group with the given ids
-             * :param message: The initial message
-             * :param user_ids: A list of users to create the group with.
-             * :return: ID of the new group
-             * :raises: FBchatException if request failed
-             * */
-            var data = new FB_Message(message)._to_send_data();
-
-            if (user_ids.Count < 2)
-                throw new FBchatUserError("Error when creating group: Not enough participants");
-
-            foreach (var obj in user_ids.Concat(new string[] { this._uid }).Select((x, index) => new { user_id = x, i = index }))
-                data[string.Format("specific_to_list[{0}]", obj.i)] = string.Format("fbid:{0}", obj.user_id);
-
-            var req = await this._session._do_send_request(data, get_thread_id: true);
-            if (req.THR == null)
-                throw new FBchatException(
-                    "Error when creating group: No thread_id could be found"
-                );
-            return req.THR;
-        }
-
-        /// <summary>
-        /// Changes title of a thread.
-        /// If this is executed on a user thread, this will change the nickname of that user, effectively changing the title
-        /// </summary>
-        /// <param name="title">New group thread title</param>
-        /// <param name="thread_id">Group ID to change title of. See: ref:`intro_threads`</param>
-        /// <param name="thread_type"></param>
-        /// <returns></returns>
-        public async Task changeThreadTitle(string title, string thread_id = null, ThreadType? thread_type = null)
-        {
-            /*
-             * Changes title of a thread.
-             * If this is executed on a user thread, this will change the nickname of that user, effectively changing the title
-             * :param title: New group thread title
-             * :param thread_id: Group ID to change title of. See: ref:`intro_threads`
-             * :param thread_type: See: ref:`intro_threads`
-             * :type thread_type: ThreadType
-             * : raises: FBchatException if request failed
-             * */
-            if (thread_type == ThreadType.USER)
-                // The thread is a user, so we change the user's nickname
-                await this.changeNickname(
-                    title, thread_id, thread_id: thread_id, thread_type: thread_type
-                );
-
-            var data = new Dictionary<string, object>() { { "thread_name", title }, { "thread_id", thread_id } };
-            var j = await this._payload_post("/messaging/set_thread_name/?dpr=1", data);
-        }
-
-        /// <summary>
-        /// Changes the nickname of a user in a thread
-        /// </summary>
-        /// <param name="nickname">New nickname</param>
-        /// <param name="user_id">User that will have their nickname changed</param>
-        /// <param name="thread_id">User / Group ID to change color of</param>
-        /// <param name="thread_type"></param>
-        /// <returns></returns>
-        public async Task changeNickname(
-            string nickname, string user_id, string thread_id = null, ThreadType? thread_type = null
-        )
-        {
-            /*
-             * Changes the nickname of a user in a thread
-             * :param nickname: New nickname
-             * :param user_id: User that will have their nickname changed
-             * : param thread_id: User / Group ID to change color of.See :ref:`intro_threads`
-             * :param thread_type: See: ref:`intro_threads`
-             * :type thread_type: ThreadType
-             * : raises: FBchatException if request failed
-             * */
-            var data = new Dictionary<string, object>() {
-                {    "nickname", nickname },
-                { "participant_id", user_id },
-                { "thread_or_other_fbid", thread_id }
-            };
-            var j = await this._payload_post(
-                "/messaging/save_thread_nickname/?source=thread_settings&dpr=1", data);
-        }
-
-        /// <summary>
-        /// Changes thread color
-        /// </summary>
-        /// <param name="color">New thread color</param>
-        /// <param name="thread_id">User / Group ID to change color of.</param>
-        /// <returns></returns>
-        public async Task changeThreadColor(string color, string thread_id = null)
-        {
-            /*
-             * Changes thread color
-             * : param color: New thread color
-             * : param thread_id: User / Group ID to change color of.See :ref:`intro_threads`
-             * :type color: ThreadColor
-             * : raises: FBchatException if request failed
-             * */
-            var data = new Dictionary<string, object>() {
-                { "color_choice", color != ThreadColor.MESSENGER_BLUE ? color : ""},
-                { "thread_or_other_fbid", thread_id}
-            };
-            var j = await this._payload_post(
-                "/messaging/save_thread_color/?source=thread_settings&dpr=1", data);
-        }
-
-        /// <summary>
-        /// Changes thread color
-        /// </summary>
-        /// <param name="emoji">While changing the emoji, the Facebook web client actually sends multiple different requests, though only this one is required to make the change</param>
-        /// <param name="thread_id">User / Group ID to change emoji of.See :ref:`intro_threads`</param>
-        /// <returns></returns>
-        public async Task changeThreadEmoji(string emoji, string thread_id = null)
-        {
-            /*
-             * Changes thread color
-             * Trivia: While changing the emoji, the Facebook web client actually sends multiple different requests, though only this one is required to make the change
-             * : param emoji: New thread emoji
-             * : param thread_id: User / Group ID to change emoji of.See :ref:`intro_threads`
-             * :raises: FBchatException if request failed
-             * */
-            var data = new Dictionary<string, object>() { { "emoji_choice", emoji }, { "thread_or_other_fbid", thread_id } };
-            var j = await this._payload_post(
-                "/messaging/save_thread_emoji/?source=thread_settings&dpr=1", data);
-        }
+        }        
 
         /// <summary>
         /// Reacts to a message, or removes reaction
@@ -1172,39 +1013,7 @@ namespace fbchat_sharp.API
             var payl = new Dictionary<string, object>() { { "doc_id", 1491398900900362 }, { "variables", JsonConvert.SerializeObject(new Dictionary<string, object>() { { "data", data } }) } };
             var j = await this._payload_post("/webgraphql/mutation", payl);
             Utils.handle_graphql_errors(j);
-        }
-
-        /// <summary>
-        /// Sets a plan
-        /// </summary>
-        /// <param name="plan">Plan to set</param>
-        /// <param name="thread_id">User / Group ID to send plan to.</param>
-        /// <returns></returns>
-        public async Task createPlan(FB_Plan plan, string thread_id = null)
-        {
-            /*
-             * Sets a plan
-             * : param plan: Plan to set
-             * : param thread_id: User / Group ID to send plan to.See :ref:`intro_threads`
-             * :type plan: Plan
-             * : raises: FBchatException if request failed
-             * */
-            var data = new Dictionary<string, object>() {
-                { "event_type", "EVENT" },
-                {"event_time", plan.time},
-                { "title", plan.title},
-                {"thread_id", thread_id},
-                {"location_id", plan.location_id ?? ""},
-                {"location_name", plan.location ?? ""},
-                {"acontext", Client_Constants.ACONTEXT},
-            };
-
-            var j = await this._payload_post("/ajax/eventreminder/create", data);
-            if (j.get("error") != null)
-                throw new FBchatFacebookError(
-                        string.Format("Failed creating plan: {0}", j.get("error")),
-                        fb_error_message: j.get("error")?.Value<string>());
-        }
+        }        
 
         /// <summary>
         /// Edits a plan
@@ -1269,54 +1078,7 @@ namespace fbchat_sharp.API
                 { "acontext", Client_Constants.ACONTEXT },
             };
             var j = await this._payload_post("/ajax/eventreminder/rsvp", data);
-        }
-
-        [Obsolete("Deprecated. Use :func:`fbchat.Client.createPlan` instead")]
-        public async Task eventReminder(string thread_id, string time, string title, string location = "", string location_id = "")
-        {
-            /*
-             * Deprecated.Use :func:`fbchat.Client.createPlan` instead
-             * */
-            var plan = new FB_Plan(time: time, title: title, location: location, location_id: location_id);
-            await this.createPlan(plan: plan, thread_id: thread_id);
-        }
-
-        /// <summary>
-        /// Creates poll in a group thread
-        /// </summary>
-        /// <param name="poll">Poll to create</param>
-        /// <param name="thread_id">User / Group ID to create poll in.</param>
-        /// <returns></returns>
-        public async Task createPoll(FB_Poll poll, string thread_id = null)
-        {
-            /*
-             * Creates poll in a group thread
-             * : param poll: Poll to create
-             * : param thread_id: User / Group ID to create poll in. See: ref:`intro_threads`
-             * :type poll: Poll
-             * : raises: FBchatException if request failed
-             * */
-
-            // We're using ordered dicts, because the Facebook endpoint that parses the POST
-            // parameters is badly implemented, and deals with ordering the options wrongly.
-            // If you can find a way to fix this for the endpoint, or if you find another
-            // endpoint, please do suggest it ;)
-            var data = new Dictionary<string, object>(){
-                { "question_text", poll.title }, {"target_id", thread_id }};
-
-            foreach (var obj in poll.options.Select((x, index) => new { option = x, i = index }))
-            {
-                data[string.Format("option_text_array[{0}]", obj.i)] = obj.option.text;
-                data[string.Format("option_is_selected_array[{0}]", obj.i)] = (obj.option.vote ? 1 : 0).ToString();
-
-                var j = await this._payload_post("/messaging/group_polling/create_poll/?dpr=1", data);
-                if (j.get("status")?.Value<string>() != "success")
-                    throw new FBchatFacebookError(
-                        string.Format("Failed creating poll: {0}", j.get("errorTitle")),
-                        fb_error_message: j.get("errorMessage")?.Value<string>()
-                );
-            }
-        }
+        }        
 
         /// <summary>
         /// Updates a poll vote
@@ -1357,34 +1119,7 @@ namespace fbchat_sharp.API
                     string.Format("Failed updating poll vote: {0}", j.get("errorTitle")),
                     fb_error_message: j.get("errorMessage")?.Value<string>()
                 );
-        }
-
-        /// <summary>
-        /// Sets users typing status in a thread
-        /// </summary>
-        /// <param name="status">Specify the typing status</param>
-        /// <param name="thread_id">User / Group ID to change status in. See: ref:`intro_threads`</param>
-        /// <param name="thread_type">See: ref:`intro_threads`</param>
-        /// <returns></returns>
-        public async Task setTypingStatus(TypingStatus status, string thread_id = null, ThreadType? thread_type = null)
-        {
-            /*
-             * Sets users typing status in a thread
-             * :param status: Specify the typing status
-             * :param thread_id: User / Group ID to change status in. See: ref:`intro_threads`
-             * :param thread_type: See: ref:`intro_threads`
-             * :type status: TypingStatus
-             * : type thread_type: ThreadType
-             * : raises: FBchatException if request failed
-             * */
-            var data = new Dictionary<string, object>() {
-                { "typ", (int)status },
-                { "thread", thread_id },
-                { "to", thread_type == ThreadType.USER ? thread_id : ""},
-                {"source", "mercury-chat"}
-            };
-            var j = await this._payload_post("/ajax/messaging/typ.php", data);
-        }
+        }        
 
         #endregion
 
@@ -1547,24 +1282,7 @@ namespace fbchat_sharp.API
                 "/ajax/mercury/delete_thread.php?dpr=1", data_delete
             );
             return true;
-        }
-
-        /// <summary>
-        /// Mark a thread as spam and delete it
-        /// </summary>
-        /// <param name="thread_id">User/Group ID to mark as spam.See :ref:`intro_threads`</param>
-        /// <returns>true</returns>
-        public async Task<bool> markAsSpam(string thread_id = null)
-        {
-            /*
-             * Mark a thread as spam and delete it
-             * :param thread_id: User/Group ID to mark as spam.See :ref:`intro_threads`
-             * :return: true
-             * :raises: FBchatException if request failed
-             * */
-            var j = await this._payload_post("/ajax/mercury/mark_spam.php?dpr=1", new Dictionary<string, object>() { { "id", thread_id } });
-            return true;
-        }
+        }        
 
         /// <summary>
         /// Deletes specifed messages
