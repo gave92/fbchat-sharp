@@ -948,5 +948,89 @@ namespace fbchat_sharp.API
             var j = await this.session._payload_post("/ajax/mercury/mark_spam.php?dpr=1", new Dictionary<string, object>() { { "id", this.uid } });
             return true;
         }
+
+        /// <summary>
+        /// Mutes thread
+        /// </summary>
+        /// <param name="mute_time">Mute time in seconds, leave blank to mute forever</param>
+        /// <returns></returns>
+        public async Task muteThread(int mute_time = -1)
+        {
+            /*
+             * Mutes thread
+             * :param mute_time: Mute time in seconds, leave blank to mute forever
+             * */
+            var data = new Dictionary<string, object> { { "mute_settings", mute_time.ToString() }, { "thread_fbid", this.uid } };
+            var j = await this.session._payload_post("/ajax/mercury/change_mute_thread.php?dpr=1", data);
+        }
+
+        /// <summary>
+        /// Unmutes thread
+        /// </summary>
+        /// <returns></returns>
+        public async Task unmuteThread(string thread_id = null)
+        {
+            /*
+             * Unmutes thread
+             * */
+            await this.muteThread(0);
+        }
+
+        /// <summary>
+        /// Mutes thread reactions
+        /// </summary>
+        /// <param name="mute">Boolean.true to mute, false to unmute</param>
+        /// <returns></returns>
+        public async Task muteThreadReactions(bool mute = true)
+        {
+            /*
+             * Mutes thread reactions
+             * :param mute: Boolean.true to mute, false to unmute
+             * :param thread_id: User/Group ID to mute.See :ref:`intro_threads`
+             * */
+            var data = new Dictionary<string, object> { { "reactions_mute_mode", mute ? 1 : 0 }, { "thread_fbid", this.uid } };
+            var j = await this.session._payload_post(
+                "/ajax/mercury/change_reactions_mute_thread/?dpr=1", data
+            );
+        }
+
+        /// <summary>
+        /// Unmutes thread reactions
+        /// </summary>
+        /// <returns>User/Group ID to unmute.See :ref:`intro_threads`</returns>
+        public async Task unmuteThreadReactions()
+        {
+            /*
+             * Unmutes thread reactions
+             * */
+            await this.muteThreadReactions(false);
+        }
+
+        /// <summary>
+        /// Mutes thread mentions
+        /// </summary>
+        /// <param name="mute">Boolean.true to mute, false to unmute</param>
+        /// <returns></returns>
+        public async Task muteThreadMentions(bool mute = true)
+        {
+            /*
+             * Mutes thread mentions
+             * :param mute: Boolean.true to mute, false to unmute
+             * */
+            var data = new Dictionary<string, object> { { "mentions_mute_mode", mute ? 1 : 0 }, { "thread_fbid", this.uid } };
+            var j = await this.session._payload_post("/ajax/mercury/change_mentions_mute_thread/?dpr=1", data);
+        }
+
+        /// <summary>
+        /// Unmutes thread mentions
+        /// </summary>
+        /// <returns></returns>
+        public async Task unmuteThreadMentions()
+        {
+            /*
+             * Unmutes thread mentions
+             * */
+            await this.muteThreadMentions(false);
+        }
     }
 }
