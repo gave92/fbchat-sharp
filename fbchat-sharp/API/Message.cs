@@ -140,7 +140,7 @@ namespace fbchat_sharp.API
             );
         }
 
-        public Dictionary<string,object> _to_send_data(int i)
+        public Dictionary<string, object> _to_send_data(int i)
         {
             var data = new Dictionary<string, object>();
             data[string.Format("profile_xmd[{0}][id]", i)] = this.thread_id;
@@ -264,7 +264,7 @@ namespace fbchat_sharp.API
             return tags.Any((tag) => tag.Contains("forward") || tag.Contains("copy"));
         }
 
-        public Dictionary<string,object> _to_send_data()
+        public Dictionary<string, object> _to_send_data()
         {
             var data = new Dictionary<string, object>();
 
@@ -332,7 +332,7 @@ namespace fbchat_sharp.API
 
             var rtn = new FB_Message(
                 text: data.get("message")?.get("text")?.Value<string>(),
-                mentions: data.get("message")?.get("ranges")?.Select((m) => 
+                mentions: data.get("message")?.get("ranges")?.Select((m) =>
                     FB_Mention._from_range(m)
                 ).ToList(),
                 emoji_size: EmojiSizeMethods._from_tags(tags),
@@ -383,7 +383,7 @@ namespace fbchat_sharp.API
             }
             if (data.get("replied_to_message") != null)
             {
-                rtn.replied_to = FB_Message._from_graphql(data.get("replied_to_message")?.get("message"),thread_id);
+                rtn.replied_to = FB_Message._from_graphql(data.get("replied_to_message")?.get("message"), thread_id);
                 rtn.reply_to_id = rtn.replied_to.uid;
             }
 
@@ -419,7 +419,8 @@ namespace fbchat_sharp.API
             }
             if (data.get("attachments") != null)
             {
-                foreach (var atc in data.get("attachments")) {
+                foreach (var atc in data.get("attachments"))
+                {
                     var attachment = JToken.Parse(atc.get("mercuryJSON")?.Value<string>());
                     if (attachment.get("blob_attachment") != null)
                     {
@@ -443,10 +444,10 @@ namespace fbchat_sharp.API
             return rtn;
         }
 
-        public static FB_Message _from_pull(JToken data, string thread_id, string mid= null, List<string> tags= null, string author= null, string timestamp= null)
+        public static FB_Message _from_pull(JToken data, string thread_id, string mid = null, List<string> tags = null, string author = null, string timestamp = null)
         {
             var rtn = new FB_Message(
-                text: data.get("body")?.Value<string>());            
+                text: data.get("body")?.Value<string>());
             rtn.uid = mid;
             rtn.thread_id = thread_id; // Added
             rtn.author = author;
@@ -471,7 +472,8 @@ namespace fbchat_sharp.API
                                 mercury.get("blob_attachment")
                             );
 
-                            if (new string[] { "MessageFile", "MessageVideo", "MessageAudio" }.Contains(attach_type)) {
+                            if (new string[] { "MessageFile", "MessageVideo", "MessageAudio" }.Contains(attach_type))
+                            {
                                 // TODO: Add more data here for audio files
                                 if (attachment is FB_FileAttachment)
                                     ((FB_FileAttachment)attachment).size = a?.get("fileSize")?.Value<int>() ?? 0;
@@ -507,6 +509,39 @@ namespace fbchat_sharp.API
             rtn.emoji_size = EmojiSizeMethods._from_tags(tags);
             rtn.forwarded = FB_Message._get_forwarded_from_tags(tags);
             return rtn;
+        }
+
+        /// <summary>
+        /// Create Message from string or other Message
+        /// </summary>
+        /// <param name="message"></param>
+        public FB_Message(object message)
+        {
+            if (message is FB_Message msg)
+            {
+                this.text = msg.text;
+                this.mentions = msg.mentions;
+                this.emoji_size = msg.emoji_size;
+                this.uid = msg.uid;
+                this.author = msg.author;
+                this.timestamp = msg.timestamp;
+                this.is_read = msg.is_read;
+                this.read_by = msg.read_by;
+                this.reactions = msg.reactions;
+                this.sticker = msg.sticker;
+                this.attachments = msg.attachments;
+                this.quick_replies = msg.quick_replies;
+                this.unsent = msg.unsent;
+                this.reply_to_id = msg.reply_to_id;
+                this.replied_to = msg.replied_to;
+                this.forwarded = msg.forwarded;
+                this.is_from_me = msg.is_from_me;
+                this.thread_id = msg.thread_id;
+            }
+            else
+            {
+                this.text = (string)message;
+            }
         }
     }
 }

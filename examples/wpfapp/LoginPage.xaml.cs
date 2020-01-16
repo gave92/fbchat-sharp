@@ -45,10 +45,10 @@ namespace wpfapp
             if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password))
             {
                 // Login with username and password
-                var logged_in = await Client.DoLogin(email, password);
+                var session = await Client.DoLogin(email, password);
 
                 // Check login was successful
-                if (logged_in)
+                if (session != null)
                 {
                     NavigationService.Navigate(new Uri("MainPage.xaml", UriKind.RelativeOrAbsolute));
                 }

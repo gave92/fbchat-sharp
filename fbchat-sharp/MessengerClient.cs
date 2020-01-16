@@ -20,18 +20,17 @@ namespace fbchat_sharp.API
         /// Loads sessions cookies calling ReadCookiesFromDiskAsync and tries to login.
         /// </summary>
         /// <returns>Returns true if login was successful</returns>
-        public async Task<bool> TryLogin()
+        public async Task<Session> TryLogin()
         {
             try
             {
                 var session_cookies = await this.ReadCookiesFromDiskAsync();
-                await base.fromSession(session_cookies);
-                return true;
+                return await base.fromSession(session_cookies);
             }
             catch (Exception ex)
             {
                 this.Log(ex.ToString());
-                return false;
+                return null;
             }
         }
 
@@ -41,18 +40,18 @@ namespace fbchat_sharp.API
         /// <param name="email">User facebook email</param>
         /// <param name="password">User facebook password</param>
         /// <returns>Returns true if login was successful</returns>
-        public async Task<bool> DoLogin(string email, string password)
+        public async Task<Session> DoLogin(string email, string password)
         {
             try
             {
-                await this.login(email, password);
+                var session = await this.login(email, password);
                 await this.WriteCookiesAsync();
-                return true;
+                return session;
             }
             catch (Exception ex)
             {
                 this.Log(ex.ToString());
-                return false;
+                return null;
             }
         }
 
@@ -73,12 +72,6 @@ namespace fbchat_sharp.API
                 this.Log(ex.ToString());
                 return false;
             }
-        }
-
-        /// <returns>Returns the user id or null if not logged in</returns>
-        public string GetUserUid()
-        {
-            return base._uid;
         }
 
         /// <summary>
@@ -120,7 +113,7 @@ namespace fbchat_sharp.API
         /// </summary>
         public async Task WriteCookiesAsync()
         {
-            var session_cookies = this.getSession();
+            var session_cookies = this.getSession().get_cookies();
             await this.WriteCookiesToDiskAsync(session_cookies);
         }
 

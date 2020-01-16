@@ -45,6 +45,10 @@ namespace fbchat_sharp.API
             }
         }
 
+        /// <summary>
+        /// Stores and manages state required for most Facebook requests.
+        /// This is the main class, which is used to login to Facebook.
+        /// </summary>
         public Session(string user_agent = null)
         {
             this.HttpClientHandler = new HttpClientHandler() { UseCookies = true, CookieContainer = new CookieContainer(), AllowAutoRedirect = false };

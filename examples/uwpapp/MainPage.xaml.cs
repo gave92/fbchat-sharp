@@ -71,7 +71,7 @@ namespace uwpapp
                 var msg = e.Payload as FB_Message;
                 if (msg.thread_id == SelectedThread.Value.uid)
                 {
-                    msg.is_from_me = msg.author == Client.GetUserUid();
+                    msg.is_from_me = msg.author == Client.getSession().get_user_id();
                     await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => Messages.Add(msg));
                 }
             }
@@ -95,7 +95,7 @@ namespace uwpapp
         {
             var text = SendText.Text;
             if (SelectedThread.Value == null || string.IsNullOrWhiteSpace(text)) return;
-            await Client.sendMessage(text, SelectedThread.Value.uid, SelectedThread.Value.get_thread_type());
+            await SelectedThread.Value.sendText(text);
             SendText.Text = "";
         }
 
@@ -110,7 +110,7 @@ namespace uwpapp
                 if (messages.Any() && Messages.Any() && messages.First().uid == Messages.First().uid) messages.RemoveAt(0);                
                 foreach (var msg in messages)
                 {
-                    msg.is_from_me = msg.author == Client.GetUserUid();
+                    msg.is_from_me = msg.author == Client.getSession().get_user_id();
                 }
                 return messages;
             }

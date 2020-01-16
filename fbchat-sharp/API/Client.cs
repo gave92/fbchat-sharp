@@ -49,7 +49,7 @@ namespace fbchat_sharp.API
         private int _seq = 0;
         private int _pull_channel = 0;
         private bool _markAlive = false;
-        private Dictionary<string, FB_ActiveStatus> _buddylist = null;
+        private Dictionary<string, FB_ActiveStatus> _buddylist = null;        
 
         /// <summary>
         /// The ID of the client.
@@ -73,7 +73,7 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="session_cookies">Cookies from a previous session</param>
         /// <param name="user_agent"></param>
-        public async Task fromSession(Dictionary<string, List<Cookie>> session_cookies = null, string user_agent = null)
+        public async Task<Session> fromSession(Dictionary<string, List<Cookie>> session_cookies = null, string user_agent = null)
         {
             // If session cookies aren't set, not properly loaded or gives us an invalid session, then do the login
             if (
@@ -84,6 +84,8 @@ namespace fbchat_sharp.API
             {
                 throw new FBchatException(message: "Login from session failed.");
             }
+
+            return _session;
         }
 
         #region INTERNAL REQUEST METHODS
@@ -107,16 +109,6 @@ namespace fbchat_sharp.API
             return await this._session._payload_post(url, data, files, cancellationToken);
         }
 
-        private async Task<List<JToken>> graphql_requests(List<GraphQL> queries)
-        {
-            return await this._session.graphql_requests(queries);
-        }
-
-        private async Task<JToken> graphql_request(GraphQL query)
-        {
-            return await this._session.graphql_request(query);
-        }
-
         #endregion
 
         #region LOGIN METHODS
@@ -131,17 +123,11 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Retrieves session cookies
+        /// Retrieves session
         /// </summary>
-        /// <returns>A dictionay containing session cookies</returns>
-        public Dictionary<string, List<Cookie>> getSession()
+        public Session getSession()
         {
-            /*
-             * Retrieves session cookies
-             * :return: A list containing session cookies
-             * : rtype: IEnumerable
-             */
-            return this._session.get_cookies();
+            return this._session;
         }
 
         /// <summary>
@@ -172,7 +158,7 @@ namespace fbchat_sharp.API
         /// <param name="email">Facebook ``email`` or ``id`` or ``phone number``</param>
         /// <param name="password">Facebook account password</param>
         /// <param name="user_agent"></param>
-        public async Task login(string email, string password, string user_agent = null)
+        public async Task<Session> login(string email, string password, string user_agent = null)
         {
             await this.onLoggingIn(email: email);
 
@@ -188,6 +174,7 @@ namespace fbchat_sharp.API
                     user_agent: user_agent);
                 this._uid = this._session.get_user_id();
                 await this.onLoggedIn(email: email);
+                return this._session;
             }
             catch (Exception ex)
             {
@@ -212,11 +199,6 @@ namespace fbchat_sharp.API
         #endregion
 
         #region FETCH METHODS
-        private async Task<JToken> _forcedFetch(string thread_id, string mid)
-        {
-            var param = new Dictionary<string, object>() { { "thread_and_message_id", new Dictionary<string, object>() { { "thread_id", thread_id }, { "message_id", mid } } } };
-            return await this.graphql_request(GraphQL.from_doc_id("1768656253222505", param));
-        }
 
         /// <summary>
         /// Get all threads in thread_location.
@@ -378,7 +360,7 @@ namespace fbchat_sharp.API
             var param = new Dictionary<string, object>() {
                 { "search", name }, { "limit", limit.ToString() }
              };
-            var j = await this.graphql_request(GraphQL.from_query(GraphQL.SEARCH_USER, param));
+            var j = await this._session.graphql_request(GraphQL.from_query(GraphQL.SEARCH_USER, param));
 
             return j[name]?.get("users")?.get("nodes").Select(node => FB_User._from_graphql(_session, node)).ToList();
         }
@@ -402,7 +384,7 @@ namespace fbchat_sharp.API
             var param = new Dictionary<string, object>() {
                 { "search", name }, { "limit", limit.ToString() }
             };
-            var j = await this.graphql_request(GraphQL.from_query(GraphQL.SEARCH_PAGE, param));
+            var j = await this._session.graphql_request(GraphQL.from_query(GraphQL.SEARCH_PAGE, param));
 
             return j[name]?.get("pages")?.get("nodes").Select(node => FB_Page._from_graphql(_session, node)).ToList();
         }
@@ -427,7 +409,7 @@ namespace fbchat_sharp.API
             var param = new Dictionary<string, object>() {
               { "search", name }, {"limit", limit.ToString() }
             };
-            var j = await this.graphql_request(GraphQL.from_query(GraphQL.SEARCH_GROUP, param));
+            var j = await this._session.graphql_request(GraphQL.from_query(GraphQL.SEARCH_GROUP, param));
 
             return j.get("viewer")?.get("groups")?.get("nodes").Select(node => FB_Group._from_graphql(_session, node)).ToList();
         }
@@ -452,7 +434,7 @@ namespace fbchat_sharp.API
             var param = new Dictionary<string, object>(){
                 { "search", name }, {"limit", limit.ToString() }
             };
-            var j = await this.graphql_request(GraphQL.from_query(GraphQL.SEARCH_THREAD, param));
+            var j = await this._session.graphql_request(GraphQL.from_query(GraphQL.SEARCH_THREAD, param));
 
             List<FB_Thread> rtn = new List<FB_Thread>();
             foreach (var node in j[name]?.get("threads")?.get("nodes"))
@@ -760,7 +742,7 @@ namespace fbchat_sharp.API
                 }));
             }
 
-            var j = await this.graphql_requests(queries);
+            var j = await this._session.graphql_requests(queries);
 
             foreach (var obj in j.Select((x, index) => new { entry = x, i = index }))
             {
@@ -855,7 +837,7 @@ namespace fbchat_sharp.API
                 { "before", before }
             };
 
-            var j = await this.graphql_request(GraphQL.from_doc_id(doc_id: "1860982147341344", param: dict));
+            var j = await this._session.graphql_request(GraphQL.from_doc_id(doc_id: "1860982147341344", param: dict));
 
             if (j.get("message_thread") == null)
             {
@@ -912,7 +894,7 @@ namespace fbchat_sharp.API
                 { "includeSeqID", false }
             };
 
-            var j = await this.graphql_request(GraphQL.from_doc_id(doc_id: "1349387578499440", param: dict));
+            var j = await this._session.graphql_request(GraphQL.from_doc_id(doc_id: "1349387578499440", param: dict));
 
             var rtn = new List<FB_Thread>();
             foreach (var node in j.get("viewer")?.get("message_threads")?.get("nodes"))
@@ -1023,7 +1005,8 @@ namespace fbchat_sharp.API
              * :rtype: Message
              * :raises: FBchatException if request failed
              * */
-            var message_info = ((JToken)await this._forcedFetch(thread_id, mid))?.get("message");
+            var thread = new FB_Thread(thread_id, _session);
+            var message_info = ((JToken)await thread._forcedFetch(thread_id, mid))?.get("message");
             return FB_Message._from_graphql(message_info, thread_id);
         }
 
@@ -1070,44 +1053,6 @@ namespace fbchat_sharp.API
             };
             var j = await this._payload_post("/ajax/eventreminder", data);
             return FB_Plan._from_fetch(j);
-        }
-
-        private async Task<JToken> _getPrivateData()
-        {
-            var j = await this.graphql_request(GraphQL.from_doc_id("1868889766468115", new Dictionary<string, object>()));
-            return j.get("viewer");
-        }
-
-        /// <summary>
-        /// Fetches a list of user phone numbers.
-        /// </summary>
-        /// <returns>List of phone numbers</returns>
-        public async Task<List<string>> getPhoneNumbers()
-        {
-            /*
-             * Fetches a list of user phone numbers.
-             * :return: List of phone numbers
-             * :rtype: list
-             * */
-            var data = await this._getPrivateData();
-            return data?.get("user")?.get("all_phones")?.Select((j) =>
-                j.get("phone_number")?.get("universal_number")?.Value<string>()).ToList();
-        }
-
-        /// <summary>
-        /// Fetches a list of user emails.
-        /// </summary>
-        /// <returns>List of emails</returns>
-        public async Task<List<string>> getEmails()
-        {
-            /*
-             * Fetches a list of user emails.
-             * :return: List of emails
-             * :rtype: list
-             * */
-            var data = await this._getPrivateData();
-            return data?.get("all_emails")?.Select((j) =>
-                j.get("display_email")?.Value<string>()).ToList();
         }
 
         /// <summary>
@@ -1171,7 +1116,7 @@ namespace fbchat_sharp.API
             return new AsyncEnumerable<FB_Attachment>(async yield =>
             {
                 var data = new Dictionary<string, object>() { { "id", thread_id }, { "first", 48 } };
-                var j = await this.graphql_request(GraphQL.from_query_id("515216185516880", data));
+                var j = await this._session.graphql_request(GraphQL.from_query_id("515216185516880", data));
                 while (true)
                 {
                     JToken i = null;
@@ -1184,7 +1129,7 @@ namespace fbchat_sharp.API
                         if (j?.get(thread_id)?.get("message_shared_media")?.get("page_info")?.get("has_next_page")?.Value<bool>() ?? false)
                         {
                             data["after"] = j?.get(thread_id)?.get("message_shared_media").get("page_info")?.get("end_cursor")?.Value<string>();
-                            j = await this.graphql_request(GraphQL.from_query_id("515216185516880", data));
+                            j = await this._session.graphql_request(GraphQL.from_query_id("515216185516880", data));
                             continue;
                         }
                         else
@@ -1204,140 +1149,6 @@ namespace fbchat_sharp.API
 
         #region SEND METHODS
 
-        private FB_Message _oldMessage(object message)
-        {
-            return message is FB_Message ? (FB_Message)message : new FB_Message((string)message);
-        }
-
-        /// <summary>
-        /// Sends a message to a thread
-        /// </summary>
-        /// <param name="message">Message to send</param>
-        /// <param name="thread_id">User / Group ID to send to</param>
-        /// <param name="thread_type">ThreadType enum</param>
-        /// <returns>Message ID of the sent message</returns>
-        public async Task<string> send(FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
-        {
-            /*
-             * Sends a message to a thread
-             * :param message: Message to send
-             * :param thread_id: User/Group ID to send to. See :ref:`intro_threads`
-             * :param thread_type: See :ref:`intro_threads`
-             * :type message: models.Message
-             * :type thread_type: models.ThreadType
-             * :return: :ref:`Message ID <intro_message_ids>` of the sent message
-             * :raises: FBchatException if request failed
-             */
-
-            var tmp = (FB_Thread)Activator.CreateInstance(thread_type.Value._to_class(), thread_id);
-            var data = tmp._to_send_data();
-            data.update(message._to_send_data());
-            return await this._session._do_send_request(data);
-        }
-
-        /// <summary>
-        /// Sends a message to a thread
-        /// </summary>
-        [Obsolete("Deprecated. Use :func:`fbchat.Client.send` instead")]
-        public async Task<string> sendMessage(string message = null, string thread_id = null, ThreadType? thread_type = null)
-        {
-            return await this.send(new FB_Message(text: message), thread_id: thread_id, thread_type: thread_type);
-        }
-
-        /// <summary>
-        /// Sends a message to a thread
-        /// </summary>
-        [Obsolete("Deprecated. Use :func:`fbchat.Client.send` instead")]
-        public async Task<string> sendEmoji(string emoji = null, EmojiSize size = EmojiSize.SMALL, string thread_id = null, ThreadType? thread_type = null)
-        {
-            return await this.send(new FB_Message(text: emoji, emoji_size: size), thread_id: thread_id, thread_type: thread_type);
-        }
-
-        /// <summary>
-        /// :ref:`Message ID` of the sent message
-        /// </summary>
-        /// <param name="wave_first">Whether to wave first or wave back</param>
-        /// <param name="thread_id">User/Group ID to send to.See :ref:`intro_threads`</param>
-        /// <param name="thread_type">See :ref:`intro_threads`</param>
-        /// <returns></returns>
-        public async Task<string> wave(bool wave_first = true, string thread_id = null, ThreadType? thread_type = null)
-        {
-            /*
-             * Says hello with a wave to a thread!
-             * :param wave_first: Whether to wave first or wave back
-             * :param thread_id: User/Group ID to send to.See :ref:`intro_threads`
-             * :param thread_type: See :ref:`intro_threads`
-             * :type thread_type: ThreadType
-             * :return: :ref:`Message ID<intro_message_ids>` of the sent message
-             * :raises: FBchatException if request failed
-             * */
-            var tmp = (FB_Thread)Activator.CreateInstance(thread_type.Value._to_class(), thread_id);
-            var data = tmp._to_send_data();
-            data["action_type"] = "ma-type:user-generated-message";
-            data["lightweight_action_attachment[lwa_state]"] = wave_first ? "INITIATED" : "RECIPROCATED";
-            data["lightweight_action_attachment[lwa_type]"] = "WAVE";
-            if (thread_type == ThreadType.USER)
-                data["specific_to_list[0]"] = string.Format("fbid:{0}", thread_id);
-            return await this._session._do_send_request(data);
-        }
-
-        /// <summary>
-        /// Replies to a chosen quick reply
-        /// </summary>
-        /// <param name="quick_reply">Quick reply to reply to</param>
-        /// <param name="payload">Optional answer to the quick reply</param>
-        /// <param name="thread_id">User/Group ID to send to.See :ref:`intro_threads`</param>
-        /// <param name="thread_type">See :ref:`intro_threads`</param>
-        /// <returns></returns>
-        public async Task<string> quickReply(FB_QuickReply quick_reply, dynamic payload = null, string thread_id = null, ThreadType? thread_type = null)
-        {
-            /*
-             * Replies to a chosen quick reply
-             * :param quick_reply: Quick reply to reply to
-             * :param payload: Optional answer to the quick reply
-             * :param thread_id: User/Group ID to send to.See :ref:`intro_threads`
-             * :param thread_type: See :ref:`intro_threads`
-             * :type quick_reply: QuickReply
-             * :type thread_type: ThreadType
-             * :return: :ref:`Message ID<intro_message_ids>` of the sent message
-             * :raises: FBchatException if request failed
-             * */
-            quick_reply.is_response = true;
-            if (quick_reply is FB_QuickReplyText)
-            {
-                return await this.send(
-                    new FB_Message(text: ((FB_QuickReplyText)quick_reply).title, quick_replies: new List<FB_QuickReply>() { quick_reply })
-                );
-            }
-            else if (quick_reply is FB_QuickReplyLocation)
-            {
-                if (!(payload is FB_LocationAttachment))
-                    throw new ArgumentException(
-                        "Payload must be an instance of `fbchat-sharp.LocationAttachment`"
-                    );
-                return await this.sendLocation(
-                    payload, thread_id: thread_id, thread_type: thread_type
-                );
-            }
-            else if (quick_reply is FB_QuickReplyEmail)
-            {
-                if (payload == null)
-                    payload = (await this.getEmails())[0];
-                quick_reply.external_payload = quick_reply.payload;
-                quick_reply.payload = payload;
-                return await this.send(new FB_Message(text: payload, quick_replies: new List<FB_QuickReply>() { quick_reply }));
-            }
-            else if (quick_reply is FB_QuickReplyPhoneNumber)
-            {
-                if (payload == null)
-                    payload = (await this.getPhoneNumbers())[0];
-                quick_reply.external_payload = quick_reply.payload;
-                quick_reply.payload = payload;
-                return await this.send(new FB_Message(text: payload, quick_replies: new List<FB_QuickReply>() { quick_reply }));
-            }
-            return null;
-        }
-
         /// <summary>
         /// Unsends a message(removes for everyone)
         /// </summary>
@@ -1351,287 +1162,6 @@ namespace fbchat_sharp.API
              * */
             var data = new Dictionary<string, object>() { { "message_id", mid } };
             var j = await this._payload_post("/messaging/unsend_message/?dpr=1", data);
-        }
-
-        private async Task<dynamic> _sendLocation(
-            FB_LocationAttachment location, bool current = true, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null
-        )
-        {
-            var tmp = (FB_Thread)Activator.CreateInstance(thread_type.Value._to_class(), thread_id);
-            var data = tmp._to_send_data();
-            if (message != null)
-                data.update(message._to_send_data());
-            data["action_type"] = "ma-type:user-generated-message";
-            data["location_attachment[coordinates][latitude]"] = location.latitude;
-            data["location_attachment[coordinates][longitude]"] = location.longitude;
-            data["location_attachment[is_current_location]"] = current;
-            return await this._session._do_send_request(data);
-        }
-
-        /// <summary>
-        /// Sends a given location to a thread as the user's current location
-        /// </summary>
-        /// <param name="location">Location to send</param>
-        /// <param name="message">Additional message</param>
-        /// <param name="thread_id">User/Group ID to send to.See :ref:`intro_threads`</param>
-        /// <param name="thread_type">See :ref:`intro_threads`</param>
-        /// <returns>:ref:`Message ID` of the sent message</returns>
-        public async Task<string> sendLocation(FB_LocationAttachment location, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
-        {
-            /*
-             * Sends a given location to a thread as the user's current location
-             * :param location: Location to send
-             * :param message: Additional message
-             * :param thread_id: User/Group ID to send to.See :ref:`intro_threads`
-             * :param thread_type: See :ref:`intro_threads`
-             * :type location: LocationAttachment
-             * :type message: Message
-             * :type thread_type: ThreadType
-             * :return: :ref:`Message ID<intro_message_ids>` of the sent message
-             * :raises: FBchatException if request failed
-             * */
-            return await this._sendLocation(
-                location: location,
-                current: true,
-                message: message,
-                thread_id: thread_id,
-                thread_type: thread_type
-            );
-        }
-
-        /// <summary>
-        /// Sends a given location to a thread as a pinned location
-        /// </summary>
-        /// <param name="location">Location to send</param>
-        /// <param name="message">Additional message</param>
-        /// <param name="thread_id">User/Group ID to send to.See :ref:`intro_threads`</param>
-        /// <param name="thread_type">See :ref:`intro_threads`</param>
-        /// <returns>:ref:`Message ID` of the sent message</returns>
-        public async Task<string> sendPinnedLocation(FB_LocationAttachment location, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
-        {
-            /*
-             * Sends a given location to a thread as a pinned location
-             * :param location: Location to send
-             * :param message: Additional message
-             * :param thread_id: User/Group ID to send to.See :ref:`intro_threads`
-             * :param thread_type: See :ref:`intro_threads`
-             * :type location: LocationAttachment
-             * :type message: Message
-             * :type thread_type: ThreadType
-             * :return: :ref:`Message ID<intro_message_ids>` of the sent message
-             * :raises: FBchatException if request failed
-             * */
-            return await this._sendLocation(
-                location: location,
-                current: false,
-                message: message,
-                thread_id: thread_id,
-                thread_type: thread_type
-            );
-        }
-
-        private async Task<dynamic> _sendFiles(
-            List<Tuple<string, string>> files, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
-        {
-            /*
-             * Sends files from file IDs to a thread
-             * `files` should be a list of tuples, with a file's ID and mimetype
-             * */
-            var tmp = (FB_Thread)Activator.CreateInstance(thread_type.Value._to_class(), thread_id);
-            var data = tmp._to_send_data();
-            data.update(this._oldMessage(message)._to_send_data());
-
-            data["action_type"] = "ma-type:user-generated-message";
-            data["has_attachment"] = true;
-
-            foreach (var obj in files.Select((x, index) => new { f = x, i = index }))
-                data[string.Format("{0}s[{1}]", Utils.mimetype_to_key(obj.f.Item2), obj.i)] = obj.f.Item1;
-
-            return await this._session._do_send_request(data);
-        }
-
-        /// <summary>
-        /// Sends files from URLs to a thread
-        /// </summary>
-        /// <param name="file_urls">URLs of files to upload and send</param>
-        /// <param name="message">Additional message</param>
-        /// <param name="thread_id">User/Group ID to send to.See :ref:`intro_threads`</param>
-        /// <param name="thread_type">See :ref:`intro_threads`</param>
-        /// <returns>`Message ID of the sent files</returns>
-        public async Task<dynamic> sendRemoteFiles(
-            List<string> file_urls, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
-        {
-            /*
-             * Sends files from URLs to a thread
-             * :param file_urls: URLs of files to upload and send
-             * :param message: Additional message
-             * :param thread_id: User/Group ID to send to.See :ref:`intro_threads`
-             * :param thread_type: See :ref:`intro_threads`
-             * :type thread_type: ThreadType
-             * :return: :ref:`Message ID<intro_message_ids>` of the sent files
-             * :raises: FBchatException if request failed
-             * */
-            var ufile_urls = Utils.require_list<string>(file_urls);
-            var files = await this._session._upload(await this._session.get_files_from_urls(ufile_urls));
-            return await this._sendFiles(
-                files: files, message: message, thread_id: thread_id, thread_type: thread_type
-            );
-        }
-
-        /// <summary>
-        /// Sends local files to a thread
-        /// </summary>
-        /// <param name="file_paths">Paths of files to upload and send</param>
-        /// <param name="message">Additional message</param>
-        /// <param name="thread_id">User/Group ID to send to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">See :ref:`intro_threads`</param>
-        /// <returns>:ref:`Message ID` of the sent files</returns>
-        public async Task<string> sendLocalFiles(Dictionary<string, Stream> file_paths = null, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
-        {
-            /*
-             * Sends local files to a thread
-             * :param file_paths: Paths of files to upload and send
-             * :param message: Additional message
-             * :param thread_id: User/Group ID to send to. See :ref:`intro_threads`
-             * :param thread_type: See :ref:`intro_threads`
-             * :type thread_type: ThreadType
-             * :return: :ref:`Message ID <intro_message_ids>` of the sent files
-             * :raises: FBchatException if request failed
-             */
-
-            var files = await this._session._upload(this._session.get_files_from_paths(file_paths));
-            return await this._sendFiles(files: files, message: message, thread_id: thread_id, thread_type: thread_type);
-        }
-
-        /// <summary>
-        /// Sends voice clips from URLs to a thread
-        /// </summary>
-        /// <param name="clip_urls">URLs of voice clips to upload and send</param>
-        /// <param name="message">Additional message</param>
-        /// <param name="thread_id">User/Group ID to send to.See :ref:`intro_threads`</param>
-        /// <param name="thread_type">See :ref:`intro_threads`</param>
-        /// <returns>`Message ID of the sent files</returns>
-        public async Task<dynamic> sendRemoteVoiceClips(
-            List<string> clip_urls, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
-        {
-            /*
-             * Sends voice clips from URLs to a thread
-             * :param clip_urls: URLs of clips to upload and send
-             * :param message: Additional message
-             * :param thread_id: User/Group ID to send to.See :ref:`intro_threads`
-             * :param thread_type: See :ref:`intro_threads`
-             * :type thread_type: ThreadType
-             * :return: :ref:`Message ID<intro_message_ids>` of the sent files
-             * :raises: FBchatException if request failed
-             * */
-            var uclip_urls = Utils.require_list<string>(clip_urls);
-            var files = await this._session._upload(await this._session.get_files_from_urls(uclip_urls), voice_clip: true);
-            return await this._sendFiles(
-                files: files, message: message, thread_id: thread_id, thread_type: thread_type
-            );
-        }
-
-        /// <summary>
-        /// Sends local voice clips to a thread
-        /// </summary>
-        /// <param name="clip_paths">Paths of voice clips to upload and send</param>
-        /// <param name="message">Additional message</param>
-        /// <param name="thread_id">User/Group ID to send to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">See :ref:`intro_threads`</param>
-        /// <returns>:ref:`Message ID` of the sent files</returns>
-        public async Task<string> sendLocalVoiceClips(Dictionary<string, Stream> clip_paths = null, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
-        {
-            /*
-             * Sends local voice clips to a thread
-             * :param file_paths: Paths of files to upload and send
-             * :param message: Additional message
-             * :param thread_id: User/Group ID to send to. See :ref:`intro_threads`
-             * :param thread_type: See :ref:`intro_threads`
-             * :type thread_type: ThreadType
-             * :return: :ref:`Message ID <intro_message_ids>` of the sent files
-             * :raises: FBchatException if request failed
-             */
-
-            var files = await this._session._upload(this._session.get_files_from_paths(clip_paths), voice_clip: true);
-            return await this._sendFiles(files: files, message: message, thread_id: thread_id, thread_type: thread_type);
-        }
-
-        /// <summary>
-        /// Sends an image to a thread
-        /// </summary>
-        [Obsolete("Deprecated.")]
-        public async Task<string> sendImage(string image_id = null, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null, bool is_gif = false)
-        {
-            string mimetype = null;
-            if (!is_gif)
-                mimetype = "image/png";
-            else
-                mimetype = "image/gif";
-
-            return await this._sendFiles(
-                files: new List<Tuple<string, string>>() { new Tuple<string, string>(image_id, mimetype) },
-                message: message,
-                thread_id: thread_id,
-                thread_type: thread_type);
-        }
-
-        /// <summary>
-        /// Sends an image from a URL to a thread
-        /// </summary>
-        /// <param name="image_url"></param>
-        /// <param name="message"></param>
-        /// <param name="thread_id"></param>
-        /// <param name="thread_type"></param>
-        /// <returns></returns>
-        [Obsolete("Deprecated. Use :func:`fbchat.Client.sendRemoteFiles` instead")]
-        public async Task<string> sendRemoteImage(string image_url = null, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
-        {
-            /*
-             * Sends an image from a URL to a thread
-             * : param image_url: URL of an image to upload and send
-             * :param message: Additional message
-             * :param thread_id: User / Group ID to send to.See: ref:`intro_threads`
-             * :param thread_type: See: ref:`intro_threads`
-             * :type thread_type: models.ThreadType
-             * :return: :ref:`Message ID<intro_message_ids>` of the sent image
-             * :raises: FBchatException if request failed
-             */
-
-            return await this.sendRemoteFiles(
-                file_urls: new List<string>() { image_url },
-                message: message,
-                thread_id: thread_id,
-                thread_type: thread_type);
-        }
-
-        /// <summary>
-        /// Sends a local image to a thread
-        /// </summary>
-        /// <param name="image_path"></param>
-        /// <param name="data"></param>
-        /// <param name="message"></param>
-        /// <param name="thread_id"></param>
-        /// <param name="thread_type"></param>
-        /// <returns></returns>
-        [Obsolete("Deprecated. Use :func:`fbchat.Client.sendLocalFiles` instead")]
-        public async Task<string> sendLocalImage(string image_path = null, Stream data = null, FB_Message message = null, string thread_id = null, ThreadType? thread_type = null)
-        {
-            /*
-             * Sends a local image to a thread
-             * : param image_path: Path of an image to upload and send
-             * :param message: Additional message
-             * :param thread_id: User / Group ID to send to. See: ref:`intro_threads`
-             * :param thread_type: See: ref:`intro_threads`
-             * :type thread_type: models.ThreadType
-             * :return: :ref:`Message ID<intro_message_ids>` of the sent image
-             * :raises: FBchatException if request failed
-             */
-
-            return await this.sendLocalFiles(
-                file_paths: new Dictionary<string, Stream>() { { image_path, data } },
-                message: message,
-                thread_id: thread_id,
-                thread_type: thread_type);
         }
 
         /// <summary>
@@ -1675,7 +1205,7 @@ namespace fbchat_sharp.API
              * :return: ID of the new group
              * :raises: FBchatException if request failed
              * */
-            var data = this._oldMessage(message)._to_send_data();
+            var data = new FB_Message(message)._to_send_data();
 
             if (user_ids.Count < 2)
                 throw new FBchatUserError("Error when creating group: Not enough participants");
@@ -2480,7 +2010,8 @@ namespace fbchat_sharp.API
                 else
                 {
                     var thread_id = delta.get("threadKey")?.get("threadFbId")?.Value<string>();
-                    var fetch_info = await this._forcedFetch(thread_id, mid);
+                    var thread = new FB_Thread(thread_id, _session);
+                    var fetch_info = await thread._forcedFetch(thread_id, mid);
                     var fetch_data = fetch_info.get("message");
                     author_id = fetch_data.get("message_sender")?.get("id")?.Value<string>();
                     ts = long.Parse(fetch_data.get("timestamp_precise")?.Value<string>());
@@ -3099,7 +2630,7 @@ namespace fbchat_sharp.API
 
             // Get the sync sequence ID used for the /messenger_sync_create_queue call later.
             // This is the same request as fetch_thread_list, but with includeSeqID=true
-            var j = await this.graphql_request(GraphQL.from_doc_id("1349387578499440", new Dictionary<string, object> {
+            var j = await this._session.graphql_request(GraphQL.from_doc_id("1349387578499440", new Dictionary<string, object> {
                 { "limit", 1 },
                 { "tags", new string[] {ThreadLocation.INBOX } },
                 {"before", null },

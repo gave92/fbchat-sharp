@@ -59,7 +59,7 @@ namespace wpfapp
                 var msg = e.Payload as FB_Message;
                 if (msg.thread_id == SelectedThread.Value.uid)
                 {
-                    msg.is_from_me = msg.author == Client.GetUserUid();
+                    msg.is_from_me = msg.author == Client.getSession().get_user_id();
                     Dispatcher.Invoke(() => Messages.Add(msg));
                 }
             }
@@ -83,7 +83,7 @@ namespace wpfapp
         {
             var text = SendText.Text;
             if (SelectedThread.Value == null || string.IsNullOrWhiteSpace(text)) return;
-            await Client.sendMessage(text, SelectedThread.Value.uid, SelectedThread.Value.get_thread_type());
+            await SelectedThread.Value.sendText(text);
             SendText.Clear();
         }
 
@@ -100,7 +100,7 @@ namespace wpfapp
                 var prev_height = scrollViewer.ExtentHeight;
                 foreach (var msg in messages)
                 {
-                    msg.is_from_me = msg.author == Client.GetUserUid();
+                    msg.is_from_me = msg.author == Client.getSession().get_user_id();
                     Messages.Insert(0, msg);
                 }
                 if (clear)

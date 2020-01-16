@@ -20,12 +20,12 @@ namespace uwpapp
         private async void StartPage_Loaded(object sender, RoutedEventArgs e)
         {
             var client = ((App)Application.Current).client;
-            var logged_in = await client.TryLogin();
+            var session = await client.TryLogin();
 
             Progress.IsEnabled = false;
             Progress.Visibility = Visibility.Collapsed;
 
-            if (!logged_in)
+            if (session != null)
             {
                 ContentFrame.Navigate(typeof(LoginPage));
             }

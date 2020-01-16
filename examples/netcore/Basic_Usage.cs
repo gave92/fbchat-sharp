@@ -18,8 +18,8 @@ namespace examples
             MessengerClient client = new FBClient_Cookies();
 
             // Try logging in from saved session
-            var logged_in = await client.TryLogin();
-            if (!logged_in)
+            var session = await client.TryLogin();
+            if (session != null)
             {
                 // Read email and pw from console
                 Console.WriteLine("Insert Facebook email:");
@@ -28,11 +28,11 @@ namespace examples
                 var password = Console.ReadLine();
 
                 // Login with username and password
-                logged_in = await client.DoLogin(email, password);
+                session = await client.DoLogin(email, password);
             }
 
             // Check login was successful
-            if (logged_in)
+            if (session != null)
             {
                 // Start listening for new messages
                 await client.StartListening();
@@ -60,14 +60,15 @@ namespace examples
                 messages.ForEach(v => Console.WriteLine(v));
 
                 // Send a message to myself
-                var msg_uid = await client.sendMessage("Message test", thread_id: client.GetUserUid(), thread_type: ThreadType.USER);
+                var user = new FB_Thread(session.get_user_id(), session);
+                var msg_uid = await user.sendText("Message test");
                 if (msg_uid != null)
                 {
                     Console.WriteLine("Message sent: {0}", msg_uid);
                 }
 
                 // Send an emoji to myself
-                await client.sendEmoji("👍", EmojiSize.LARGE, thread_id: client.GetUserUid(), thread_type: ThreadType.USER);
+                await user.sendEmoji("👍", EmojiSize.LARGE);
 
                 // Send a local file to myself
                 /*
@@ -83,7 +84,7 @@ namespace examples
                 */
 
                 // Send a remote image to myself
-                await client.sendRemoteImage(@"https://freeaddon.com/wp-content/uploads/2018/12/cat-memes-25.jpg", thread_id: client.GetUserUid(), thread_type: ThreadType.USER);
+                await user.sendRemoteImage(@"https://freeaddon.com/wp-content/uploads/2018/12/cat-memes-25.jpg");
 
                 // Stop listening Ctrl+C
                 Console.WriteLine("Listening... Press Ctrl+C to exit.");
