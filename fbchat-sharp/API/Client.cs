@@ -973,49 +973,6 @@ namespace fbchat_sharp.API
         #region SEND METHODS
 
         /// <summary>
-        /// Unsends a message(removes for everyone)
-        /// </summary>
-        /// <param name="mid">:ref:`Message ID` of the message to unsend</param>
-        /// <returns></returns>
-        public async Task unsend(string mid)
-        {
-            /*
-             * Unsends a message(removes for everyone)
-             * :param mid: :ref:`Message ID<intro_message_ids>` of the message to unsend
-             * */
-            var data = new Dictionary<string, object>() { { "message_id", mid } };
-            var j = await this._payload_post("/messaging/unsend_message/?dpr=1", data);
-        }        
-
-        /// <summary>
-        /// Reacts to a message, or removes reaction
-        /// </summary>
-        /// <param name="message_id">`Message ID` to react to</param>
-        /// <param name="reaction">Reaction emoji to use, if null removes reaction</param>
-        /// <returns></returns>
-        public async Task reactToMessage(string message_id, MessageReaction? reaction = null)
-        {
-            /*
-             * Reacts to a message, or removes reaction
-             * :param message_id: :ref:`Message ID<intro_message_ids>` to react to
-             * :param reaction: Reaction emoji to use, if null removes reaction
-             :type reaction: MessageReaction or null
-             : raises: FBchatException if request failed
-             */
-            var data = new Dictionary<string, object>() {
-                { "action", reaction != null ? "ADD_REACTION" : "REMOVE_REACTION"},
-                {"client_mutation_id", "1"},
-                {"actor_id", this._uid},
-                {"message_id", message_id},
-                {"reaction", reaction != null ? reaction.Value.GetEnumDescriptionAttribute() : null}
-            };
-
-            var payl = new Dictionary<string, object>() { { "doc_id", 1491398900900362 }, { "variables", JsonConvert.SerializeObject(new Dictionary<string, object>() { { "data", data } }) } };
-            var j = await this._payload_post("/webgraphql/mutation", payl);
-            Utils.handle_graphql_errors(j);
-        }        
-
-        /// <summary>
         /// Edits a plan
         /// </summary>
         /// <param name="plan">Plan to edit</param>

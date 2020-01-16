@@ -571,5 +571,44 @@ namespace fbchat_sharp.API
                 this.text = (string)message;
             }
         }
+
+        /// <summary>
+        /// Unsends a message(removes for everyone)
+        /// </summary>
+        /// <returns></returns>
+        public async Task unsend()
+        {
+            /*
+             * Unsends a message(removes for everyone)
+             * */
+            var data = new Dictionary<string, object>() { { "message_id", this.uid } };
+            var j = await this.session._payload_post("/messaging/unsend_message/?dpr=1", data);
+        }
+
+        /// <summary>
+        /// Reacts to a message, or removes reaction
+        /// </summary>
+        /// <param name="reaction">Reaction emoji to use, if null removes reaction</param>
+        /// <returns></returns>
+        public async Task reactToMessage(MessageReaction? reaction = null)
+        {
+            /*
+             * Reacts to a message, or removes reaction
+             * :param reaction: Reaction emoji to use, if null removes reaction
+             :type reaction: MessageReaction or null
+             : raises: FBchatException if request failed
+             */
+            var data = new Dictionary<string, object>() {
+                { "action", reaction != null ? "ADD_REACTION" : "REMOVE_REACTION"},
+                {"client_mutation_id", "1"},
+                {"actor_id", this.session.get_user_id()},
+                {"message_id", this.uid},
+                {"reaction", reaction != null ? reaction.Value.GetEnumDescriptionAttribute() : null}
+            };
+
+            var payl = new Dictionary<string, object>() { { "doc_id", 1491398900900362 }, { "variables", JsonConvert.SerializeObject(new Dictionary<string, object>() { { "data", data } }) } };
+            var j = await this.session._payload_post("/webgraphql/mutation", payl);
+            Utils.handle_graphql_errors(j);
+        }
     }
 }
