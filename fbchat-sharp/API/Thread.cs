@@ -401,25 +401,6 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Fetches`Message` object from the message id
-        /// </summary>
-        /// <param name="mid">Message ID to fetch from</param>
-        /// <returns>`FB_Message` object</returns>
-        public async Task<FB_Message> fetchMessageInfo(string mid)
-        {
-            /*
-             * Fetches`Message` object from the message id
-             * :param mid: Message ID to fetch from
-             * :return: `Message` object
-             * :rtype: Message
-             * :raises: FBchatException if request failed
-             * */
-            var thread = new FB_Thread(this.uid, session);
-            var message_info = ((JToken)await thread._forcedFetch(mid))?.get("message");
-            return FB_Message._from_graphql(message_info, this.uid);
-        }
-
-        /// <summary>
         /// Find and get`FB_Message` objects by query
         /// </summary>
         /// <param name="query">Text to search for</param>
@@ -448,7 +429,7 @@ namespace fbchat_sharp.API
                     query, offset: offset, limit: limit
                 );
                 foreach (var mid in message_ids)
-                    await yield.ReturnAsync(await this.fetchMessageInfo(mid));
+                    await yield.ReturnAsync(await FB_Message._from_fetch(this, mid));
             });
         }
 

@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace fbchat_sharp.API
 {
@@ -319,6 +320,26 @@ namespace fbchat_sharp.API
                 data["replied_to_message_id"] = this.reply_to_id;
 
             return data;
+        }
+
+        /// <summary>
+        /// Fetches`Message` object from the message id
+        /// </summary>
+        /// <param name="thread">Thread containing this message</param>
+        /// <param name="mid">Message ID to fetch from</param>        
+        /// <returns>`FB_Message` object</returns>
+        public static async Task<FB_Message> _from_fetch(FB_Thread thread, string mid)
+        {
+            /*
+             * Fetches`Message` object from the message id
+             * :param thread_id: Thread containing this message
+             * :param mid: Message ID to fetch from             
+             * :return: `Message` object
+             * :rtype: Message
+             * :raises: FBchatException if request failed
+             * */
+            var message_info = ((JToken)await thread._forcedFetch(mid))?.get("message");
+            return FB_Message._from_graphql(message_info, thread.uid);
         }
 
         public static FB_Message _from_graphql(JToken data, string thread_id)
