@@ -139,7 +139,7 @@ namespace fbchat_sharp.API
                 data["profile_picture"] = new JObject(new JProperty("uri", ""));
             }
             var c_info = FB_User._parse_customization_info(data);
-            var plan = data.get("event_reminders")?.get("nodes")?.FirstOrDefault() != null ? FB_Plan._from_graphql(data.get("event_reminders")?.get("nodes")?.FirstOrDefault()) : null;
+            var plan = data.get("event_reminders")?.get("nodes")?.FirstOrDefault() != null ? FB_Plan._from_graphql(data.get("event_reminders")?.get("nodes")?.FirstOrDefault(), session) : null;
 
             var name = data.get("name")?.Value<string>();
             var first_name = data.get("first_name")?.Value<string>() ?? data.get("short_name")?.Value<string>();
@@ -208,7 +208,7 @@ namespace fbchat_sharp.API
                 user["big_image_src"] = new JObject(new JProperty("uri", ""));
             }
 
-            var plan = data.get("event_reminders")?.get("nodes")?.FirstOrDefault() != null ? FB_Plan._from_graphql(data.get("event_reminders")?.get("nodes")?.FirstOrDefault()) : null;
+            var plan = data.get("event_reminders")?.get("nodes")?.FirstOrDefault() != null ? FB_Plan._from_graphql(data.get("event_reminders")?.get("nodes")?.FirstOrDefault(), session) : null;
 
             return new FB_User(                
                 uid: user.get("id")?.Value<string>(),

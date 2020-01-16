@@ -62,7 +62,7 @@ namespace fbchat_sharp.API
 
             FB_Plan plan = null;
             if (data.get("event_reminders") != null && data.get("event_reminders")?.get("nodes") != null)
-                plan = FB_Plan._from_graphql(data.get("event_reminders")?.get("nodes")?.FirstOrDefault());
+                plan = FB_Plan._from_graphql(data.get("event_reminders")?.get("nodes")?.FirstOrDefault(), session);
 
             return new FB_Page(
                 uid: data.get("id")?.Value<string>(),

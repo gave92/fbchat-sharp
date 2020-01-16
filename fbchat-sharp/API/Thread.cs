@@ -809,7 +809,7 @@ namespace fbchat_sharp.API
             /*
              * Deprecated.Use :func:`fbchat.Client.createPlan` instead
              * */
-            var plan = new FB_Plan(time: time, title: title, location: location, location_id: location_id);
+            var plan = new FB_Plan(session: session, time: time, title: title, location: location, location_id: location_id);
             await this.createPlan(plan: plan);
         }
 

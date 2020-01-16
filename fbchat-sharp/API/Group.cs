@@ -77,7 +77,7 @@ namespace fbchat_sharp.API
             var c_info = FB_Group._parse_customization_info(data);
 
             var last_message_timestamp = data.get("last_message")?.get("nodes")?.FirstOrDefault()?.get("timestamp_precise")?.Value<string>();
-            var plan = data.get("event_reminders")?.get("nodes")?.FirstOrDefault() != null ? FB_Plan._from_graphql(data.get("event_reminders")?.get("nodes")?.FirstOrDefault()) : null;
+            var plan = data.get("event_reminders")?.get("nodes")?.FirstOrDefault() != null ? FB_Plan._from_graphql(data.get("event_reminders")?.get("nodes")?.FirstOrDefault(), session) : null;
 
             return new FB_Group(
                 uid: data.get("thread_key")?.get("thread_fbid")?.Value<string>(),

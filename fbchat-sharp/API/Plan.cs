@@ -28,6 +28,8 @@ namespace fbchat_sharp.API
     /// </summary>
     public class FB_Plan
     {
+        /// The session to use when making requests
+        public Session session { get; set; }
         /// ID of the plan
         public string uid { get; set; }
         /// Plan time (unix time stamp), only precise down to the minute
@@ -46,15 +48,17 @@ namespace fbchat_sharp.API
         /// <summary>
         /// Represents a plan
         /// </summary>
-        /// <param name="uid"></param>
+        /// <param name="session"></param>
+        /// <param name="uid"></param>        
         /// <param name="time"></param>
         /// <param name="title"></param>
         /// <param name="location"></param>
         /// <param name="location_id"></param>
         /// <param name="author_id"></param>
         /// <param name="guests"></param>
-        public FB_Plan(string uid = null, string time = null, string title = null, string location = null, string location_id = null, string author_id = null, Dictionary<string, GuestStatus> guests = null)
+        public FB_Plan(Session session, string uid = null, string time = null, string title = null, string location = null, string location_id = null, string author_id = null, Dictionary<string, GuestStatus> guests = null)
         {
+            this.session = session;
             this.uid = uid;
             this.time = time;
             this.title = title;
@@ -91,9 +95,10 @@ namespace fbchat_sharp.API
             }
         }
 
-        public static FB_Plan _from_pull(JToken data)
+        public static FB_Plan _from_pull(JToken data, Session session)
         {
             FB_Plan rtn = new FB_Plan(
+                session: session,
                 time: data.get("event_time")?.Value<string>(),
                 title: data.get("event_title")?.Value<string>(),
                 location: data.get("event_location_name")?.Value<string>(),
@@ -107,9 +112,10 @@ namespace fbchat_sharp.API
             return rtn;
         }
 
-        public static FB_Plan _from_fetch(JToken data)
+        public static FB_Plan _from_fetch(JToken data, Session session)
         {
             FB_Plan rtn = new FB_Plan(
+                session: session,
                 time: data.get("event_time")?.Value<string>(),
                 title: data.get("title")?.Value<string>(),
                 location: data.get("location_name")?.Value<string>(),
@@ -123,9 +129,10 @@ namespace fbchat_sharp.API
             return rtn;
         }
 
-        public static FB_Plan _from_graphql(JToken data)
+        public static FB_Plan _from_graphql(JToken data, Session session)
         {
             FB_Plan rtn = new FB_Plan(
+                session: session,
                 time: data.get("time")?.Value<string>(),
                 title: data.get("event_title")?.Value<string>(),
                 location: data.get("location_name")?.Value<string>()

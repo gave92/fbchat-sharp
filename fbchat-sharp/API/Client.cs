@@ -918,7 +918,7 @@ namespace fbchat_sharp.API
                 { "event_reminder_id", plan_id }
             };
             var j = await this._payload_post("/ajax/eventreminder", data);
-            return FB_Plan._from_fetch(j);
+            return FB_Plan._from_fetch(j, _session);
         }
 
         /// <summary>
@@ -1630,7 +1630,7 @@ namespace fbchat_sharp.API
                 var thread = FB_Thread._from_metadata(metadata, _session);
                 await this.onPlanCreated(
                     mid: mid,
-                    plan: FB_Plan._from_pull(delta.get("untypedData")),
+                    plan: FB_Plan._from_pull(delta.get("untypedData"), _session),
                     author_id: author_id,
                     thread: thread,
                     ts: ts,
@@ -1644,7 +1644,7 @@ namespace fbchat_sharp.API
                 var thread = FB_Thread._from_metadata(metadata, _session);
                 await this.onPlanEnded(
                     mid: mid,
-                    plan: FB_Plan._from_pull(delta.get("untypedData")),
+                    plan: FB_Plan._from_pull(delta.get("untypedData"), _session),
                     thread: thread,
                     ts: ts,
                     metadata: metadata,
@@ -1657,7 +1657,7 @@ namespace fbchat_sharp.API
                 var thread = FB_Thread._from_metadata(metadata, _session);
                 await this.onPlanEdited(
                     mid: mid,
-                    plan: FB_Plan._from_pull(delta.get("untypedData")),
+                    plan: FB_Plan._from_pull(delta.get("untypedData"), _session),
                     author_id: author_id,
                     thread: thread,
                     ts: ts,
@@ -1671,7 +1671,7 @@ namespace fbchat_sharp.API
                 var thread = FB_Thread._from_metadata(metadata, _session);
                 await this.onPlanDeleted(
                     mid: mid,
-                    plan: FB_Plan._from_pull(delta.get("untypedData")),
+                    plan: FB_Plan._from_pull(delta.get("untypedData"), _session),
                     author_id: author_id,
                     thread: thread,
                     ts: ts,
@@ -1686,7 +1686,7 @@ namespace fbchat_sharp.API
                 var take_part = delta.get("untypedData")?.get("guest_status")?.Value<string>() == "GOING";
                 await this.onPlanParticipation(
                     mid: mid,
-                    plan: FB_Plan._from_pull(delta.get("untypedData")),
+                    plan: FB_Plan._from_pull(delta.get("untypedData"), _session),
                     take_part: take_part,
                     author_id: author_id,
                     thread: thread,
@@ -2375,7 +2375,7 @@ namespace fbchat_sharp.API
             :param metadata: Extra metadata about the message
             :param msg: A full set of the data received
             */
-            Debug.WriteLine(string.Format("Message from {0} in {1}: {3}", author_id, thread.uid, message));
+            Debug.WriteLine(string.Format("Message from {0} in {1}: {2}", author_id, thread.uid, message));
             await Task.Yield();
         }
 
@@ -2402,7 +2402,7 @@ namespace fbchat_sharp.API
              * : param msg: A full set of the data recieved
              * : type new_color: ThreadColor
              * */
-            Debug.WriteLine(string.Format("Color change from {0} in {1} ({2}): {3}", author_id, thread.uid, new_color));
+            Debug.WriteLine(string.Format("Color change from {0} in {1}: {2}", author_id, thread.uid, new_color));
             await Task.Yield();
         }
 
@@ -2428,7 +2428,7 @@ namespace fbchat_sharp.API
              * : param metadata: Extra metadata about the action
              * : param msg: A full set of the data recieved
              * */
-            Debug.WriteLine(string.Format("Emoji change from {0} in {1}: {3}", author_id, thread.uid, new_emoji));
+            Debug.WriteLine(string.Format("Emoji change from {0} in {1}: {2}", author_id, thread.uid, new_emoji));
             await Task.Yield();
         }
 
@@ -2454,7 +2454,7 @@ namespace fbchat_sharp.API
              * : param metadata: Extra metadata about the action
              * : param msg: A full set of the data recieved
              * */
-            Debug.WriteLine(string.Format("Title change from {0} in {1}: {3}", author_id, thread.uid, new_title));
+            Debug.WriteLine(string.Format("Title change from {0} in {1}: {2}", author_id, thread.uid, new_title));
             await Task.Yield();
         }
 
@@ -2506,7 +2506,7 @@ namespace fbchat_sharp.API
              * : param metadata: Extra metadata about the action
              * : param msg: A full set of the data recieved
              * */
-            Debug.WriteLine(string.Format("Nickname change from {0} in {1} for {3}: {4}", author_id, thread.uid, changed_for, new_nickname));
+            Debug.WriteLine(string.Format("Nickname change from {0} in {1} for {2}: {3}", author_id, thread.uid, changed_for, new_nickname));
             await Task.Yield();
         }
 
@@ -2597,7 +2597,7 @@ namespace fbchat_sharp.API
             JToken metadata = null,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("Messages seen by {0} in {1} ({2}) at {3}s", seen_by, thread.uid, seen_ts / 1000));
+            Debug.WriteLine(string.Format("Messages seen by {0} in {1} at {2}s", seen_by, thread.uid, seen_ts / 1000));
             await Task.Yield();
         }
 
@@ -2618,7 +2618,7 @@ namespace fbchat_sharp.API
             JToken metadata = null,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("Messages {0} delivered to {1} in {2} ({3}) at {4}s", msg_ids, delivered_for, thread.uid, ts / 1000));
+            Debug.WriteLine(string.Format("Messages {0} delivered to {1} in {2} at {3}s", msg_ids, delivered_for, thread.uid, ts / 1000));
             await Task.Yield();
         }
 
@@ -2658,7 +2658,7 @@ namespace fbchat_sharp.API
             long ts = 0,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} unsent the message {1} in {2} at {4}s", author_id, mid, thread.uid, ts / 1000));
+            Debug.WriteLine(string.Format("{0} unsent the message {1} in {2} at {3}s", author_id, mid, thread.uid, ts / 1000));
             await Task.Yield();
         }
 
@@ -2848,7 +2848,7 @@ namespace fbchat_sharp.API
             long ts = 0,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} unblocked {1} ({2}) thread", author_id, thread.uid));
+            Debug.WriteLine(string.Format("{0} unblocked {1} thread", author_id, thread.uid));
             await Task.Yield();
         }
 
@@ -2869,7 +2869,7 @@ namespace fbchat_sharp.API
             long ts = 0,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} sent live location info in {1} with latitude {3} and longitude {4}", author_id, thread.uid, location.latitude, location.longitude));
+            Debug.WriteLine(string.Format("{0} sent live location info in {1} with latitude {2} and longitude {3}", author_id, thread.uid, location.latitude, location.longitude));
             await Task.Yield();
         }
 
@@ -3061,7 +3061,7 @@ namespace fbchat_sharp.API
             JToken metadata = null,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} edited plan {1} in {2} ({3})", author_id, plan, thread.uid));
+            Debug.WriteLine(string.Format("{0} edited plan {1} in {2}", author_id, plan, thread.uid));
             await Task.Yield();
         }
 
@@ -3084,7 +3084,7 @@ namespace fbchat_sharp.API
             JToken metadata = null,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} deleted plan {1} in {2} ({3})", author_id, plan, thread.uid));
+            Debug.WriteLine(string.Format("{0} deleted plan {1} in {2}", author_id, plan, thread.uid));
             await Task.Yield();
         }
 
