@@ -606,5 +606,16 @@ namespace fbchat_sharp.API
                 throw new FBchatException(string.Format("Error when sending message: No message IDs could be found: {0}", j));
             }
         }
+
+        /// <returns>Pretty string representation of the session</returns>
+        public override string ToString()
+        {
+            return this.__unicode__();
+        }
+
+        private string __unicode__()
+        {
+            return string.Format("<Session user_id={0}>", this.get_user_id());
+        }
     }
 }

@@ -520,7 +520,6 @@ namespace fbchat_sharp.API
                 {
                     entries[k.Name] = new JObject() {
                         { "id", k.Name },
-                        {"type", (int)ThreadType.USER },
                         {"url", k.Value.get("uri")?.Value<string>() },
                         {"first_name", k.Value.get("firstName")?.Value<string>() },
                         {"is_viewer_friend", k.Value.get("is_friend")?.Value<bool>() ?? false },
@@ -533,7 +532,6 @@ namespace fbchat_sharp.API
                 {
                     entries[k.Name] = new JObject() {
                         { "id", k.Name},
-                        { "type", (int)ThreadType.PAGE},
                         { "url", k.Value.get("uri")?.Value<string>() },
                         { "profile_picture", new JObject() { { "uri", k.Value.get("thumbSrc")?.Value<string>() } } },
                         { "name", k.Value.get("name")?.Value<string>() }
@@ -733,7 +731,7 @@ namespace fbchat_sharp.API
                     {
                         entry[((JProperty)elem).Name] = ((JProperty)elem).Value;
                     }
-                    if (entry.get("type")?.Value<int>() == (int)ThreadType.USER)
+                    if (entry.get("first_name") != null)
                     {
                         rtn[_id] = FB_User._from_graphql(_session, entry);
                     }
@@ -1298,25 +1296,7 @@ namespace fbchat_sharp.API
 
             return await this._get(
                 string.Format("https://{0}-edge-chat.facebook.com/pull", this._pull_channel), data, cancellationToken);
-        }
-
-        private Tuple<string, ThreadType> getThreadIdAndThreadType(JToken msg_metadata)
-        {
-            /*Returns a tuple consisting of thread ID and thread type*/
-            string id_thread = null;
-            ThreadType type_thread = ThreadType.USER;
-            if (msg_metadata.get("threadKey")?.get("threadFbId") != null)
-            {
-                id_thread = (msg_metadata.get("threadKey")?.get("threadFbId").Value<string>());
-                type_thread = ThreadType.GROUP;
-            }
-            else if (msg_metadata.get("threadKey")?.get("otherUserFbId") != null)
-            {
-                id_thread = (msg_metadata.get("threadKey")?.get("otherUserFbId").Value<string>());
-                type_thread = ThreadType.USER;
-            }
-            return Tuple.Create(id_thread, type_thread);
-        }
+        }        
 
         private async Task _parseDelta(JToken m)
         {
@@ -1361,13 +1341,12 @@ namespace fbchat_sharp.API
             else if (delta.get("change_thread_theme") != null)
             {
                 var new_color = ThreadColor._from_graphql(delta.get("untypedData")?.get("theme_color"));
-                var thread = getThreadIdAndThreadType(metadata);
+                var thread = FB_Thread._from_metadata(metadata, _session);
                 await this.onColorChange(
                     mid: mid,
                     author_id: author_id,
                     new_color: new_color,
-                    thread_id: thread.Item1,
-                    thread_type: thread.Item2,
+                    thread: thread,
                     ts: ts,
                     metadata: metadata,
                     msg: m
@@ -1377,13 +1356,12 @@ namespace fbchat_sharp.API
             else if (delta_type == "change_thread_icon")
             {
                 var new_emoji = delta.get("untypedData")?.get("thread_icon")?.Value<string>();
-                var thread = getThreadIdAndThreadType(metadata);
+                var thread = FB_Thread._from_metadata(metadata, _session);
                 await this.onEmojiChange(
                     mid: mid,
                     author_id: author_id,
                     new_emoji: new_emoji,
-                    thread_id: thread.Item1,
-                    thread_type: thread.Item2,
+                    thread: thread,
                     ts: ts,
                     metadata: metadata,
                     msg: m
@@ -1393,13 +1371,12 @@ namespace fbchat_sharp.API
             else if (delta_class == "ThreadName")
             {
                 var new_title = delta.get("name")?.Value<string>();
-                var thread = getThreadIdAndThreadType(metadata);
+                var thread = FB_Thread._from_metadata(metadata, _session);
                 await this.onTitleChange(
                     mid: mid,
                     author_id: author_id,
                     new_title: new_title,
-                    thread_id: thread.Item1,
-                    thread_type: thread.Item2,
+                    thread: thread,
                     ts: ts,
                     metadata: metadata,
                     msg: m
@@ -1428,8 +1405,7 @@ namespace fbchat_sharp.API
                             mid: mid,
                             author_id: author_id,
                             new_image: image_id,
-                            thread_id: thread_id,
-                            thread_type: ThreadType.GROUP,
+                            thread: thread,
                             ts: ts,
                             msg: m
                         );
@@ -1441,14 +1417,13 @@ namespace fbchat_sharp.API
             {
                 var changed_for = delta.get("untypedData")?.get("participant_id")?.Value<string>();
                 var new_nickname = delta.get("untypedData")?.get("nickname")?.Value<string>();
-                var thread = getThreadIdAndThreadType(metadata);
+                var thread = FB_Thread._from_metadata(metadata, _session);
                 await this.onNicknameChange(
                     mid: mid,
                     author_id: author_id,
                     changed_for: changed_for,
                     new_nickname: new_nickname,
-                    thread_id: thread.Item1,
-                    thread_type: thread.Item2,
+                    thread: thread,
                     ts: ts,
                     metadata: metadata,
                     msg: m
@@ -1457,7 +1432,7 @@ namespace fbchat_sharp.API
             // Admin added or removed in a group thread
             else if (delta_type == "change_thread_admins")
             {
-                var thread = getThreadIdAndThreadType(metadata);
+                var thread = FB_Thread._from_metadata(metadata, _session);
                 var target_id = delta.get("untypedData")?.get("TARGET_ID")?.Value<string>();
                 var admin_event = delta.get("untypedData")?.get("ADMIN_EVENT")?.Value<string>();
                 if (admin_event == "add_admin")
@@ -1465,8 +1440,7 @@ namespace fbchat_sharp.API
                         mid: mid,
                         added_id: target_id,
                         author_id: author_id,
-                        thread_id: thread.Item1,
-                        thread_type: thread.Item2,
+                        thread: thread,
                         ts: ts,
                         msg: m
                     );
@@ -1475,8 +1449,7 @@ namespace fbchat_sharp.API
                     mid: mid,
                     removed_id: target_id,
                     author_id: author_id,
-                    thread_id: thread.Item1,
-                    thread_type: thread.Item2,
+                    thread: thread,
                     ts: ts,
                     msg: m
                 );
@@ -1484,14 +1457,13 @@ namespace fbchat_sharp.API
             // Group approval mode change
             else if (delta_type == "change_thread_approval_mode")
             {
-                var thread = getThreadIdAndThreadType(metadata);
+                var thread = FB_Thread._from_metadata(metadata, _session);
                 var approval_mode = long.Parse(delta.get("untypedData")?.get("APPROVAL_MODE")?.Value<string>()) != 0;
                 await this.onApprovalModeChange(
                     mid: mid,
                     approval_mode: approval_mode,
                     author_id: author_id,
-                    thread_id: thread.Item1,
-                    thread_type: thread.Item2,
+                    thread: thread,
                     ts: ts,
                     msg: m
                 );
@@ -1503,12 +1475,11 @@ namespace fbchat_sharp.API
                 var delivered_for =
                     delta.get("actorFbId")?.Value<string>() ?? delta.get("threadKey")?.get("otherUserFbId")?.Value<string>();
                 ts = long.Parse(delta.get("deliveredWatermarkTimestampMs")?.Value<string>());
-                var thread = getThreadIdAndThreadType(delta);
+                var thread = FB_Thread._from_metadata(metadata, _session);
                 await this.onMessageDelivered(
                     msg_ids: message_ids,
                     delivered_for: delivered_for,
-                    thread_id: thread.Item1,
-                    thread_type: thread.Item2,
+                    thread: thread,
                     ts: ts,
                     metadata: metadata,
                     msg: m
@@ -1520,11 +1491,10 @@ namespace fbchat_sharp.API
                 var seen_by = delta.get("actorFbId")?.Value<string>() ?? delta.get("threadKey")?.get("otherUserFbId")?.Value<string>();
                 var seen_ts = long.Parse(delta.get("actionTimestampMs")?.Value<string>());
                 var delivered_ts = long.Parse(delta.get("watermarkTimestampMs")?.Value<string>());
-                var thread = getThreadIdAndThreadType(delta);
+                var thread = FB_Thread._from_metadata(metadata, _session);
                 await this.onMessageSeen(
                     seen_by: seen_by,
-                    thread_id: thread.Item1,
-                    thread_type: thread.Item2,
+                    thread: thread,
                     seen_ts: seen_ts,
                     ts: delivered_ts,
                     metadata: metadata,
@@ -1541,11 +1511,11 @@ namespace fbchat_sharp.API
                     delta.get("watermarkTimestampMs")?.Value<string>() ?? delta.get("watermarkTimestamp")?.Value<string>()
                 );
 
-                var threads = new List<Tuple<string, ThreadType>>();
+                var threads = new List<FB_Thread>();
                 if (delta.get("folders") == null)
                 {
-                    threads = delta.get("threadKeys").Select(thr => getThreadIdAndThreadType(
-                        new JObject(new JProperty("threadKey", thr)))).ToList();
+                    threads = delta.get("threadKeys").Select(thr => FB_Thread._from_metadata(
+                        new JObject(new JProperty("threadKey", thr)), _session)).ToList();
                 }
 
                 // var thread = getThreadIdAndThreadType(delta);
@@ -1560,7 +1530,7 @@ namespace fbchat_sharp.API
                 var game_name = delta.get("untypedData")?.get("game_name");
                 var score = delta.get("untypedData")?.get("score") != null ? (int?)long.Parse(delta.get("untypedData")?.get("score")?.Value<string>()) : null;
                 var leaderboard = delta.get("untypedData")?.get("leaderboard") != null ? JToken.Parse(delta.get("untypedData")?.get("leaderboard")?.Value<string>()).get("scores") : null;
-                var thread = getThreadIdAndThreadType(metadata);
+                var thread = FB_Thread._from_metadata(metadata, _session);
                 await this.onGamePlayed(
                     mid: mid,
                     author_id: author_id,
@@ -1568,8 +1538,7 @@ namespace fbchat_sharp.API
                     game_name: game_name,
                     score: score,
                     leaderboard: leaderboard,
-                    thread_id: thread.Item1,
-                    thread_type: thread.Item2,
+                    thread: thread,
                     ts: ts,
                     metadata: metadata,
                     msg: m
@@ -1578,7 +1547,7 @@ namespace fbchat_sharp.API
             // Group call started/ended
             else if (delta_type == "rtc_call_log")
             {
-                var thread = getThreadIdAndThreadType(metadata);
+                var thread = FB_Thread._from_metadata(metadata, _session);
                 var call_status = delta.get("untypedData")?.get("event")?.Value<string>();
                 int call_duration = int.Parse(delta.get("untypedData")?.get("call_duration")?.Value<string>());
                 var is_video_call = int.Parse(delta.get("untypedData")?.get("is_video_call")?.Value<string>()) != 0;
@@ -1587,8 +1556,7 @@ namespace fbchat_sharp.API
                         mid: mid,
                         caller_id: author_id,
                         is_video_call: is_video_call,
-                        thread_id: thread.Item1,
-                        thread_type: thread.Item2,
+                        thread: thread,
                         ts: ts,
                         metadata: metadata,
                         msg: m
@@ -1599,8 +1567,7 @@ namespace fbchat_sharp.API
                         caller_id: author_id,
                         is_video_call: is_video_call,
                         call_duration: call_duration,
-                        thread_id: thread.Item1,
-                        thread_type: thread.Item2,
+                        thread: thread,                    
                         ts: ts,
                         metadata: metadata,
                         msg: m
@@ -1609,14 +1576,13 @@ namespace fbchat_sharp.API
             // User joined to group call
             else if (delta_type == "participant_joined_group_call")
             {
-                var thread = getThreadIdAndThreadType(metadata);
+                var thread = FB_Thread._from_metadata(metadata, _session);
                 var is_video_call = long.Parse(delta.get("untypedData")?.get("group_call_type")?.Value<string>()) != 0;
                 await this.onUserJoinedCall(
                     mid: mid,
                     joined_id: author_id,
                     is_video_call: is_video_call,
-                    thread_id: thread.Item1,
-                    thread_type: thread.Item2,
+                    thread: thread,
                     ts: ts,
                     metadata: metadata,
                     msg: m
@@ -1625,7 +1591,7 @@ namespace fbchat_sharp.API
             // Group poll event
             else if (delta_type == "group_poll")
             {
-                var thread = getThreadIdAndThreadType(metadata);
+                var thread = FB_Thread._from_metadata(metadata, _session);
                 var event_type = delta.get("untypedData")?.get("event_type")?.Value<string>();
                 var poll_json = JToken.Parse(delta.get("untypedData")?.get("question_json")?.Value<string>());
                 var poll = FB_Poll._from_graphql(poll_json);
@@ -1635,8 +1601,7 @@ namespace fbchat_sharp.API
                         mid: mid,
                         poll: poll,
                         author_id: author_id,
-                        thread_id: thread.Item1,
-                        thread_type: thread.Item2,
+                        thread: thread,
                         ts: ts,
                         metadata: metadata,
                         msg: m
@@ -1652,8 +1617,7 @@ namespace fbchat_sharp.API
                         added_options: added_options,
                         removed_options: removed_options,
                         author_id: author_id,
-                        thread_id: thread.Item1,
-                        thread_type: thread.Item2,
+                        thread: thread,
                         ts: ts,
                         metadata: metadata,
                         msg: m
@@ -1663,13 +1627,12 @@ namespace fbchat_sharp.API
             // Plan created
             else if (delta_type == "lightweight_event_create")
             {
-                var thread = getThreadIdAndThreadType(metadata);
+                var thread = FB_Thread._from_metadata(metadata, _session);
                 await this.onPlanCreated(
                     mid: mid,
                     plan: FB_Plan._from_pull(delta.get("untypedData")),
                     author_id: author_id,
-                    thread_id: thread.Item1,
-                    thread_type: thread.Item2,
+                    thread: thread,
                     ts: ts,
                     metadata: metadata,
                     msg: m
@@ -1678,12 +1641,11 @@ namespace fbchat_sharp.API
             // Plan ended
             else if (delta_type == "lightweight_event_notify")
             {
-                var thread = getThreadIdAndThreadType(metadata);
+                var thread = FB_Thread._from_metadata(metadata, _session);
                 await this.onPlanEnded(
                     mid: mid,
                     plan: FB_Plan._from_pull(delta.get("untypedData")),
-                    thread_id: thread.Item1,
-                    thread_type: thread.Item2,
+                    thread: thread,
                     ts: ts,
                     metadata: metadata,
                     msg: m
@@ -1692,13 +1654,12 @@ namespace fbchat_sharp.API
             // Plan edited
             else if (delta_type == "lightweight_event_update")
             {
-                var thread = getThreadIdAndThreadType(metadata);
+                var thread = FB_Thread._from_metadata(metadata, _session);
                 await this.onPlanEdited(
                     mid: mid,
                     plan: FB_Plan._from_pull(delta.get("untypedData")),
                     author_id: author_id,
-                    thread_id: thread.Item1,
-                    thread_type: thread.Item2,
+                    thread: thread,
                     ts: ts,
                     metadata: metadata,
                     msg: m
@@ -1707,13 +1668,12 @@ namespace fbchat_sharp.API
             // Plan deleted
             else if (delta_type == "lightweight_event_delete")
             {
-                var thread = getThreadIdAndThreadType(metadata);
+                var thread = FB_Thread._from_metadata(metadata, _session);
                 await this.onPlanDeleted(
                     mid: mid,
                     plan: FB_Plan._from_pull(delta.get("untypedData")),
                     author_id: author_id,
-                    thread_id: thread.Item1,
-                    thread_type: thread.Item2,
+                    thread: thread,
                     ts: ts,
                     metadata: metadata,
                     msg: m
@@ -1722,15 +1682,14 @@ namespace fbchat_sharp.API
             // Plan participation change
             else if (delta_type == "lightweight_event_rsvp")
             {
-                var thread = getThreadIdAndThreadType(metadata);
+                var thread = FB_Thread._from_metadata(metadata, _session);
                 var take_part = delta.get("untypedData")?.get("guest_status")?.Value<string>() == "GOING";
                 await this.onPlanParticipation(
                     mid: mid,
                     plan: FB_Plan._from_pull(delta.get("untypedData")),
                     take_part: take_part,
                     author_id: author_id,
-                    thread_id: thread.Item1,
-                    thread_type: thread.Item2,
+                    thread: thread,
                     ts: ts,
                     metadata: metadata,
                     msg: m
@@ -1747,7 +1706,7 @@ namespace fbchat_sharp.API
                     if (d.get("deltaMessageReaction") != null)
                     {
                         var i = d.get("deltaMessageReaction");
-                        var thread = getThreadIdAndThreadType(i);
+                        var thread = FB_Thread._from_metadata(i, _session);
                         mid = i.get("messageId")?.Value<string>();
                         author_id = i.get("userId")?.Value<string>();
                         var reaction = (
@@ -1759,8 +1718,7 @@ namespace fbchat_sharp.API
                                 mid: mid,
                                 reaction: reaction,
                                 author_id: author_id,
-                                thread_id: thread.Item1,
-                                thread_type: thread.Item2,
+                                thread: thread,
                                 ts: ts,
                                 msg: m
                             );
@@ -1768,8 +1726,7 @@ namespace fbchat_sharp.API
                             await this.onReactionRemoved(
                                 mid: mid,
                                 author_id: author_id,
-                                thread_id: thread.Item1,
-                                thread_type: thread.Item2,
+                                thread: thread,
                                 ts: ts,
                                 msg: m
                             );
@@ -1778,7 +1735,7 @@ namespace fbchat_sharp.API
                     else if (d.get("deltaChangeViewerStatus") != null)
                     {
                         var i = d.get("deltaChangeViewerStatus");
-                        var thread = getThreadIdAndThreadType(i);
+                        var thread = FB_Thread._from_metadata(i, _session);
                         author_id = i.get("actorFbid")?.Value<string>();
                         var reason = i.get("reason")?.Value<int>();
                         var can_reply = i.get("canViewerReply")?.Value<bool>() ?? false;
@@ -1786,16 +1743,14 @@ namespace fbchat_sharp.API
                             if (can_reply)
                                 await this.onUnblock(
                                     author_id: author_id,
-                                    thread_id: thread.Item1,
-                                    thread_type: thread.Item2,
+                                    thread: thread,
                                     ts: ts,
                                     msg: m
                                 );
                             else
                                 await this.onBlock(
                                     author_id: author_id,
-                                    thread_id: thread.Item1,
-                                    thread_type: thread.Item2,
+                                    thread: thread,
                                     ts: ts,
                                     msg: m
                                 );
@@ -1804,7 +1759,7 @@ namespace fbchat_sharp.API
                     else if (d.get("liveLocationData") != null)
                     {
                         var i = d.get("liveLocationData");
-                        var thread = getThreadIdAndThreadType(i);
+                        var thread = FB_Thread._from_metadata(i, _session);
                         foreach (var l in i.get("messageLiveLocations"))
                         {
                             mid = l.get("messageId")?.Value<string>();
@@ -1814,8 +1769,7 @@ namespace fbchat_sharp.API
                                 mid: mid,
                                 location: location,
                                 author_id: author_id,
-                                thread_id: thread.Item1,
-                                thread_type: thread.Item2,
+                                thread: thread,
                                 ts: ts,
                                 msg: m
                             );
@@ -1825,15 +1779,14 @@ namespace fbchat_sharp.API
                     else if (d.get("deltaRecallMessageData") != null)
                     {
                         var i = d.get("deltaRecallMessageData");
-                        var thread = getThreadIdAndThreadType(i);
+                        var thread = FB_Thread._from_metadata(i, _session);
                         mid = i.get("messageID")?.Value<string>();
                         ts = i.get("deletionTimestamp")?.Value<long>() ?? 0;
                         author_id = i.get("senderID")?.Value<string>();
                         await this.onMessageUnsent(
                             mid: mid,
                             author_id: author_id,
-                            thread_id: thread.Item1,
-                            thread_type: thread.Item2,
+                            thread: thread,
                             ts: ts,
                             msg: m
                         );
@@ -1842,8 +1795,7 @@ namespace fbchat_sharp.API
                     {
                         var i = d.get("deltaMessageReply");
                         metadata = i.get("message")?.get("messageMetadata");
-                        var threadIdAndType = getThreadIdAndThreadType(metadata);
-                        var thread = (FB_Thread)Activator.CreateInstance(threadIdAndType.Item2._to_class(), threadIdAndType.Item1, _session);
+                        var thread = FB_Thread._from_metadata(metadata, _session);
                         var message = FB_Message._from_reply(i.get("message"), thread);
                         message.replied_to = FB_Message._from_reply(i.get("repliedToMessage"), thread);
                         message.reply_to_id = message.replied_to.uid;
@@ -1852,8 +1804,7 @@ namespace fbchat_sharp.API
                             author_id: message.author,
                             message: message.text,
                             message_object: message,
-                            thread_id: threadIdAndType.Item1,
-                            thread_type: threadIdAndType.Item2,
+                            thread: thread,
                             ts: long.Parse(message.timestamp),
                             metadata: metadata,
                             msg: m
@@ -1864,8 +1815,7 @@ namespace fbchat_sharp.API
             // New message
             else if (delta.get("class")?.Value<string>() == "NewMessage")
             {
-                var threadIdAndType = getThreadIdAndThreadType(metadata);
-                var thread = (FB_Thread)Activator.CreateInstance(threadIdAndType.Item2._to_class(), threadIdAndType.Item1, _session);
+                var thread = FB_Thread._from_metadata(metadata, _session);
                 await this.onMessage(
                     mid: mid,
                     author_id: author_id,
@@ -1878,8 +1828,7 @@ namespace fbchat_sharp.API
                         author: author_id,
                         timestamp: ts.ToString()
                     ),
-                    thread_id: threadIdAndType.Item1,
-                    thread_type: threadIdAndType.Item2,
+                    thread: thread,
                     ts: ts,
                     metadata: metadata,
                     msg: m
@@ -1929,25 +1878,24 @@ namespace fbchat_sharp.API
                     {
                         var author_id = m.get("from")?.Value<string>();
                         var thread_id = m.get("thread_fbid")?.Value<string>();
-                        var thread_type = ThreadType.USER;
+                        FB_Thread thread = null;
                         if (thread_id != null)
                         {
-                            thread_type = ThreadType.GROUP;
+                            thread = new FB_Group(thread_id, _session);
                         }
                         else
                         {
-                            thread_type = ThreadType.USER;
                             if (author_id == this._uid)
                                 thread_id = m.get("to")?.Value<string>();
                             else
                                 thread_id = author_id;
+                            thread = new FB_User(thread_id, _session);
                         }
                         var typing_status = (TypingStatus)(m.get("st")?.Value<int>());
                         await this.onTyping(
                             author_id: author_id,
                             status: typing_status,
-                            thread_id: thread_id,
-                            thread_type: thread_type,
+                            thread: thread,
                             msg: m
                         );
                     }
@@ -2217,8 +2165,7 @@ namespace fbchat_sharp.API
                 await this.onTyping(
                     author_id: author_id,
                     status: typing_status,
-                    thread_id: thread_id,
-                    thread_type: thread_id == author_id ? ThreadType.USER : ThreadType.GROUP,
+                    thread: thread_id == author_id ? (FB_Thread)new FB_User(thread_id, _session) : (FB_Thread)new FB_Group(thread_id, _session),
                     msg: event_data
                 );
             }
@@ -2411,12 +2358,11 @@ namespace fbchat_sharp.API
         /// <param name="author_id">The ID of the author</param>
         /// <param name="message">The message content</param>
         /// <param name="message_object">The message object</param>
-        /// <param name="thread_id">Thread ID that the message was sent to</param>
-        /// <param name="thread_type">Type of thread that the message was sent to</param>
+        /// <param name="thread">Thread that the message was sent to</param>
         /// <param name="ts">The timestamp of the message</param>
         /// <param name="metadata">Extra metadata about the message</param>
         /// <param name="msg">A full set of the data received</param>
-        protected virtual async Task onMessage(string mid = null, string author_id = null, string message = null, FB_Message message_object = null, string thread_id = null, ThreadType? thread_type = null, long ts = 0, JToken metadata = null, JToken msg = null)
+        protected virtual async Task onMessage(string mid = null, string author_id = null, string message = null, FB_Message message_object = null, FB_Thread thread = null, long ts = 0, JToken metadata = null, JToken msg = null)
         {
             /*
             Called when the client is listening, and somebody sends a message
@@ -2424,14 +2370,12 @@ namespace fbchat_sharp.API
             :param author_id: The ID of the author
             :param message: (deprecated. Use `message_object.text` instead)
             :param message_object: The message (As a `Message` object)
-            :param thread_id: Thread ID that the message was sent to.See :ref:`intro_threads`
-            :param thread_type: Type of thread that the message was sent to.See :ref:`intro_threads`
+            :param thread: Thread that the message was sent to.See :ref:`intro_threads`
             :param ts: The timestamp of the message
             :param metadata: Extra metadata about the message
             :param msg: A full set of the data received
-            :type thread_type: models.ThreadType
             */
-            Debug.WriteLine(string.Format("Message from {0} in {1} ({2}): {3}", author_id, thread_id, thread_type.ToString(), message));
+            Debug.WriteLine(string.Format("Message from {0} in {1}: {3}", author_id, thread.uid, message));
             await Task.Yield();
         }
 
@@ -2441,27 +2385,24 @@ namespace fbchat_sharp.API
         /// <param name="mid">The action ID</param>
         /// <param name="author_id">The ID of the person who changed the color</param>
         /// <param name="new_color">The new color</param>
-        /// <param name="thread_id">Thread ID that the action was sent to</param>
-        /// <param name="thread_type">Type of thread that the action was sent to</param>
+        /// <param name="thread">Thread that the action was sent to</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data received</param>
-        protected virtual async Task onColorChange(string mid = null, string author_id = null, string new_color = null, string thread_id = null, ThreadType? thread_type = null, long ts = 0, JToken metadata = null, JToken msg = null)
+        protected virtual async Task onColorChange(string mid = null, string author_id = null, string new_color = null, FB_Thread thread = null, long ts = 0, JToken metadata = null, JToken msg = null)
         {
             /*
              * Called when the client is listening, and somebody changes a thread's color
              * :param mid: The action ID
              * : param author_id: The ID of the person who changed the color
              * : param new_color: The new color
-             * :param thread_id: Thread ID that the action was sent to. See: ref:`intro_threads`
-             * :param thread_type: Type of thread that the action was sent to.See :ref:`intro_threads`
+             * :param thread: Thread that the action was sent to. See: ref:`intro_threads`
              * :param ts: A timestamp of the action
              * : param metadata: Extra metadata about the action
              * : param msg: A full set of the data recieved
              * : type new_color: ThreadColor
-             * : type thread_type: ThreadType
              * */
-            Debug.WriteLine(string.Format("Color change from {0} in {1} ({2}): {3}", author_id, thread_id, thread_type.ToString(), new_color));
+            Debug.WriteLine(string.Format("Color change from {0} in {1} ({2}): {3}", author_id, thread.uid, new_color));
             await Task.Yield();
         }
 
@@ -2471,26 +2412,23 @@ namespace fbchat_sharp.API
         /// <param name="mid">The action ID</param>
         /// <param name="author_id">The ID of the person who changed the emoji</param>
         /// <param name="new_emoji">The new emoji</param>
-        /// <param name="thread_id">Thread ID that the action was sent to</param>
-        /// <param name="thread_type">Type of thread that the action was sent to</param>
+        /// <param name="thread">Thread that the action was sent to</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data received</param>
-        protected virtual async Task onEmojiChange(string mid = null, string author_id = null, string new_emoji = null, string thread_id = null, ThreadType? thread_type = null, long ts = 0, JToken metadata = null, JToken msg = null)
+        protected virtual async Task onEmojiChange(string mid = null, string author_id = null, string new_emoji = null, FB_Thread thread = null, long ts = 0, JToken metadata = null, JToken msg = null)
         {
             /*
              * Called when the client is listening, and somebody changes a thread's emoji
              * :param mid: The action ID
              * : param author_id: The ID of the person who changed the emoji
              * : param new_emoji: The new emoji
-             * :param thread_id: Thread ID that the action was sent to. See: ref:`intro_threads`
-             * :param thread_type: Type of thread that the action was sent to.See :ref:`intro_threads`
+             * :param thread: Thread that the action was sent to. See: ref:`intro_threads`
              * :param ts: A timestamp of the action
              * : param metadata: Extra metadata about the action
              * : param msg: A full set of the data recieved
-             * : type thread_type: ThreadType
              * */
-            Debug.WriteLine(string.Format("Emoji change from {0} in {1} ({2}): {3}", author_id, thread_id, thread_type.ToString(), new_emoji));
+            Debug.WriteLine(string.Format("Emoji change from {0} in {1}: {3}", author_id, thread.uid, new_emoji));
             await Task.Yield();
         }
 
@@ -2500,26 +2438,23 @@ namespace fbchat_sharp.API
         /// <param name="mid">The action ID</param>
         /// <param name="author_id">The ID of the person who changed the title</param>
         /// <param name="new_title">The new title</param>
-        /// <param name="thread_id">Thread ID that the action was sent to</param>
-        /// <param name="thread_type">Type of thread that the action was sent to</param>
+        /// <param name="thread">Thread that the action was sent to</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data received</param>
-        protected virtual async Task onTitleChange(string mid = null, string author_id = null, string new_title = null, string thread_id = null, ThreadType? thread_type = null, long ts = 0, JToken metadata = null, JToken msg = null)
+        protected virtual async Task onTitleChange(string mid = null, string author_id = null, string new_title = null, FB_Thread thread = null, long ts = 0, JToken metadata = null, JToken msg = null)
         {
             /*
              * Called when the client is listening, and somebody changes a thread's title
              * :param mid: The action ID
              * : param author_id: The ID of the person who changed the title
              * : param new_title: The new title
-             * :param thread_id: Thread ID that the action was sent to. See: ref:`intro_threads`
-             * :param thread_type: Type of thread that the action was sent to.See :ref:`intro_threads`
+             * :param thread: Thread that the action was sent to. See: ref:`intro_threads`
              * :param ts: A timestamp of the action
              * : param metadata: Extra metadata about the action
              * : param msg: A full set of the data recieved
-             * : type thread_type: ThreadType
              * */
-            Debug.WriteLine(string.Format("Title change from {0} in {1} ({2}): {3}", author_id, thread_id, thread_type.ToString(), new_title));
+            Debug.WriteLine(string.Format("Title change from {0} in {1}: {3}", author_id, thread.uid, new_title));
             await Task.Yield();
         }
 
@@ -2529,24 +2464,21 @@ namespace fbchat_sharp.API
         /// <param name="mid">The action ID</param>
         /// <param name="author_id">The ID of the person who changed the image</param>
         /// <param name="new_image">The new image</param>
-        /// <param name="thread_id">Thread ID that the action was sent to</param>
-        /// <param name="thread_type">Type of thread that the action was sent to</param>
+        /// <param name="thread">Thread that the action was sent to</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="msg">A full set of the data received</param>
-        protected virtual async Task onImageChange(string mid = null, string author_id = null, int? new_image = null, string thread_id = null, ThreadType? thread_type = null, long ts = 0, JToken msg = null)
+        protected virtual async Task onImageChange(string mid = null, string author_id = null, int? new_image = null, FB_Thread thread = null, long ts = 0, JToken msg = null)
         {
             /*
              * Called when the client is listening, and somebody changes a thread's image
              * :param mid: The action ID
              * : param author_id: The ID of the person who changed the image
              * : param new_color: The new image
-             * :param thread_id: Thread ID that the action was sent to. See: ref:`intro_threads`
-             * :param thread_type: Type of thread that the action was sent to.See :ref:`intro_threads`
+             * :param thread: Thread that the action was sent to. See: ref:`intro_threads`
              * :param ts: A timestamp of the action
              * : param msg: A full set of the data received
-             * : type thread_type: ThreadType
              * */
-            Debug.WriteLine(string.Format("Image change from {0} in {1}", author_id, thread_id));
+            Debug.WriteLine(string.Format("Image change from {0} in {1}", author_id, thread.uid));
             await Task.Yield();
         }
 
@@ -2557,12 +2489,11 @@ namespace fbchat_sharp.API
         /// <param name="author_id">The ID of the person who changed the nickname</param>
         /// <param name="changed_for">The ID of the person whom got their nickname changed</param>
         /// <param name="new_nickname">The new nickname</param>
-        /// <param name="thread_id">Thread ID that the action was sent to</param>
-        /// <param name="thread_type">Type of thread that the action was sent to</param>
+        /// <param name="thread">Thread that the action was sent to</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data received</param>
-        protected virtual async Task onNicknameChange(string mid = null, string author_id = null, string changed_for = null, string new_nickname = null, string thread_id = null, ThreadType? thread_type = null, long ts = 0, JToken metadata = null, JToken msg = null)
+        protected virtual async Task onNicknameChange(string mid = null, string author_id = null, string changed_for = null, string new_nickname = null, FB_Thread thread = null, long ts = 0, JToken metadata = null, JToken msg = null)
         {
             /*
              * Called when the client is listening, and somebody changes the nickname of a person
@@ -2570,14 +2501,12 @@ namespace fbchat_sharp.API
              * : param author_id: The ID of the person who changed the nickname
              * : param changed_for: The ID of the person whom got their nickname changed
              * :param new_nickname: The new nickname
-             * :param thread_id: Thread ID that the action was sent to. See: ref:`intro_threads`
-             * :param thread_type: Type of thread that the action was sent to.See :ref:`intro_threads`
+             * :param thread: Thread that the action was sent to. See: ref:`intro_threads`
              * :param ts: A timestamp of the action
              * : param metadata: Extra metadata about the action
              * : param msg: A full set of the data recieved
-             * : type thread_type: ThreadType
              * */
-            Debug.WriteLine(string.Format("Nickname change from {0} in {1} ({2}) for {3}: {4}", author_id, thread_id, thread_type.ToString(), changed_for, new_nickname));
+            Debug.WriteLine(string.Format("Nickname change from {0} in {1} for {3}: {4}", author_id, thread.uid, changed_for, new_nickname));
             await Task.Yield();
         }
 
@@ -2587,20 +2516,18 @@ namespace fbchat_sharp.API
         /// <param name="mid">The action ID</param>
         /// <param name="added_id">The ID of the admin who got added</param>
         /// <param name="author_id">The ID of the person who added the admins</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type"></param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="msg">A full set of the data recieved</param>
         protected virtual async Task onAdminAdded(
             string mid = null,
             string added_id = null,
             string author_id = null,
-            string thread_id = null,
-            ThreadType thread_type = ThreadType.GROUP,
+            FB_Thread thread = null,
             long ts = 0,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} added admin: {1} in {2}", author_id, added_id, thread_id));
+            Debug.WriteLine(string.Format("{0} added admin: {1} in {2}", author_id, added_id, thread.uid));
             await Task.Yield();
         }
 
@@ -2610,20 +2537,18 @@ namespace fbchat_sharp.API
         /// <param name="mid">The action ID</param>
         /// <param name="removed_id">The ID of the admin who got removed</param>
         /// <param name="author_id">The ID of the person who removed the admins</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type"></param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="msg">A full set of the data recieved</param>
         protected virtual async Task onAdminRemoved(
             string mid = null,
             string removed_id = null,
             string author_id = null,
-            string thread_id = null,
-            ThreadType thread_type = ThreadType.GROUP,
+            FB_Thread thread = null,
             long ts = 0,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} removed admin: {1} in {2}", author_id, removed_id, thread_id));
+            Debug.WriteLine(string.Format("{0} removed admin: {1} in {2}", author_id, removed_id, thread.uid));
             await Task.Yield();
         }
 
@@ -2633,26 +2558,24 @@ namespace fbchat_sharp.API
         /// <param name="mid">The action ID</param>
         /// <param name="approval_mode">True if approval mode is activated</param>
         /// <param name="author_id">The ID of the person who changed approval mode</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type"></param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="msg">A full set of the data recieved</param>
         protected virtual async Task onApprovalModeChange(
             string mid = null,
             bool approval_mode = false,
             string author_id = null,
-            string thread_id = null,
-            ThreadType thread_type = ThreadType.GROUP,
+            FB_Thread thread = null,
             long ts = 0,
             JToken msg = null)
         {
             if (approval_mode)
             {
-                Debug.WriteLine(string.Format("{0} activated approval mode in {1}", author_id, thread_id));
+                Debug.WriteLine(string.Format("{0} activated approval mode in {1}", author_id, thread.uid));
             }
             else
             {
-                Debug.WriteLine(string.Format("{0} disabled approval mode in {1}", author_id, thread_id));
+                Debug.WriteLine(string.Format("{0} disabled approval mode in {1}", author_id, thread.uid));
             }
             await Task.Yield();
         }
@@ -2661,22 +2584,20 @@ namespace fbchat_sharp.API
         /// Called when the client is listening, and somebody marks a message as seen
         ///</summary>
         /// <param name="seen_by">The ID of the person who marked the message as seen</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="seen_ts">A timestamp of when the person saw the message</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data recieved</param>
         protected virtual async Task onMessageSeen(
             object seen_by = null,
-            string thread_id = null,
-            ThreadType? thread_type = null,
+            FB_Thread thread = null,
             long seen_ts = 0,
             long ts = 0,
             JToken metadata = null,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("Messages seen by {0} in {1} ({2}) at {3}s", seen_by, thread_id, thread_type.ToString(), seen_ts / 1000));
+            Debug.WriteLine(string.Format("Messages seen by {0} in {1} ({2}) at {3}s", seen_by, thread.uid, seen_ts / 1000));
             await Task.Yield();
         }
 
@@ -2685,21 +2606,19 @@ namespace fbchat_sharp.API
         ///</summary>
         /// <param name="msg_ids">The messages that are marked as delivered</param>
         /// <param name="delivered_for">The person that marked the messages as delivered</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data recieved</param>
         protected virtual async Task onMessageDelivered(
             JToken msg_ids = null,
             object delivered_for = null,
-            string thread_id = null,
-            ThreadType? thread_type = null,
+            FB_Thread thread = null,
             long ts = 0,
             JToken metadata = null,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("Messages {0} delivered to {1} in {2} ({3}) at {4}s", msg_ids, delivered_for, thread_id, thread_type.ToString(), ts / 1000));
+            Debug.WriteLine(string.Format("Messages {0} delivered to {1} in {2} ({3}) at {4}s", msg_ids, delivered_for, thread.uid, ts / 1000));
             await Task.Yield();
         }
 
@@ -2712,7 +2631,7 @@ namespace fbchat_sharp.API
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data recieved</param>
         protected virtual async Task onMarkedSeen(
-            List<Tuple<string, ThreadType>> threads = null,
+            List<FB_Thread> threads = null,
             long seen_ts = 0,
             long ts = 0,
             JToken metadata = null,
@@ -2720,7 +2639,7 @@ namespace fbchat_sharp.API
         {
             Debug.WriteLine(string.Format("Marked messages as seen in threads {0} at {1}s",
                 string.Join(",", from x in threads
-                                 select Tuple.Create(x.Item1, x.Item2.ToString())), seen_ts / 1000));
+                                 select x.uid), seen_ts / 1000));
             await Task.Yield();
         }
 
@@ -2729,19 +2648,17 @@ namespace fbchat_sharp.API
         ///</summary>
         /// <param name="mid">ID of the unsent message</param>
         /// <param name="author_id">The ID of the person who unsent the message</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="msg">A full set of the data recieved</param>
         protected virtual async Task onMessageUnsent(
             string mid = null,
             string author_id = null,
-            string thread_id = null,
-            ThreadType? thread_type = null,
+            FB_Thread thread = null,
             long ts = 0,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} unsent the message {1} in {2} ({3}) at {4}s", author_id, mid, thread_id, thread_type.ToString(), ts / 1000));
+            Debug.WriteLine(string.Format("{0} unsent the message {1} in {2} at {4}s", author_id, mid, thread.uid, ts / 1000));
             await Task.Yield();
         }
 
@@ -2821,14 +2738,12 @@ namespace fbchat_sharp.API
         ///</summary>
         /// <param name="author_id">The ID of the person who sent the action</param>
         /// <param name="status">The typing status</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="msg">A full set of the data recieved</param>
         protected virtual async Task onTyping(
             string author_id = null,
             object status = null,
-            string thread_id = null,
-            ThreadType? thread_type = null,
+            FB_Thread thread = null,
             JToken msg = null)
         {
             await Task.Yield();
@@ -2843,8 +2758,7 @@ namespace fbchat_sharp.API
         /// <param name="game_name">Name of the game</param>
         /// <param name="score">Score obtained in the game</param>
         /// <param name="leaderboard">Actual leaderboard of the game in the thread</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data recieved</param>
@@ -2855,13 +2769,12 @@ namespace fbchat_sharp.API
             object game_name = null,
             object score = null,
             object leaderboard = null,
-            string thread_id = null,
-            ThreadType? thread_type = null,
+            FB_Thread thread = null,
             long ts = 0,
             JToken metadata = null,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} played \"{1}\" in {2} ({3})", author_id, game_name, thread_id, thread_type.ToString()));
+            Debug.WriteLine(string.Format("{0} played \"{1}\" in {2}", author_id, game_name, thread.uid));
             await Task.Yield();
         }
 
@@ -2871,20 +2784,18 @@ namespace fbchat_sharp.API
         /// <param name="mid">Message ID, that user reacted to</param>
         /// <param name="reaction">Reaction</param>
         /// <param name="author_id">The ID of the person who reacted to the message</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="msg">A full set of the data recieved</param>
         protected virtual async Task onReactionAdded(
             string mid = null,
             object reaction = null,
             string author_id = null,
-            string thread_id = null,
-            ThreadType? thread_type = null,
+            FB_Thread thread = null,
             long ts = 0,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} reacted to message {1} with {2} in {3} ({4})", author_id, mid, reaction.ToString(), thread_id, thread_type.ToString()));
+            Debug.WriteLine(string.Format("{0} reacted to message {1} with {2} in {3}", author_id, mid, reaction.ToString(), thread.uid));
             await Task.Yield();
         }
 
@@ -2893,19 +2804,17 @@ namespace fbchat_sharp.API
         ///</summary>
         /// <param name="mid">Message ID, that user reacted to</param>
         /// <param name="author_id">The ID of the person who removed reaction</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="msg">A full set of the data recieved</param>
         protected virtual async Task onReactionRemoved(
             string mid = null,
             string author_id = null,
-            string thread_id = null,
-            ThreadType? thread_type = null,
+            FB_Thread thread = null,
             long ts = 0,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} removed reaction from {1} message in {2} ({3})", author_id, mid, thread_id, thread_type));
+            Debug.WriteLine(string.Format("{0} removed reaction from {1} message in {2}", author_id, mid, thread.uid));
             await Task.Yield();
         }
 
@@ -2913,18 +2822,16 @@ namespace fbchat_sharp.API
         /// Called when the client is listening, and somebody blocks client
         ///</summary>
         /// <param name="author_id">The ID of the person who blocked</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="msg">A full set of the data recieved</param>
         protected virtual async Task onBlock(
             string author_id = null,
-            string thread_id = null,
-            ThreadType? thread_type = null,
+            FB_Thread thread = null,
             long ts = 0,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} blocked {1} ({2}) thread", author_id, thread_id, thread_type.ToString()));
+            Debug.WriteLine(string.Format("{0} blocked {1} thread", author_id, thread.uid));
             await Task.Yield();
         }
 
@@ -2932,18 +2839,16 @@ namespace fbchat_sharp.API
         /// Called when the client is listening, and somebody blocks client
         ///</summary>
         /// <param name="author_id">The ID of the person who unblocked</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="msg">A full set of the data recieved</param>
         protected virtual async Task onUnblock(
             string author_id = null,
-            string thread_id = null,
-            ThreadType? thread_type = null,
+            FB_Thread thread = null,
             long ts = 0,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} unblocked {1} ({2}) thread", author_id, thread_id, thread_type.ToString()));
+            Debug.WriteLine(string.Format("{0} unblocked {1} ({2}) thread", author_id, thread.uid));
             await Task.Yield();
         }
 
@@ -2953,20 +2858,18 @@ namespace fbchat_sharp.API
         /// <param name="mid">The action ID</param>
         /// <param name="location">Sent location info</param>
         /// <param name="author_id">The ID of the person who sent location info</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="msg">A full set of the data recieved</param>
         protected virtual async Task onLiveLocation(
             string mid = null,
             FB_LiveLocationAttachment location = null,
             string author_id = null,
-            string thread_id = null,
-            ThreadType? thread_type = null,
+            FB_Thread thread = null,
             long ts = 0,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} sent live location info in {1} ({2}) with latitude {3} and longitude {4}", author_id, thread_id, thread_type, location.latitude, location.longitude));
+            Debug.WriteLine(string.Format("{0} sent live location info in {1} with latitude {3} and longitude {4}", author_id, thread.uid, location.latitude, location.longitude));
             await Task.Yield();
         }
 
@@ -2978,8 +2881,7 @@ namespace fbchat_sharp.API
         /// <param name="mid">The action ID</param>
         /// <param name="caller_id">The ID of the person who started the call</param>
         /// <param name="is_video_call">True if it's video call</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data recieved</param>
@@ -2987,13 +2889,12 @@ namespace fbchat_sharp.API
             string mid = null,
             object caller_id = null,
             object is_video_call = null,
-            string thread_id = null,
-            ThreadType? thread_type = null,
+            FB_Thread thread = null,
             long ts = 0,
             JToken metadata = null,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} started call in {1} ({2})", caller_id, thread_id, thread_type.ToString()));
+            Debug.WriteLine(string.Format("{0} started call in {1}", caller_id, thread.uid));
             await Task.Yield();
         }
 
@@ -3006,8 +2907,7 @@ namespace fbchat_sharp.API
         /// <param name="caller_id">The ID of the person who ended the call</param>
         /// <param name="is_video_call">True if it was video call</param>
         /// <param name="call_duration">Call duration in seconds</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data recieved</param>
@@ -3016,13 +2916,12 @@ namespace fbchat_sharp.API
             object caller_id = null,
             object is_video_call = null,
             object call_duration = null,
-            string thread_id = null,
-            ThreadType? thread_type = null,
+            FB_Thread thread = null,
             long ts = 0,
             JToken metadata = null,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} ended call in {1} ({2})", caller_id, thread_id, thread_type.ToString()));
+            Debug.WriteLine(string.Format("{0} ended call in {1}", caller_id, thread.uid));
             await Task.Yield();
         }
 
@@ -3032,8 +2931,7 @@ namespace fbchat_sharp.API
         /// <param name="mid">The action ID</param>
         /// <param name="joined_id">The ID of the person who joined the call</param>
         /// <param name="is_video_call">True if it's video call</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data recieved</param>
@@ -3041,13 +2939,12 @@ namespace fbchat_sharp.API
             string mid = null,
             object joined_id = null,
             object is_video_call = null,
-            string thread_id = null,
-            ThreadType? thread_type = null,
+            FB_Thread thread = null,
             long ts = 0,
             JToken metadata = null,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} joined call in {1} ({2})", joined_id, thread_id, thread_type.ToString()));
+            Debug.WriteLine(string.Format("{0} joined call in {1}", joined_id, thread.uid));
             await Task.Yield();
         }
 
@@ -3057,8 +2954,7 @@ namespace fbchat_sharp.API
         /// <param name="mid">The action ID</param>
         /// <param name="poll">Created poll</param>
         /// <param name="author_id">The ID of the person who created the poll</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data recieved</param>
@@ -3066,13 +2962,12 @@ namespace fbchat_sharp.API
             string mid = null,
             object poll = null,
             string author_id = null,
-            string thread_id = null,
-            ThreadType? thread_type = null,
+            FB_Thread thread = null,
             long ts = 0,
             JToken metadata = null,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} created poll {1} in {2} ({3})", author_id, poll, thread_id, thread_type.ToString()));
+            Debug.WriteLine(string.Format("{0} created poll {1} in {2}", author_id, poll, thread.uid));
             await Task.Yield();
         }
 
@@ -3084,8 +2979,7 @@ namespace fbchat_sharp.API
         /// <param name="added_options"></param>
         /// <param name="removed_options"></param>
         /// <param name="author_id">The ID of the person who voted in the poll</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data recieved</param>
@@ -3095,13 +2989,12 @@ namespace fbchat_sharp.API
             object added_options = null,
             object removed_options = null,
             string author_id = null,
-            string thread_id = null,
-            ThreadType? thread_type = null,
+            FB_Thread thread = null,
             long ts = 0,
             JToken metadata = null,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} voted in poll {1} in {2} ({3})", author_id, poll, thread_id, thread_type.ToString()));
+            Debug.WriteLine(string.Format("{0} voted in poll {1} in {2}", author_id, poll, thread.uid));
             await Task.Yield();
         }
 
@@ -3111,8 +3004,7 @@ namespace fbchat_sharp.API
         /// <param name="mid">The action ID</param>
         /// <param name="plan">Created plan</param>
         /// <param name="author_id">The ID of the person who created the plan</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data recieved</param>
@@ -3120,13 +3012,12 @@ namespace fbchat_sharp.API
             string mid = null,
             object plan = null,
             string author_id = null,
-            string thread_id = null,
-            ThreadType? thread_type = null,
+            FB_Thread thread = null,
             long ts = 0,
             JToken metadata = null,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} created plan {1} in {2} ({3})", author_id, plan, thread_id, thread_type.ToString()));
+            Debug.WriteLine(string.Format("{0} created plan {1} in {2}", author_id, plan, thread.uid));
             await Task.Yield();
         }
 
@@ -3135,21 +3026,19 @@ namespace fbchat_sharp.API
         ///</summary>
         /// <param name="mid">The action ID</param>
         /// <param name="plan">Ended plan</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data recieved</param>
         protected virtual async Task onPlanEnded(
             string mid = null,
             object plan = null,
-            string thread_id = null,
-            ThreadType? thread_type = null,
+            FB_Thread thread = null,
             long ts = 0,
             JToken metadata = null,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("Plan {0} has ended in {1} ({2})", plan, thread_id, thread_type.ToString()));
+            Debug.WriteLine(string.Format("Plan {0} has ended in {1}", plan, thread.uid));
             await Task.Yield();
         }
 
@@ -3159,8 +3048,7 @@ namespace fbchat_sharp.API
         /// <param name="mid">The action ID</param>
         /// <param name="plan">Edited plan</param>
         /// <param name="author_id">The ID of the person who edited the plan</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data recieved</param>
@@ -3168,13 +3056,12 @@ namespace fbchat_sharp.API
             string mid = null,
             object plan = null,
             string author_id = null,
-            string thread_id = null,
-            ThreadType? thread_type = null,
+            FB_Thread thread = null,
             long ts = 0,
             JToken metadata = null,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} edited plan {1} in {2} ({3})", author_id, plan, thread_id, thread_type.ToString()));
+            Debug.WriteLine(string.Format("{0} edited plan {1} in {2} ({3})", author_id, plan, thread.uid));
             await Task.Yield();
         }
 
@@ -3184,8 +3071,7 @@ namespace fbchat_sharp.API
         /// <param name="mid">The action ID</param>
         /// <param name="plan">Deleted plan</param>
         /// <param name="author_id">The ID of the person who deleted the plan</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data recieved</param>
@@ -3193,13 +3079,12 @@ namespace fbchat_sharp.API
             string mid = null,
             object plan = null,
             string author_id = null,
-            string thread_id = null,
-            ThreadType? thread_type = null,
+            FB_Thread thread = null,
             long ts = 0,
             JToken metadata = null,
             JToken msg = null)
         {
-            Debug.WriteLine(string.Format("{0} deleted plan {1} in {2} ({3})", author_id, plan, thread_id, thread_type.ToString()));
+            Debug.WriteLine(string.Format("{0} deleted plan {1} in {2} ({3})", author_id, plan, thread.uid));
             await Task.Yield();
         }
 
@@ -3210,8 +3095,7 @@ namespace fbchat_sharp.API
         /// <param name="plan">Plan</param>
         /// <param name="take_part">Whether the person takes part in the plan or not</param>
         /// <param name="author_id">The ID of the person who will participate in the plan or not</param>
-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="thread_type">Type of thread that the action was sent to. See :ref:`intro_threads`</param>
+        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
         /// <param name="msg">A full set of the data recieved</param>
@@ -3220,19 +3104,18 @@ namespace fbchat_sharp.API
             FB_Plan plan = null,
             bool take_part = false,
             string author_id = null,
-            string thread_id = null,
-            ThreadType? thread_type = null,
+            FB_Thread thread = null,
             long ts = 0,
             JToken metadata = null,
             JToken msg = null)
         {
             if (take_part)
             {
-                Debug.WriteLine(string.Format("{0} will take part in {1} in {2} ({3})", author_id, plan, thread_id, thread_type.ToString()));
+                Debug.WriteLine(string.Format("{0} will take part in {1} in {2}", author_id, plan, thread.uid));
             }
             else
             {
-                Debug.WriteLine(string.Format("{0} won't take part in {1} in {2} ({3})", author_id, plan, thread_id, thread_type.ToString()));
+                Debug.WriteLine(string.Format("{0} won't take part in {1} in {2}", author_id, plan, thread.uid));
             }
             await Task.Yield();
         }
@@ -3291,5 +3174,16 @@ namespace fbchat_sharp.API
         }
 
         #endregion
+
+        /// <returns>Pretty string representation of the client</returns>
+        public override string ToString()
+        {
+            return this.__unicode__();
+        }
+
+        private string __unicode__()
+        {
+            return string.Format("<Client(session={0})>", this._session.ToString());
+        }
     }
 }

@@ -27,7 +27,7 @@ namespace examples
             return Console.ReadLine();
         }
 
-        protected override async Task onMessage(string mid = null, string author_id = null, string message = null, FB_Message message_object = null, string thread_id = null, ThreadType? thread_type = null, long ts = 0, JToken metadata = null, JToken msg = null)
+        protected override async Task onMessage(string mid = null, string author_id = null, string message = null, FB_Message message_object = null, FB_Thread thread = null, long ts = 0, JToken metadata = null, JToken msg = null)
         {
             Console.WriteLine(string.Format("Got new message from {0}: {1}", author_id, message));
             await Task.Yield();

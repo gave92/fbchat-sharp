@@ -9,19 +9,6 @@ using System.Threading.Tasks;
 namespace fbchat_sharp.API
 {
     /// <summary>
-    /// Used to specify what type of Facebook thread is being used
-    /// </summary>
-    public enum ThreadType
-    {
-        USER = 1,
-        GROUP = 2,
-        ROOM = 2,
-        PAGE = 3,
-        MARKETPLACE = 4,
-        INVALID = 5
-    }
-
-    /// <summary>
     /// Used to specify where a thread is located (inbox, pending, archived, other).
     /// </summary>
     public class ThreadLocation
@@ -117,6 +104,23 @@ namespace fbchat_sharp.API
             this.plan = plan;
         }
 
+        public static FB_Thread _from_metadata(JToken msg_metadata, Session session)
+        {
+            /*Returns a tuple consisting of thread ID and thread type*/
+            string id_thread = null;            
+            if (msg_metadata.get("threadKey")?.get("threadFbId") != null)
+            {
+                id_thread = (msg_metadata.get("threadKey")?.get("threadFbId").Value<string>());
+                return new FB_Group(id_thread, session);
+            }
+            else if (msg_metadata.get("threadKey")?.get("otherUserFbId") != null)
+            {
+                id_thread = (msg_metadata.get("threadKey")?.get("otherUserFbId").Value<string>());
+                return new FB_User(id_thread, session);
+            }
+            return new FB_User(id_thread, session);
+        }
+
         public static Dictionary<string, object> _parse_customization_info(JToken data)
         {
             var rtn = new Dictionary<string, object>();
@@ -162,25 +166,6 @@ namespace fbchat_sharp.API
         {
             // TODO: Only implement this in subclasses
             return new Dictionary<string, object>() { { "other_user_fbid", this.uid } };
-        }
-
-        public ThreadType get_thread_type()
-        {
-            switch (this)
-            {
-                case FB_User t:
-                    return ThreadType.USER;
-                case FB_Room t:
-                    return ThreadType.ROOM;
-                case FB_Group t:
-                    return ThreadType.GROUP;                
-                case FB_Page t:
-                    return ThreadType.PAGE;
-                case FB_Marketplace t:
-                    return ThreadType.MARKETPLACE;
-                default:
-                    return ThreadType.INVALID;
-            }
         }
 
         public async Task<JToken> _forcedFetch(string mid)
