@@ -346,7 +346,7 @@ namespace fbchat_sharp.API
         /// <param name="name">Name of the user</param>
         /// <param name="limit">The max. amount of users to fetch</param>
         /// <returns>`FB_User` objects, ordered by relevance</returns>
-        public async Task<List<FB_User>> searchForUsers(string name, int limit = 10)
+        public async Task<List<FB_User>> searchUsers(string name, int limit = 10)
         {
             /*
              * Find and get user by his/ her name
@@ -371,7 +371,7 @@ namespace fbchat_sharp.API
         /// <param name="name">Name of the page</param>
         /// <param name="limit">The max. amount of pages to fetch</param>
         /// <returns>`FB_Page` objects, ordered by relevance</returns>
-        public async Task<List<FB_Page>> searchForPages(string name, int limit = 1)
+        public async Task<List<FB_Page>> searchPages(string name, int limit = 1)
         {
             /*
              * Find and get page by its name
@@ -395,7 +395,7 @@ namespace fbchat_sharp.API
         /// <param name="name">Name of the group</param>
         /// <param name="limit">The max. amount of groups to fetch</param>
         /// <returns>`FB_Group` objects, ordered by relevance</returns>
-        public async Task<List<FB_Group>> searchForGroups(string name, int limit = 1)
+        public async Task<List<FB_Group>> searchGroups(string name, int limit = 1)
         {
             /*
              * Find and get group thread by its name
@@ -420,7 +420,7 @@ namespace fbchat_sharp.API
         /// <param name="name">Name of the thread</param>
         /// <param name="limit">The max. amount of threads to fetch</param>
         /// <returns>`FB_User`, `FB_Group` and `FB_Page` objects, ordered by relevance</returns>
-        public async Task<List<FB_Thread>> searchForThreads(string name, int limit = 1)
+        public async Task<List<FB_Thread>> searchThreads(string name, int limit = 1)
         {
             /*
              * Find and get a thread by its name
@@ -467,63 +467,6 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Find and get message IDs by query
-        /// </summary>
-        /// <param name="query">Text to search for</param>
-        /// <param name="offset">Number of messages to skip</param>
-        /// <param name="limit">Max. number of messages to retrieve</param>
-        /// <param name="thread_id">User/Group ID to search in. See :ref:`intro_threads`</param>
-        /// <returns>Found Message IDs</returns>
-        public async Task<IEnumerable<string>> searchForMessageIDs(string query, int offset = 0, int limit = 5, string thread_id = null)
-        {
-            var data = new Dictionary<string, object>() {
-                { "query", query },
-                { "snippetOffset", offset.ToString() },
-                { "snippetLimit", limit.ToString() },
-                { "identifier", "thread_fbid"},
-                { "thread_fbid", thread_id} };
-            var j = await this._payload_post("/ajax/mercury/search_snippets.php?dpr=1", data);
-
-            var result = j.get("search_snippets")?.get(query);
-            return result[thread_id]?.get("snippets").Select((snippet) => snippet.get("message_id")?.Value<string>());
-        }
-
-        /// <summary>
-        /// Find and get`FB_Message` objects by query
-        /// </summary>
-        /// <param name="query">Text to search for</param>
-        /// <param name="offset">Number of messages to skip</param>
-        /// <param name="limit">Max.number of messages to retrieve</param>
-        /// <param name="thread_id">User/Group ID to search in. See :ref:`intro_threads`</param>
-        /// <returns>Found `FB_Message` objects</returns>
-        public IAsyncEnumerable<FB_Message> searchForMessages(string query, int offset = 0, int limit = 5, string thread_id = null)
-        {
-            /*
-             * Find and get`Message` objects by query
-             * ..warning::
-             * This method sends request for every found message ID.
-             * :param query: Text to search for
-             * :param offset: Number of messages to skip
-             * :param limit: Max.number of messages to retrieve
-             * :param thread_id: User/Group ID to search in. See :ref:`intro_threads`
-             * :type offset: int
-             * :type limit: int
-             * :return: Found `Message` objects
-             * :rtype: typing.Iterable
-             * :raises: FBchatException if request failed
-             * */
-
-            return new AsyncEnumerable<FB_Message>(async yield =>
-            {
-                var message_ids = await this.searchForMessageIDs(
-                    query, offset: offset, limit: limit, thread_id: thread_id
-                );
-                foreach (var mid in message_ids)
-                    await yield.ReturnAsync(await this.fetchMessageInfo(mid, thread_id));
-            });
-        }
-
-        /// <summary>
         /// Searches for messages in all threads
         /// </summary>
         /// <param name="query">Text to search for</param>
@@ -531,7 +474,7 @@ namespace fbchat_sharp.API
         /// <param name="thread_limit">Max. number of threads to retrieve</param>
         /// <param name="message_limit">Max. number of messages to retrieve</param>
         /// <returns>Dictionary with thread IDs as keys and iterables to get messages as values</returns>
-        public async Task<Dictionary<string, object>> search(string query, bool fetch_messages = false, int thread_limit = 5, int message_limit = 5)
+        public async Task<Dictionary<string, object>> searchMessages(string query, bool fetch_messages = false, int thread_limit = 5, int message_limit = 5)
         {
             var data = new Dictionary<string, object>() {
                 { "query", query },
@@ -547,14 +490,14 @@ namespace fbchat_sharp.API
             {
                 var rtn = new Dictionary<string, object>();
                 foreach (var thread_id in result)
-                    rtn.Add(thread_id, this.searchForMessages(query, limit: message_limit, thread_id: thread_id));
+                    rtn.Add(thread_id, new FB_Thread(thread_id, _session).searchMessages(query, limit: message_limit));
                 return rtn;
             }
             else
             {
                 var rtn = new Dictionary<string, object>();
                 foreach (var thread_id in result)
-                    rtn.Add(thread_id, this.searchForMessageIDs(query, limit: message_limit, thread_id: thread_id));
+                    rtn.Add(thread_id, new FB_Thread(thread_id, _session).searchMessageIDs(query, limit: message_limit));
                 return rtn;
             }
         }
@@ -809,60 +752,6 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Get the last messages in a thread
-        /// </summary>
-        /// <param name="thread_id">User / Group ID from which to retrieve the messages</param>
-        /// <param name="limit">Max.number of messages to retrieve</param>
-        /// <param name="before">A unix timestamp, indicating from which point to retrieve messages</param>
-        /// <returns></returns>
-        public async Task<List<FB_Message>> fetchThreadMessages(string thread_id = null, int limit = 20, string before = null)
-        {
-            /*
-             * Get the last messages in a thread
-             * :param thread_id: User / Group ID to default to.See :ref:`intro_threads`
-             * :param limit: Max.number of messages to retrieve
-             * : param before: A timestamp, indicating from which point to retrieve messages
-             * :type limit: int
-             * :type before: int
-             * :return: `models.Message` objects
-             * :rtype: list
-             * :raises: Exception if request failed
-             */
-
-            var dict = new Dictionary<string, object>() {
-                { "id", thread_id},
-                { "message_limit", limit},
-                { "load_messages", true},
-                { "load_read_receipts", false},
-                { "before", before }
-            };
-
-            var j = await this._session.graphql_request(GraphQL.from_doc_id(doc_id: "1860982147341344", param: dict));
-
-            if (j.get("message_thread") == null)
-            {
-                throw new FBchatException(string.Format("Could not fetch thread {0}", thread_id));
-            }
-
-            var messages = j?.get("message_thread")?.get("messages")?.get("nodes")?.Select(message => FB_Message._from_graphql(message, thread_id))?.Reverse()?.ToList();
-
-            var read_receipts = j?.get("message_thread")?.get("read_receipts")?.get("nodes");
-            foreach (var message in messages)
-            {
-                if (read_receipts != null)
-                {
-                    foreach (var receipt in read_receipts)
-                    {
-                        if (long.Parse(receipt.get("watermark")?.Value<string>()) >= long.Parse(message.timestamp))
-                            message.read_by.Add(receipt.get("actor")?.get("id")?.Value<string>());
-                    }
-                }
-            }
-
-            return messages;
-        }
-
-        /// <summary>
         /// Get thread list of your facebook account
         /// </summary>
         /// <param name="limit">Max.number of threads to retrieve. Capped at 20</param>
@@ -990,27 +879,6 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Fetches`Message` object from the message id
-        /// </summary>
-        /// <param name="mid">Message ID to fetch from</param>
-        /// <param name="thread_id">User/Group ID to get message info from.See :ref:`intro_threads`</param>
-        /// <returns>`FB_Message` object</returns>
-        public async Task<FB_Message> fetchMessageInfo(string mid, string thread_id = null)
-        {
-            /*
-             * Fetches`Message` object from the message id
-             * :param mid: Message ID to fetch from
-             * :param thread_id: User/Group ID to get message info from.See :ref:`intro_threads`
-             * :return: `Message` object
-             * :rtype: Message
-             * :raises: FBchatException if request failed
-             * */
-            var thread = new FB_Thread(thread_id, _session);
-            var message_info = ((JToken)await thread._forcedFetch(thread_id, mid))?.get("message");
-            return FB_Message._from_graphql(message_info, thread_id);
-        }
-
-        /// <summary>
         /// Fetches list of`PollOption` objects from the poll id
         /// </summary>
         /// <param name="poll_id">Poll ID to fetch from</param>
@@ -1099,52 +967,7 @@ namespace fbchat_sharp.API
                 this._buddylist[buddy.get("id")?.Value<string>()] = FB_ActiveStatus._from_buddylist_update(buddy);
             return j.get("buddylist")?.Select((b) => b.get("id")?.Value<string>())?.ToList();
         }
-
-        /// <summary>
-        /// Creates generator object for fetching images posted in thread.
-        /// </summary>
-        /// <param name="thread_id">ID of the thread</param>
-        /// <returns>`ImageAttachment` or `VideoAttachment`.</returns>
-        public IAsyncEnumerable<FB_Attachment> fetchThreadImages(string thread_id = null)
-        {
-            /*
-             * Creates generator object for fetching images posted in thread.
-             * :param thread_id: ID of the thread
-             * :return: `ImageAttachment` or `VideoAttachment`.
-             * :rtype: iterable
-             * */
-            return new AsyncEnumerable<FB_Attachment>(async yield =>
-            {
-                var data = new Dictionary<string, object>() { { "id", thread_id }, { "first", 48 } };
-                var j = await this._session.graphql_request(GraphQL.from_query_id("515216185516880", data));
-                while (true)
-                {
-                    JToken i = null;
-                    try
-                    {
-                        i = j.get(thread_id).get("message_shared_media").get("edges").First();
-                    }
-                    catch (Exception)
-                    {
-                        if (j?.get(thread_id)?.get("message_shared_media")?.get("page_info")?.get("has_next_page")?.Value<bool>() ?? false)
-                        {
-                            data["after"] = j?.get(thread_id)?.get("message_shared_media").get("page_info")?.get("end_cursor")?.Value<string>();
-                            j = await this._session.graphql_request(GraphQL.from_query_id("515216185516880", data));
-                            continue;
-                        }
-                        else
-                            break;
-                    }
-
-                    if (i?.get("node")?.get("__typename")?.Value<string>() == "MessageImage")
-                        await yield.ReturnAsync(FB_ImageAttachment._from_list(i));
-                    else if (i?.get("node")?.get("__typename")?.Value<string>() == "MessageVideo")
-                        await yield.ReturnAsync(FB_VideoAttachment._from_list(i));
-                    else
-                        await yield.ReturnAsync(new FB_Attachment(uid: i?.get("node")?.get("legacy_attachment_id")?.Value<string>()));
-                }
-            });
-        }
+        
         #endregion
 
         #region SEND METHODS
@@ -2011,7 +1834,7 @@ namespace fbchat_sharp.API
                 {
                     var thread_id = delta.get("threadKey")?.get("threadFbId")?.Value<string>();
                     var thread = new FB_Thread(thread_id, _session);
-                    var fetch_info = await thread._forcedFetch(thread_id, mid);
+                    var fetch_info = await thread._forcedFetch(mid);
                     var fetch_data = fetch_info.get("message");
                     author_id = fetch_data.get("message_sender")?.get("id")?.Value<string>();
                     ts = long.Parse(fetch_data.get("timestamp_precise")?.Value<string>());

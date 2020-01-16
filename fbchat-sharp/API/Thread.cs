@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Dasync.Collections;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -182,9 +183,9 @@ namespace fbchat_sharp.API
             }
         }
 
-        public async Task<JToken> _forcedFetch(string thread_id, string mid)
+        public async Task<JToken> _forcedFetch(string mid)
         {
-            var param = new Dictionary<string, object>() { { "thread_and_message_id", new Dictionary<string, object>() { { "thread_id", thread_id }, { "message_id", mid } } } };
+            var param = new Dictionary<string, object>() { { "thread_and_message_id", new Dictionary<string, object>() { { "thread_id", this.uid }, { "message_id", mid } } } };
             return await this.session.graphql_request(GraphQL.from_doc_id("1768656253222505", param));
         }
 
@@ -376,6 +377,175 @@ namespace fbchat_sharp.API
                 data[string.Format("{0}s[{1}]", Utils.mimetype_to_key(obj.f.Item2), obj.i)] = obj.f.Item1;
 
             return await this.session._do_send_request(data);
+        }
+
+        /// <summary>
+        /// Find and get message IDs by query
+        /// </summary>
+        /// <param name="query">Text to search for</param>
+        /// <param name="offset">Number of messages to skip</param>
+        /// <param name="limit">Max. number of messages to retrieve</param>
+        /// <returns>Found Message IDs</returns>
+        public async Task<IEnumerable<string>> searchMessageIDs(string query, int offset = 0, int limit = 5)
+        {
+            var data = new Dictionary<string, object>() {
+                { "query", query },
+                { "snippetOffset", offset.ToString() },
+                { "snippetLimit", limit.ToString() },
+                { "identifier", "thread_fbid"},
+                { "thread_fbid", this.uid} };
+            var j = await this.session._payload_post("/ajax/mercury/search_snippets.php?dpr=1", data);
+
+            var result = j.get("search_snippets")?.get(query);
+            return result[this.uid]?.get("snippets").Select((snippet) => snippet.get("message_id")?.Value<string>());
+        }
+
+        /// <summary>
+        /// Fetches`Message` object from the message id
+        /// </summary>
+        /// <param name="mid">Message ID to fetch from</param>
+        /// <returns>`FB_Message` object</returns>
+        public async Task<FB_Message> fetchMessageInfo(string mid)
+        {
+            /*
+             * Fetches`Message` object from the message id
+             * :param mid: Message ID to fetch from
+             * :return: `Message` object
+             * :rtype: Message
+             * :raises: FBchatException if request failed
+             * */
+            var thread = new FB_Thread(this.uid, session);
+            var message_info = ((JToken)await thread._forcedFetch(mid))?.get("message");
+            return FB_Message._from_graphql(message_info, this.uid);
+        }
+
+        /// <summary>
+        /// Find and get`FB_Message` objects by query
+        /// </summary>
+        /// <param name="query">Text to search for</param>
+        /// <param name="offset">Number of messages to skip</param>
+        /// <param name="limit">Max.number of messages to retrieve</param>
+        /// <returns>Found `FB_Message` objects</returns>
+        public IAsyncEnumerable<FB_Message> searchMessages(string query, int offset = 0, int limit = 5)
+        {
+            /*
+             * Find and get`Message` objects by query
+             * ..warning::
+             * This method sends request for every found message ID.
+             * :param query: Text to search for
+             * :param offset: Number of messages to skip
+             * :param limit: Max.number of messages to retrieve
+             * :type offset: int
+             * :type limit: int
+             * :return: Found `Message` objects
+             * :rtype: typing.Iterable
+             * :raises: FBchatException if request failed
+             * */
+
+            return new AsyncEnumerable<FB_Message>(async yield =>
+            {
+                var message_ids = await this.searchMessageIDs(
+                    query, offset: offset, limit: limit
+                );
+                foreach (var mid in message_ids)
+                    await yield.ReturnAsync(await this.fetchMessageInfo(mid));
+            });
+        }
+
+        /// <summary>
+        /// Get the last messages in a thread
+        /// </summary>
+        /// <param name="limit">Max.number of messages to retrieve</param>
+        /// <param name="before">A unix timestamp, indicating from which point to retrieve messages</param>
+        /// <returns></returns>
+        public async Task<List<FB_Message>> fetchThreadMessages(int limit = 20, string before = null)
+        {
+            /*
+             * Get the last messages in a thread
+             * :param limit: Max.number of messages to retrieve
+             * : param before: A timestamp, indicating from which point to retrieve messages
+             * :type limit: int
+             * :type before: int
+             * :return: `models.Message` objects
+             * :rtype: list
+             * :raises: Exception if request failed
+             */
+
+            var dict = new Dictionary<string, object>() {
+                { "id", this.uid},
+                { "message_limit", limit},
+                { "load_messages", true},
+                { "load_read_receipts", false},
+                { "before", before }
+            };
+
+            var j = await this.session.graphql_request(GraphQL.from_doc_id(doc_id: "1860982147341344", param: dict));
+
+            if (j.get("message_thread") == null)
+            {
+                throw new FBchatException(string.Format("Could not fetch thread {0}", this.uid));
+            }
+
+            var messages = j?.get("message_thread")?.get("messages")?.get("nodes")?.Select(message => FB_Message._from_graphql(message, this.uid))?.Reverse()?.ToList();
+
+            var read_receipts = j?.get("message_thread")?.get("read_receipts")?.get("nodes");
+            foreach (var message in messages)
+            {
+                if (read_receipts != null)
+                {
+                    foreach (var receipt in read_receipts)
+                    {
+                        if (long.Parse(receipt.get("watermark")?.Value<string>()) >= long.Parse(message.timestamp))
+                            message.read_by.Add(receipt.get("actor")?.get("id")?.Value<string>());
+                    }
+                }
+            }
+
+            return messages;
+        }
+
+        /// <summary>
+        /// Creates generator object for fetching images posted in thread.
+        /// </summary>
+        /// <returns>`ImageAttachment` or `VideoAttachment`.</returns>
+        public IAsyncEnumerable<FB_Attachment> fetchThreadImages()
+        {
+            /*
+             * Creates generator object for fetching images posted in thread.
+             * :return: `ImageAttachment` or `VideoAttachment`.
+             * :rtype: iterable
+             * */
+            return new AsyncEnumerable<FB_Attachment>(async yield =>
+            {
+                var data = new Dictionary<string, object>() { { "id", this.uid }, { "first", 48 } };
+                var j = await this.session.graphql_request(GraphQL.from_query_id("515216185516880", data));
+                while (true)
+                {
+                    JToken i = null;
+                    try
+                    {
+                        i = j.get(this.uid).get("message_shared_media").get("edges").First();
+                    }
+                    catch (Exception)
+                    {
+                        if (j?.get(this.uid)?.get("message_shared_media")?.get("page_info")?.get("has_next_page")?.Value<bool>() ?? false)
+                        {
+                            data["after"] = j?.get(this.uid)?.get("message_shared_media").get("page_info")?.get("end_cursor")?.Value<string>();
+                            j = await this.session.graphql_request(GraphQL.from_query_id("515216185516880", data));
+                            continue;
+                        }
+                        else
+                            break;
+                    }
+
+                    if (i?.get("node")?.get("__typename")?.Value<string>() == "MessageImage")
+                        await yield.ReturnAsync(FB_ImageAttachment._from_list(i));
+                    else if (i?.get("node")?.get("__typename")?.Value<string>() == "MessageVideo")
+                        await yield.ReturnAsync(FB_VideoAttachment._from_list(i));
+                    else
+                        await yield.ReturnAsync(new FB_Attachment(uid: i?.get("node")?.get("legacy_attachment_id")?.Value<string>()));
+                }
+            });
         }
 
         /// <summary>

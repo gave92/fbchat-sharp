@@ -52,11 +52,11 @@ namespace examples
                 users.ForEach(v => Console.WriteLine(v));
 
                 // Find user by name/id
-                var search = await client.searchForUsers("Marco", 2);
+                var search = await client.searchUsers("Marco", 2);
                 search.ForEach(v => Console.WriteLine(v));
 
                 // Fetch latest messages
-                var messages = await client.fetchThreadMessages(threads.FirstOrDefault()?.uid, 5);
+                var messages = await threads.FirstOrDefault()?.fetchThreadMessages(5);
                 messages.ForEach(v => Console.WriteLine(v));
 
                 // Send a message to myself
