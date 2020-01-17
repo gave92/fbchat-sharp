@@ -39,29 +39,6 @@ namespace fbchat_sharp.API
     }
 
     /// <summary>
-    /// Used to specify a message reaction
-    /// </summary>
-    public enum MessageReaction
-    {
-        [Description("❤")]
-        HEART,
-        [Description("😍")]
-        LOVE,
-        [Description("😆")]
-        SMILE,
-        [Description("😮")]
-        WOW,
-        [Description("😢")]
-        SAD,
-        [Description("😠")]
-        ANGRY,
-        [Description("👍")]
-        YES,
-        [Description("👎")]
-        NO
-    }
-
-    /// <summary>
     /// 
     /// </summary>
     public class FB_Message_Constants
@@ -75,15 +52,8 @@ namespace fbchat_sharp.API
             { "s", EmojiSize.SMALL }
         };
 
-        public static readonly Dictionary<string, MessageReaction> REACTIONS = new Dictionary<string, MessageReaction>() {
-            { "❤", MessageReaction.HEART },
-            { "😍", MessageReaction.LOVE },
-            { "😆", MessageReaction.SMILE },
-            { "😮", MessageReaction.WOW },
-            { "😢", MessageReaction.SAD },
-            { "😠", MessageReaction.ANGRY },
-            { "👍", MessageReaction.YES },
-            { "👎", MessageReaction.NO }
+        public static readonly List<string> SENDABLE_REACTIONS = new List<string>() {
+            "❤",  "😍",  "😆", "😮", "😢", "😠", "👍", "👎"
         };
     }
 
@@ -176,7 +146,7 @@ namespace fbchat_sharp.API
         /// A list of pepole IDs who read the message, works only with :func:`fbchat-sharp.Client.fetchThreadMessages`
         public List<string> read_by { get; set; }
         /// A dict with user's IDs as keys, and their `MessageReaction` as values
-        public Dictionary<string, MessageReaction> reactions { get; set; }
+        public Dictionary<string, string> reactions { get; set; }
         /// An ID of a sent sticker
         public FB_Sticker sticker { get; set; }
         /// A list of attachments
@@ -218,7 +188,7 @@ namespace fbchat_sharp.API
         /// <param name="forwarded"></param>
         /// <param name="is_from_me"></param>
         /// <param name="thread_id"></param>
-        public FB_Message(Session session, string text = null, List<FB_Mention> mentions = null, EmojiSize? emoji_size = null, string uid = null, string author = null, string timestamp = null, bool is_read = false, List<string> read_by = null, Dictionary<string, MessageReaction> reactions = null, FB_Sticker sticker = null, List<FB_Attachment> attachments = null, List<FB_QuickReply> quick_replies = null, bool unsent = false, string reply_to_id = null, FB_Message replied_to = null, bool forwarded = false, bool is_from_me = false, string thread_id = null)
+        public FB_Message(Session session, string text = null, List<FB_Mention> mentions = null, EmojiSize? emoji_size = null, string uid = null, string author = null, string timestamp = null, bool is_read = false, List<string> read_by = null, Dictionary<string, string> reactions = null, FB_Sticker sticker = null, List<FB_Attachment> attachments = null, List<FB_QuickReply> quick_replies = null, bool unsent = false, string reply_to_id = null, FB_Message replied_to = null, bool forwarded = false, bool is_from_me = false, string thread_id = null)
         {
             this.session = session;
             this.text = text;
@@ -229,7 +199,7 @@ namespace fbchat_sharp.API
             this.timestamp = timestamp;
             this.is_read = is_read;
             this.read_by = read_by ?? new List<string>();
-            this.reactions = reactions ?? new Dictionary<string, MessageReaction>();
+            this.reactions = reactions ?? new Dictionary<string, string>();
             this.sticker = sticker;
             this.attachments = attachments ?? new List<FB_Attachment>();
             this.quick_replies = quick_replies ?? new List<FB_QuickReply>();
@@ -373,10 +343,10 @@ namespace fbchat_sharp.API
 
             if (data.get("unread") != null)
                 rtn.is_read = !data.get("unread").Value<bool>();
-            rtn.reactions = new Dictionary<string, MessageReaction>();
+            rtn.reactions = new Dictionary<string, string>();
             foreach (var r in data.get("message_reactions"))
             {
-                rtn.reactions.Add(r.get("user")?.get("id")?.Value<string>(), FB_Message_Constants.REACTIONS[r.get("reaction").Value<string>()]);
+                rtn.reactions.Add(r.get("user")?.get("id")?.Value<string>(), r.get("reaction").Value<string>());
             }
             if (data.get("blob_attachments") != null)
             {
@@ -590,7 +560,7 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="reaction">Reaction emoji to use, if null removes reaction</param>
         /// <returns></returns>
-        public async Task reactToMessage(MessageReaction? reaction = null)
+        public async Task react(string reaction = null)
         {
             /*
              * Reacts to a message, or removes reaction
@@ -603,7 +573,7 @@ namespace fbchat_sharp.API
                 {"client_mutation_id", "1"},
                 {"actor_id", this.session.get_user_id()},
                 {"message_id", this.uid},
-                {"reaction", reaction != null ? reaction.Value.GetEnumDescriptionAttribute() : null}
+                {"reaction", reaction != null && FB_Message_Constants.SENDABLE_REACTIONS.Contains(reaction) ? reaction : null}
             };
 
             var payl = new Dictionary<string, object>() { { "doc_id", 1491398900900362 }, { "variables", JsonConvert.SerializeObject(new Dictionary<string, object>() { { "data", data } }) } };

@@ -1621,14 +1621,11 @@ namespace fbchat_sharp.API
                         var thread = FB_Thread._from_metadata(i, _session);
                         mid = i.get("messageId")?.Value<string>();
                         author_id = i.get("userId")?.Value<string>();
-                        var reaction = (
-                            i.get("reaction") != null ? (MessageReaction?)(i.get("reaction")?.Value<int>()) : null
-                        );
                         var add_reaction = !(i.get("action")?.Value<bool>() ?? false);
                         if (add_reaction)
                             await this.onReactionAdded(
                                 mid: mid,
-                                reaction: reaction,
+                                reaction: i.get("reaction"),
                                 author_id: author_id,
                                 thread: thread,
                                 ts: ts,
@@ -2694,7 +2691,7 @@ namespace fbchat_sharp.API
         /// Called when the client is listening, and somebody reacts to a message
         ///</summary>
         /// <param name="mid">Message ID, that user reacted to</param>
-        /// <param name="reaction">Reaction</param>
+        /// <param name="reaction">The added reaction. Not limited to the ones in `Message.react`</param>
         /// <param name="author_id">The ID of the person who reacted to the message</param>
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
