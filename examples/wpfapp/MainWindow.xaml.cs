@@ -22,7 +22,7 @@ namespace wpfapp
             Progress.IsEnabled = false;
             Progress.Visibility = Visibility.Collapsed;
 
-            if (session != null)
+            if (session == null)
             {
                 Frame.Navigate(new Uri("LoginPage.xaml", UriKind.RelativeOrAbsolute));                
             }

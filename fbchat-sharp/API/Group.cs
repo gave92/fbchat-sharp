@@ -89,7 +89,7 @@ namespace fbchat_sharp.API
                 admins: new HashSet<string>(data.get("thread_admins")?.Select(node => node.get("id")?.Value<string>())),
                 approval_mode: data.get("approval_mode")?.Value<bool>() ?? false,
                 approval_requests: data.get("group_approval_queue") != null ? new HashSet<string>(data.get("group_approval_queue")?.get("nodes")?.Select(node => node.get("requester")?.get("id")?.Value<string>())) : null,
-                photo: FB_Image._from_uri_or_none(data?.get("image")?.get("uri")?.Value<string>()),
+                photo: FB_Image._from_uri_or_none(data?.get("image")),
                 name: data.get("name")?.Value<string>(),
                 message_count: data.get("messages_count")?.Value<int>() ?? 0,
                 last_message_timestamp: last_message_timestamp,

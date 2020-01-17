@@ -67,7 +67,7 @@
                                     <Ellipse Fill="{ThemeResource Gray1}"/>
                                     <Ellipse>
                                         <Ellipse.Fill>
-                                            <ImageBrush ImageSource="{Binding photo, Mode=OneWay}"/>
+                                            <ImageBrush ImageSource="{Binding photo.url, Mode=OneWay}"/>
                                         </Ellipse.Fill>
                                     </Ellipse>
                                 </Grid>

@@ -31,7 +31,7 @@
             </Border>
         </DataTemplate>
         <DataTemplate x:Key="ImageMessageTemplate">
-            <Image Source="{Binding preview_url}" Width="240" MaxWidth="{Binding preview_width}"/>
+            <Image Source="{Binding preview.url}" Width="240" MaxWidth="{Binding preview.image_width}"/>
         </DataTemplate>
         <DataTemplate x:Key="StickerMessageTemplate">
             <Image Source="{Binding url}" Width="160" MaxWidth="{Binding width}"/>

@@ -25,7 +25,7 @@ namespace uwpapp
             Progress.IsEnabled = false;
             Progress.Visibility = Visibility.Collapsed;
 
-            if (session != null)
+            if (session == null)
             {
                 ContentFrame.Navigate(typeof(LoginPage));
             }
