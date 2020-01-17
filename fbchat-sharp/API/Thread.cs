@@ -862,7 +862,7 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="status">Specify the typing status</param>
         /// <returns></returns>
-        public async Task setTypingStatus(TypingStatus status)
+        public async Task setTypingStatus(bool status)
         {
             /*
              * Sets users typing status in a thread
@@ -871,7 +871,7 @@ namespace fbchat_sharp.API
              * : raises: FBchatException if request failed
              * */
             var data = new Dictionary<string, object>() {
-                { "typ", (int)status },
+                { "typ", status ? 1 : 0 },
                 { "thread", this.uid },
                 { "to", this is FB_User ? this.uid : ""},
                 {"source", "mercury-chat"}

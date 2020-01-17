@@ -1800,7 +1800,7 @@ namespace fbchat_sharp.API
                                 thread_id = author_id;
                             thread = new FB_User(thread_id, _session);
                         }
-                        var typing_status = (TypingStatus)(m.get("st")?.Value<int>());
+                        var typing_status = m.get("st")?.Value<int>() == 1;
                         await this.onTyping(
                             author_id: author_id,
                             status: typing_status,
@@ -2070,7 +2070,7 @@ namespace fbchat_sharp.API
             {
                 var author_id = event_data.get("sender_fbid")?.Value<string>();
                 var thread_id = event_data.get("thread")?.Value<string>() ?? author_id;
-                var typing_status = (TypingStatus)(event_data.get("state")?.Value<int>());
+                var typing_status = event_data.get("state")?.Value<int>() == 1;
                 await this.onTyping(
                     author_id: author_id,
                     status: typing_status,
@@ -2646,7 +2646,7 @@ namespace fbchat_sharp.API
         /// Called when the client is listening, and somebody starts or stops typing into a chat
         ///</summary>
         /// <param name="author_id">The ID of the person who sent the action</param>
-        /// <param name="status">The typing status</param>
+        /// <param name="status">The typing status: true is typing, false if not.</param>
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="msg">A full set of the data recieved</param>
         protected virtual async Task onTyping(

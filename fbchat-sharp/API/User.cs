@@ -41,15 +41,6 @@ namespace fbchat_sharp.API
     }
 
     /// <summary>
-    /// Used to specify whether the user is typing or has stopped typing
-    /// </summary>
-    public enum TypingStatus
-    {
-        STOPPED = 0,
-        TYPING = 1,
-    }
-
-    /// <summary>
     /// Represents a Facebook user. Inherits `Thread`
     /// </summary>
     public class FB_User : FB_Thread
