@@ -1101,6 +1101,13 @@ namespace fbchat_sharp.API
                     msg: m
                 );
             }
+            else if (delta.get("MarkFolderSeen") != null)
+            {
+                var locations = delta.get("folders")?.Select(folder =>
+                    folder?.Value<string>().Replace("FOLDER_", ""));
+                var at = delta?.get("timestamp")?.Value<string>();
+                await this._onSeen(locations: locations, at: at);
+            }
             // Emoji change
             else if (delta_type == "change_thread_icon")
             {
@@ -2154,7 +2161,7 @@ namespace fbchat_sharp.API
              * :param thread: Thread that the action was sent to. See: ref:`intro_threads`
              * :param ts: A timestamp of the action
              * : param metadata: Extra metadata about the action
-             * : param msg: A full set of the data recieved
+             * : param msg: A full set of the data received
              * : type new_color: ThreadColor
              * */
             Debug.WriteLine(string.Format("Color change from {0} in {1}: {2}", author_id, thread.uid, new_color));
@@ -2181,7 +2188,7 @@ namespace fbchat_sharp.API
              * :param thread: Thread that the action was sent to. See: ref:`intro_threads`
              * :param ts: A timestamp of the action
              * : param metadata: Extra metadata about the action
-             * : param msg: A full set of the data recieved
+             * : param msg: A full set of the data received
              * */
             Debug.WriteLine(string.Format("Emoji change from {0} in {1}: {2}", author_id, thread.uid, new_emoji));
             await Task.Yield();
@@ -2207,7 +2214,7 @@ namespace fbchat_sharp.API
              * :param thread: Thread that the action was sent to. See: ref:`intro_threads`
              * :param ts: A timestamp of the action
              * : param metadata: Extra metadata about the action
-             * : param msg: A full set of the data recieved
+             * : param msg: A full set of the data received
              * */
             Debug.WriteLine(string.Format("Title change from {0} in {1}: {2}", author_id, thread.uid, new_title));
             await Task.Yield();
@@ -2259,7 +2266,7 @@ namespace fbchat_sharp.API
              * :param thread: Thread that the action was sent to. See: ref:`intro_threads`
              * :param ts: A timestamp of the action
              * : param metadata: Extra metadata about the action
-             * : param msg: A full set of the data recieved
+             * : param msg: A full set of the data received
              * */
             Debug.WriteLine(string.Format("Nickname change from {0} in {1} for {2}: {3}", author_id, thread.uid, changed_for, new_nickname));
             await Task.Yield();
@@ -2273,7 +2280,7 @@ namespace fbchat_sharp.API
         /// <param name="author_id">The ID of the person who added the admins</param>
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onAdminAdded(
             string mid = null,
             string added_id = null,
@@ -2294,7 +2301,7 @@ namespace fbchat_sharp.API
         /// <param name="author_id">The ID of the person who removed the admins</param>
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onAdminRemoved(
             string mid = null,
             string removed_id = null,
@@ -2315,7 +2322,7 @@ namespace fbchat_sharp.API
         /// <param name="author_id">The ID of the person who changed approval mode</param>
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onApprovalModeChange(
             string mid = null,
             bool approval_mode = false,
@@ -2343,7 +2350,7 @@ namespace fbchat_sharp.API
         /// <param name="seen_ts">A timestamp of when the person saw the message</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onMessageSeen(
             object seen_by = null,
             FB_Thread thread = null,
@@ -2364,7 +2371,7 @@ namespace fbchat_sharp.API
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onMessageDelivered(
             JToken msg_ids = null,
             object delivered_for = null,
@@ -2384,7 +2391,7 @@ namespace fbchat_sharp.API
         /// <param name="seen_ts">A timestamp of when the threads were seen</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onMarkedSeen(
             List<FB_Thread> threads = null,
             long seen_ts = 0,
@@ -2405,7 +2412,7 @@ namespace fbchat_sharp.API
         /// <param name="author_id">The ID of the person who unsent the message</param>
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onMessageUnsent(
             string mid = null,
             string author_id = null,
@@ -2425,7 +2432,7 @@ namespace fbchat_sharp.API
         /// <param name="author_id">The ID of the person who added the people</param>
         /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onPeopleAdded(
             string mid = null,
             List<string> added_ids = null,
@@ -2446,7 +2453,7 @@ namespace fbchat_sharp.API
         /// <param name="author_id">The ID of the person who removed the person</param>
         /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onPersonRemoved(
             string mid = null,
             string removed_id = null,
@@ -2463,10 +2470,21 @@ namespace fbchat_sharp.API
         /// Called when the client is listening, and somebody sends a friend request
         ///</summary>
         /// <param name="from_id">The ID of the person that sent the request</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onFriendRequest(object from_id = null, JToken msg = null)
         {
             Debug.WriteLine(string.Format("Friend request from {0}", from_id));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// .. todo::
+        /// Documenting this and make it public
+        ///</summary>
+        private async Task _onSeen(
+            IEnumerable<string> locations = null, string at = null)
+        {
+            Debug.WriteLine(string.Format("OnSeen at {0}: {1}", at, string.Join(", ",  locations)));
             await Task.Yield();
         }
 
@@ -2477,7 +2495,7 @@ namespace fbchat_sharp.API
         /// <param name="unseen">--</param>
         /// <param name="unread">--</param>
         /// <param name="recent_unread">--</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onInbox(
             object unseen = null,
             object unread = null,
@@ -2494,7 +2512,7 @@ namespace fbchat_sharp.API
         /// <param name="author_id">The ID of the person who sent the action</param>
         /// <param name="status">The typing status: true is typing, false if not.</param>
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onTyping(
             string author_id = null,
             object status = null,
@@ -2516,7 +2534,7 @@ namespace fbchat_sharp.API
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onGamePlayed(
             string mid = null,
             string author_id = null,
@@ -2541,7 +2559,7 @@ namespace fbchat_sharp.API
         /// <param name="author_id">The ID of the person who reacted to the message</param>
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onReactionAdded(
             string mid = null,
             object reaction = null,
@@ -2561,7 +2579,7 @@ namespace fbchat_sharp.API
         /// <param name="author_id">The ID of the person who removed reaction</param>
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onReactionRemoved(
             string mid = null,
             string author_id = null,
@@ -2579,7 +2597,7 @@ namespace fbchat_sharp.API
         /// <param name="author_id">The ID of the person who blocked</param>
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onBlock(
             string author_id = null,
             FB_Thread thread = null,
@@ -2596,7 +2614,7 @@ namespace fbchat_sharp.API
         /// <param name="author_id">The ID of the person who unblocked</param>
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onUnblock(
             string author_id = null,
             FB_Thread thread = null,
@@ -2615,7 +2633,7 @@ namespace fbchat_sharp.API
         /// <param name="author_id">The ID of the person who sent location info</param>
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onLiveLocation(
             string mid = null,
             FB_LiveLocationAttachment location = null,
@@ -2639,7 +2657,7 @@ namespace fbchat_sharp.API
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onCallStarted(
             string mid = null,
             object caller_id = null,
@@ -2665,7 +2683,7 @@ namespace fbchat_sharp.API
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onCallEnded(
             string mid = null,
             object caller_id = null,
@@ -2689,7 +2707,7 @@ namespace fbchat_sharp.API
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onUserJoinedCall(
             string mid = null,
             object joined_id = null,
@@ -2712,7 +2730,7 @@ namespace fbchat_sharp.API
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onPollCreated(
             string mid = null,
             object poll = null,
@@ -2737,7 +2755,7 @@ namespace fbchat_sharp.API
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onPollVoted(
             string mid = null,
             object poll = null,
@@ -2762,7 +2780,7 @@ namespace fbchat_sharp.API
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onPlanCreated(
             string mid = null,
             object plan = null,
@@ -2784,7 +2802,7 @@ namespace fbchat_sharp.API
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onPlanEnded(
             string mid = null,
             object plan = null,
@@ -2806,7 +2824,7 @@ namespace fbchat_sharp.API
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onPlanEdited(
             string mid = null,
             object plan = null,
@@ -2829,7 +2847,7 @@ namespace fbchat_sharp.API
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onPlanDeleted(
             string mid = null,
             object plan = null,
@@ -2853,7 +2871,7 @@ namespace fbchat_sharp.API
         /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
         /// <param name="ts">A timestamp of the action</param>
         /// <param name="metadata">Extra metadata about the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onPlanParticipation(
             string mid = null,
             FB_Plan plan = null,
@@ -2879,7 +2897,7 @@ namespace fbchat_sharp.API
         /// Called when the client just started listening
         ///</summary>
         /// <param name="ts">A timestamp of the action</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onQprimer(long ts = 0, JToken msg = null)
         {
             await Task.Yield();
@@ -2889,7 +2907,7 @@ namespace fbchat_sharp.API
         /// Called when the client receives chat online presence update
         ///</summary>
         /// <param name="buddylist">A list of dicts with friend id and last seen timestamp</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onChatTimestamp(object buddylist = null, JToken msg = null)
         {
             Debug.WriteLine(string.Format("Chat Timestamps received: {0}", buddylist));
@@ -2900,7 +2918,7 @@ namespace fbchat_sharp.API
         /// Called when the client is listening and client receives information about friend active status
         ///</summary>
         /// <param name="statuses">Dictionary with user IDs as keys and `ActiveStatus` as values</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onBuddylistOverlay(object statuses = null, JToken msg = null)
         {
             Debug.WriteLine(string.Format("Buddylist overlay received: {0}", statuses));
@@ -2908,9 +2926,9 @@ namespace fbchat_sharp.API
         }
 
         ///<summary>
-        /// Called when the client is listening, and some unknown data was recieved
+        /// Called when the client is listening, and some unknown data was received
         ///</summary>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onUnknownMesssageType(JToken msg = null)
         {
             Debug.WriteLine(string.Format("Unknown message received: {0}", msg));
@@ -2918,10 +2936,10 @@ namespace fbchat_sharp.API
         }
 
         ///<summary>
-        /// Called when an error was encountered while parsing recieved data
+        /// Called when an error was encountered while parsing received data
         ///</summary>
         /// <param name="exception">The exception that was encountered</param>
-        /// <param name="msg">A full set of the data recieved</param>
+        /// <param name="msg">A full set of the data received</param>
         protected virtual async Task onMessageError(object exception = null, JToken msg = null)
         {
             Debug.WriteLine(string.Format("Exception in parsing of {0}", msg));
