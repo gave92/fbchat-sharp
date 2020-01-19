@@ -56,7 +56,7 @@ namespace examples
                 search.ForEach(v => Console.WriteLine(v));
 
                 // Fetch latest messages
-                var messages = await threads.FirstOrDefault()?.fetchThreadMessages(5);
+                var messages = await threads.FirstOrDefault()?.fetchMessages(5);
                 messages.ForEach(v => Console.WriteLine(v));
 
                 // Send a message to myself

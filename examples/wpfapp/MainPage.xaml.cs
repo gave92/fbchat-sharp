@@ -94,7 +94,7 @@ namespace wpfapp
             try
             {
                 if (clear) Messages.Clear();
-                var messages = await SelectedThread.Value.fetchThreadMessages(20, Messages.FirstOrDefault()?.timestamp);
+                var messages = await SelectedThread.Value.fetchMessages(20, Messages.FirstOrDefault()?.timestamp);
                 if (messages.Any() && Messages.Any() && messages.First().uid == Messages.First().uid) messages.RemoveAt(0);
                 ScrollViewer scrollViewer = GetScrollViewer(MessageList) as ScrollViewer;
                 var prev_height = scrollViewer.ExtentHeight;

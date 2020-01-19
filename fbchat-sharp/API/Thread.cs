@@ -388,7 +388,7 @@ namespace fbchat_sharp.API
             return await this.session._do_send_request(data);
         }
 
-        public async Task<(int count,IEnumerable<FB_Message_Snippet> snippets)> _search_messages(string query, int offset = 0, int limit = 5)
+        public async Task<(int count, IEnumerable<FB_Message_Snippet> snippets)> _search_messages(string query, int offset = 0, int limit = 5)
         {
             var data = new Dictionary<string, object>() {
                 { "query", query },
@@ -448,7 +448,7 @@ namespace fbchat_sharp.API
         /// <param name="limit">Max.number of messages to retrieve</param>
         /// <param name="before">A unix timestamp, indicating from which point to retrieve messages</param>
         /// <returns></returns>
-        public async Task<List<FB_Message>> fetchThreadMessages(int limit = 20, string before = null)
+        public async Task<List<FB_Message>> fetchMessages(int limit = 20, string before = null)
         {
             /*
              * Get the last messages in a thread
@@ -498,42 +498,47 @@ namespace fbchat_sharp.API
         /// Creates generator object for fetching images posted in thread.
         /// </summary>
         /// <returns>`ImageAttachment` or `VideoAttachment`.</returns>
-        public IAsyncEnumerable<FB_Attachment> fetchThreadImages()
+        public IAsyncEnumerable<(string cursor, FB_Attachment attachment)> fetchImages(int limit = 5, string after = null)
         {
             /*
              * Creates generator object for fetching images posted in thread.
              * :return: `ImageAttachment` or `VideoAttachment`.
              * :rtype: iterable
              * */
-            return new AsyncEnumerable<FB_Attachment>(async yield =>
+            return new AsyncEnumerable<(string cursor,FB_Attachment attachment)>(async yield =>
             {
-                var data = new Dictionary<string, object>() { { "id", this.uid }, { "first", 48 } };
-                var j = await this.session.graphql_request(GraphQL.from_query_id("515216185516880", data));
-                while (true)
-                {
-                    JToken i = null;
-                    try
-                    {
-                        i = j.get(this.uid).get("message_shared_media").get("edges").First();
-                    }
-                    catch (Exception)
-                    {
-                        if (j?.get(this.uid)?.get("message_shared_media")?.get("page_info")?.get("has_next_page")?.Value<bool>() ?? false)
-                        {
-                            data["after"] = j?.get(this.uid)?.get("message_shared_media").get("page_info")?.get("end_cursor")?.Value<string>();
-                            j = await this.session.graphql_request(GraphQL.from_query_id("515216185516880", data));
-                            continue;
-                        }
-                        else
-                            break;
-                    }
+                var data = new Dictionary<string, object>() {
+                    { "id", this.uid },
+                    { "limit", limit },
+                    { "after", after }
+                };
 
-                    if (i?.get("node")?.get("__typename")?.Value<string>() == "MessageImage")
-                        await yield.ReturnAsync(FB_ImageAttachment._from_list(i));
-                    else if (i?.get("node")?.get("__typename")?.Value<string>() == "MessageVideo")
-                        await yield.ReturnAsync(FB_VideoAttachment._from_list(i));
+                var j = await this.session.graphql_request(GraphQL.from_query_id("515216185516880", data));
+                if (j?.get(this.uid) == null)
+                    throw new FBchatException("Could not find images");
+
+                var result = j.get(this.uid).get("message_shared_media");
+
+                foreach (var edge in result?.get("edges"))
+                {
+                    var node = edge?.get("node");
+                    var type_ = node?.get("__typename");
+
+                    if (type_?.Value<string>() == "MessageImage")
+                    {
+                        await yield.ReturnAsync((result?.get("page_info")?.get("end_cursor")?.Value<string>(), 
+                            FB_ImageAttachment._from_list(node)));
+                    }                        
+                    else if (type_?.Value<string>() == "MessageVideo")
+                    {
+                        await yield.ReturnAsync((result?.get("page_info")?.get("end_cursor")?.Value<string>(), 
+                            FB_VideoAttachment._from_list(node)));
+                    }                        
                     else
-                        await yield.ReturnAsync(new FB_Attachment(uid: i?.get("node")?.get("legacy_attachment_id")?.Value<string>()));
+                    {
+                        Debug.WriteLine($"Unknown image type {type_}, data: {edge.ToString()}");
+                        continue;
+                    }
                 }
             });
         }
@@ -923,7 +928,7 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="mute_time">Mute time in seconds, leave blank to mute forever</param>
         /// <returns></returns>
-        public async Task muteThread(int mute_time = -1)
+        public async Task mute(int mute_time = -1)
         {
             /*
              * Mutes thread
@@ -937,12 +942,12 @@ namespace fbchat_sharp.API
         /// Unmutes thread
         /// </summary>
         /// <returns></returns>
-        public async Task unmuteThread(string thread_id = null)
+        public async Task unmute(string thread_id = null)
         {
             /*
              * Unmutes thread
              * */
-            await this.muteThread(0);
+            await this.mute(0);
         }
 
         /// <summary>
@@ -950,7 +955,7 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="mute">Boolean.true to mute, false to unmute</param>
         /// <returns></returns>
-        public async Task muteThreadReactions(bool mute = true)
+        public async Task muteReactions(bool mute = true)
         {
             /*
              * Mutes thread reactions
@@ -967,12 +972,12 @@ namespace fbchat_sharp.API
         /// Unmutes thread reactions
         /// </summary>
         /// <returns>User/Group ID to unmute.See :ref:`intro_threads`</returns>
-        public async Task unmuteThreadReactions()
+        public async Task unmuteReactions()
         {
             /*
              * Unmutes thread reactions
              * */
-            await this.muteThreadReactions(false);
+            await this.muteReactions(false);
         }
 
         /// <summary>
@@ -980,7 +985,7 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="mute">Boolean.true to mute, false to unmute</param>
         /// <returns></returns>
-        public async Task muteThreadMentions(bool mute = true)
+        public async Task muteMentions(bool mute = true)
         {
             /*
              * Mutes thread mentions
@@ -994,12 +999,12 @@ namespace fbchat_sharp.API
         /// Unmutes thread mentions
         /// </summary>
         /// <returns></returns>
-        public async Task unmuteThreadMentions()
+        public async Task unmuteMentions()
         {
             /*
              * Unmutes thread mentions
              * */
-            await this.muteThreadMentions(false);
+            await this.muteMentions(false);
         }
     }
 }

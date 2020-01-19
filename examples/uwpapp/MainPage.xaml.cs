@@ -106,7 +106,7 @@ namespace uwpapp
             await SlowStuffSemaphore.WaitAsync();
             try
             {
-                var messages = await SelectedThread.Value.fetchThreadMessages(pageSize, Messages.FirstOrDefault()?.timestamp);
+                var messages = await SelectedThread.Value.fetchMessages(pageSize, Messages.FirstOrDefault()?.timestamp);
                 if (messages.Any() && Messages.Any() && messages.First().uid == Messages.First().uid) messages.RemoveAt(0);                
                 foreach (var msg in messages)
                 {

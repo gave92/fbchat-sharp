@@ -172,7 +172,6 @@ namespace fbchat_sharp.API
 
         public static FB_ImageAttachment _from_list(JToken data)
         {
-            data = data["node"];
             return new FB_ImageAttachment(
                 width: data?.get("original_dimensions")?.get("x")?.Value<int>() ?? 0,
                 height: data?.get("original_dimensions")?.get("y")?.Value<int>() ?? 0,
@@ -246,7 +245,6 @@ namespace fbchat_sharp.API
 
         public static FB_VideoAttachment _from_list(JToken data)
         {
-            data = data["node"];
             return new FB_VideoAttachment(
                 width: data?.get("original_dimensions")?.get("x")?.Value<int>() ?? 0,
                 height: data?.get("original_dimensions")?.get("y")?.Value<int>() ?? 0,
