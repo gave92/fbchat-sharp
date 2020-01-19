@@ -7,7 +7,6 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -49,7 +48,7 @@ namespace fbchat_sharp.API
         private int _seq = 0;
         private int _pull_channel = 0;
         private bool _markAlive = false;
-        private Dictionary<string, FB_ActiveStatus> _buddylist = null;        
+        private Dictionary<string, FB_ActiveStatus> _buddylist = null;
 
         /// <summary>
         /// The ID of the client.
@@ -87,29 +86,6 @@ namespace fbchat_sharp.API
 
             return _session;
         }
-
-        #region INTERNAL REQUEST METHODS
-
-        private async Task<JToken> _get(string url, Dictionary<string, object> query = null, CancellationToken cancellationToken = default(CancellationToken))
-        {
-            if (this._session == null)
-            {
-                throw new FBchatNotLoggedIn(message: "Please login before calling 'fetch' methods.");
-            }
-            return await this._session._get(url, query, cancellationToken);
-        }
-
-        private async Task<object> _post(string url, Dictionary<string, object> query = null, Dictionary<string, FB_File> files = null, bool as_graphql = false, CancellationToken cancellationToken = default(CancellationToken))
-        {
-            return await this._session._post(url, query, files, as_graphql, cancellationToken);
-        }
-
-        private async Task<JToken> _payload_post(string url, Dictionary<string, object> data = null, Dictionary<string, FB_File> files = null, CancellationToken cancellationToken = default(CancellationToken))
-        {
-            return await this._session._payload_post(url, data, files, cancellationToken);
-        }
-
-        #endregion
 
         #region LOGIN METHODS
 
@@ -305,13 +281,18 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Gets all users the client is currently chatting with
+        /// Fetch users the client is currently chatting with
         /// </summary>
         /// <returns>`FB_User` objects</returns>
-        public async Task<List<FB_User>> fetchAllUsers()
+        public async Task<List<FB_User>> fetchUsers()
         {
             /*
-             * Gets all users the client is currently chatting with
+             * Fetch users the client is currently chatting with
+             * This is very close to your friend list, with the follow differences:
+             * It differs by including users that you're not friends with, but have chatted
+             * with before, and by including accounts that are "Messenger Only".
+             * But does not include deactivated, deleted or memorialized users (logically,
+             * since you can't chat with those).
              * : return: `User` objects
              * :rtype: list
              * :raises: FBchatException if request failed
@@ -320,21 +301,19 @@ namespace fbchat_sharp.API
             var data = new Dictionary<string, object>() {
                 { "viewer", this._uid },
             };
-            var j = await this._payload_post("/chat/user_info_all", data: data);
+            var j = await this._session._payload_post("/chat/user_info_all", data: data);
 
             var users = new List<FB_User>();
             foreach (var u in j.Value<JObject>().Properties())
             {
                 var k = u.Value;
-                if (k != null && new[] { "user", "friend" }.Contains(k.get("type").Value<string>()))
+                if (!new[] { "user", "friend" }.Contains(k?.get("type")?.Value<string>()) ||
+                    new[] { "0", "\0" }.Contains(k.get("id").Value<string>()))
                 {
-                    if (new[] { "0", "\0" }.Contains(k.get("id").Value<string>()))
-                    {
-                        // Skip invalid users
-                        continue;
-                    }
-                    users.Add(FB_User._from_all_fetch(_session, k));
+                    // Skip invalid users
+                    continue;
                 }
+                users.Add(FB_User._from_all_fetch(_session, k));
             }
 
             return users;
@@ -480,7 +459,7 @@ namespace fbchat_sharp.API
                 { "query", query },
                 { "snippetLimit", thread_limit.ToString() }
             };
-            var j = await this._payload_post("/ajax/mercury/search_snippets.php?dpr=1", data);
+            var j = await this._session._payload_post("/ajax/mercury/search_snippets.php?dpr=1", data);
             var result = j.get("search_snippets")?.get(query).ToObject<List<string>>();
 
             if (result == null)
@@ -508,7 +487,7 @@ namespace fbchat_sharp.API
             foreach (var obj in ids.Select((x, index) => new { _id = x, i = index }))
                 data.Add(string.Format("ids[{0}]", obj.i), obj._id);
 
-            var j = await this._payload_post("/chat/user_info/", data);
+            var j = await this._session._payload_post("/chat/user_info/", data);
 
             if (j.get("profiles") == null)
                 throw new FBchatException("No users/pages returned");
@@ -819,7 +798,7 @@ namespace fbchat_sharp.API
                 //{ "last_action_timestamp", 0.ToString()}
             };
 
-            var j = await this._payload_post("/ajax/mercury/unread_threads.php", form);
+            var j = await this._session._payload_post("/ajax/mercury/unread_threads.php", form);
 
             var result = j.get("unread_thread_fbids")?.FirstOrDefault();
             var rtn = new List<string>();
@@ -841,7 +820,7 @@ namespace fbchat_sharp.API
              * :raises: FBchatException if request failed
              */
 
-            var j = await this._payload_post("/mercury/unseen_thread_ids/", null);
+            var j = await this._session._payload_post("/mercury/unseen_thread_ids/", null);
 
             var result = j.get("unseen_thread_fbids")?.FirstOrDefault();
             var rtn = new List<string>();
@@ -868,7 +847,7 @@ namespace fbchat_sharp.API
             var data = new Dictionary<string, object>() {
                 { "photo_id", image_id},
             };
-            var j = (JToken)await this._post("/mercury/attachments/photo/", data);
+            var j = (JToken)await this._session._post("/mercury/attachments/photo/", data);
 
             var url = Utils.get_jsmods_require(j, 3);
             if (url == null)
@@ -915,7 +894,7 @@ namespace fbchat_sharp.API
                 { "data_fetch", true },
                 { "send_full_data", true }
             };
-            var j = await this._payload_post("https://m.facebook.com/buddylist_update.php", data);
+            var j = await this._session._payload_post("https://m.facebook.com/buddylist_update.php", data);
             foreach (var buddy in j.get("buddylist"))
                 this._buddylist[buddy.get("id")?.Value<string>()] = FB_ActiveStatus._from_buddylist_update(buddy);
             return j.get("buddylist")?.Select((b) => b.get("id")?.Value<string>())?.ToList();
@@ -943,7 +922,7 @@ namespace fbchat_sharp.API
             { "message_ids[0]", message_id },
             {string.Format("thread_ids[{0}][0]",thread_id), message_id}};
 
-            var j = await this._payload_post("/ajax/mercury/delivery_receipts.php", data);
+            var j = await this._session._payload_post("/ajax/mercury/delivery_receipts.php", data);
             return true;
         }
 
@@ -959,7 +938,7 @@ namespace fbchat_sharp.API
             foreach (var thread_id in uthread_ids)
                 data[string.Format("ids[{0}]", thread_id)] = read ? "true" : "false";
 
-            var j = await this._payload_post("/ajax/mercury/change_read_status.php", data);
+            var j = await this._session._payload_post("/ajax/mercury/change_read_status.php", data);
         }
 
         /// <summary>
@@ -1004,8 +983,8 @@ namespace fbchat_sharp.API
              * .. todo::
              * Documenting this
              * */
-            var j = await this._payload_post("/ajax/mercury/mark_seen.php", new Dictionary<string, object>() { { "seen_timestamp", Utils.now() } });
-        }        
+            var j = await this._session._payload_post("/ajax/mercury/mark_seen.php", new Dictionary<string, object>() { { "seen_timestamp", Utils.now() } });
+        }
 
         /// <summary>
         /// Moves threads to specifed location
@@ -1036,10 +1015,10 @@ namespace fbchat_sharp.API
                     data_archive[string.Format("ids[{0}]", thread_id)] = "true";
                     data_unpin[string.Format("ids[{0}]", thread_id)] = "false";
                 }
-                var j_archive = await this._payload_post(
+                var j_archive = await this._session._payload_post(
                     "/ajax/mercury/change_archived_status.php?dpr=1", data_archive
                 );
-                var j_unpin = await this._payload_post(
+                var j_unpin = await this._session._payload_post(
                     "/ajax/mercury/change_pinned_status.php?dpr=1", data_unpin
                 );
             }
@@ -1048,7 +1027,7 @@ namespace fbchat_sharp.API
                 var data = new Dictionary<string, object>();
                 foreach (var obj in thread_ids.Select((x, index) => new { thread_id = x, i = index }))
                     data[string.Format("{0}[{1}]", location.ToLower(), obj.i)] = obj.thread_id;
-                var j = await this._payload_post("/ajax/mercury/move_thread.php", data);
+                var j = await this._session._payload_post("/ajax/mercury/move_thread.php", data);
             }
             return true;
         }
@@ -1075,14 +1054,14 @@ namespace fbchat_sharp.API
                 data_unpin[string.Format("ids[{0}]", obj.thread_id)] = "false";
                 data_delete[string.Format("ids[{0}]", obj.i)] = obj.thread_id;
             }
-            var j_unpin = await this._payload_post(
+            var j_unpin = await this._session._payload_post(
                 "/ajax/mercury/change_pinned_status.php?dpr=1", data_unpin
             );
-            var j_delete = this._payload_post(
+            var j_delete = this._session._payload_post(
                 "/ajax/mercury/delete_thread.php?dpr=1", data_delete
             );
             return true;
-        }        
+        }
 
         /// <summary>
         /// Deletes specifed messages
@@ -1101,10 +1080,10 @@ namespace fbchat_sharp.API
             var data = new Dictionary<string, object>();
             foreach (var obj in umessage_ids.Select((x, index) => new { message_id = x, i = index }))
                 data[string.Format("message_ids[{0}]", obj.i)] = obj.message_id;
-            var j = await this._payload_post("/ajax/mercury/delete_messages.php?dpr=1", data);
+            var j = await this._session._payload_post("/ajax/mercury/delete_messages.php?dpr=1", data);
             return true;
         }
-        
+
         #endregion
 
         #region LISTEN METHODS
@@ -1123,7 +1102,7 @@ namespace fbchat_sharp.API
                 { "viewer_uid", this._uid},
                 { "state", "active"},
             };
-            var j = await this._get(
+            var j = await this._session._get(
                 string.Format("https://{0}-edge-chat.facebook.com/active_ping", this._pull_channel), data, cancellationToken);
         }
 
@@ -1139,9 +1118,9 @@ namespace fbchat_sharp.API
                 { "state", this._markAlive ? "active" : "offline"},
             };
 
-            return await this._get(
+            return await this._session._get(
                 string.Format("https://{0}-edge-chat.facebook.com/pull", this._pull_channel), data, cancellationToken);
-        }        
+        }
 
         private async Task _parseDelta(JToken m)
         {
@@ -1412,7 +1391,7 @@ namespace fbchat_sharp.API
                         caller_id: author_id,
                         is_video_call: is_video_call,
                         call_duration: call_duration,
-                        thread: thread,                    
+                        thread: thread,
                         ts: ts,
                         metadata: metadata,
                         msg: m
