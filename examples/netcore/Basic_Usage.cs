@@ -48,7 +48,7 @@ namespace examples
                 Console.WriteLine(self);
 
                 // Fetch users I'm chatting with
-                var users = await client.fetchAllUsers();
+                var users = await client.fetchUsers();
                 users.ForEach(v => Console.WriteLine(v));
 
                 // Find user by name/id

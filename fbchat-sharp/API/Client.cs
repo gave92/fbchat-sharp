@@ -275,8 +275,8 @@ namespace fbchat_sharp.API
                 }
             }
 
-            foreach (KeyValuePair<string, FB_User> entry in await this.fetchUserInfo(users_to_fetch))
-                users.Add(entry.Value);
+            foreach (KeyValuePair<string, FB_Thread> entry in await this.fetchThreadInfo(users_to_fetch))
+                users.Add(entry.Value as FB_User);
             return users;
         }
 
@@ -530,107 +530,7 @@ namespace fbchat_sharp.API
         /// </summary>
         public async Task<FB_User> fetchProfile()
         {
-            return (await this.fetchUserInfo(new List<string>() { this._uid })).Single().Value;
-        }
-
-        /// <summary>
-        /// Get users' info from IDs, unordered
-        /// </summary>
-        /// <param name="user_ids">One or more user ID(s) to query</param>
-        /// <returns>A dictionary of FB_User objects, labeled by their ID</returns>
-        public async Task<Dictionary<string, FB_User>> fetchUserInfo(List<string> user_ids)
-        {
-            /*
-             * Get users' info from IDs, unordered
-             * ..warning::
-             * Sends two requests, to fetch all available info!
-             * :param user_ids: One or more user ID(s) to query
-             * :return: `models.User` objects, labeled by their ID
-             * :rtype: dict
-             * :raises: Exception if request failed
-             */
-
-            var threads = await this.fetchThreadInfo(user_ids);
-            var users = new Dictionary<string, FB_User>();
-            foreach (var k in threads.Keys)
-            {
-                if (threads[k] is FB_User)
-                {
-                    users[k] = (FB_User)threads[k];
-                }
-                else
-                {
-                    throw new FBchatUserError(string.Format("Thread {0} was not a user", threads[k]));
-                }
-            }
-
-            return users;
-        }
-
-        /// <summary>
-        /// Get pages' info from IDs, unordered
-        /// </summary>
-        /// <param name="page_ids">One or more page ID(s) to query</param>
-        /// <returns>A dictionary of FB_Page objects, labeled by their ID</returns>
-        public async Task<Dictionary<string, FB_Page>> fetchPageInfo(List<string> page_ids)
-        {
-            /*
-             * Get pages" info from IDs, unordered
-             * ..warning::
-             * Sends two requests, to fetch all available info!
-             * :param page_ids: One or more page ID(s) to query
-             * :return: `models.Page` objects, labeled by their ID
-             * :rtype: dict
-             * :raises: Exception if request failed
-             */
-
-            var threads = await this.fetchThreadInfo(page_ids);
-            var pages = new Dictionary<string, FB_Page>();
-            foreach (var k in threads.Keys)
-            {
-                if (threads[k] is FB_Page)
-                {
-                    pages[k] = (FB_Page)threads[k];
-                }
-                else
-                {
-                    throw new FBchatUserError(string.Format("Thread {0} was not a page", threads[k]));
-                }
-            }
-
-            return pages;
-        }
-
-        /// <summary>
-        /// Get groups' info from IDs, unordered
-        /// </summary>
-        /// <param name="group_ids">One or more group ID(s) to query</param>
-        /// <returns>A dictionary of FB_Group objects, labeled by their ID</returns>
-        public async Task<Dictionary<string, FB_Group>> fetchGroupInfo(List<string> group_ids)
-        {
-            /*
-             * Get groups" info from IDs, unordered
-             * :param group_ids: One or more group ID(s) to query
-             * :return: `models.FGroup` objects, labeled by their ID
-             * :rtype: dict
-             * :raises: Exception if request failed
-             */
-
-            var threads = await this.fetchThreadInfo(group_ids);
-            var groups = new Dictionary<string, FB_Group>();
-            foreach (var k in threads.Keys)
-            {
-                if (threads[k] is FB_Group)
-                {
-                    groups[k] = (FB_Group)threads[k];
-                }
-                else
-                {
-                    throw new FBchatUserError(string.Format("Thread {0} was not a group", threads[k]));
-                }
-            }
-
-            return groups;
+            return (await this.fetchThreadInfo(new List<string>() { this._uid })).Single().Value as FB_User;
         }
 
         /// <summary>
