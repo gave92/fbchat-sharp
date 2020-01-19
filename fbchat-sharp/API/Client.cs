@@ -266,11 +266,11 @@ namespace fbchat_sharp.API
                 }
                 else if (thread is FB_Group)
                 {
-                    foreach (var user_id in ((FB_Group)thread).participants)
+                    foreach (var user in ((FB_Group)thread).participants)
                     {
-                        if (!users.Select((u) => u.uid).Contains(user_id) &&
-                            !users_to_fetch.Contains(user_id))
-                            users_to_fetch.Add(user_id);
+                        if (!users.Select((u) => u.uid).Contains(user.uid) &&
+                            !users_to_fetch.Contains(user.uid))
+                            users_to_fetch.Add(user.uid);
                     }
                 }
             }

@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -107,7 +108,7 @@ namespace fbchat_sharp.API
         public static FB_Thread _from_metadata(JToken msg_metadata, Session session)
         {
             /*Returns a tuple consisting of thread ID and thread type*/
-            string id_thread = null;            
+            string id_thread = null;
             if (msg_metadata.get("threadKey")?.get("threadFbId") != null)
             {
                 id_thread = (msg_metadata.get("threadKey")?.get("threadFbId").Value<string>());
@@ -121,6 +122,29 @@ namespace fbchat_sharp.API
             return new FB_User(id_thread, session);
         }
 
+        public static IEnumerable<FB_Thread> _parse_participants(JToken data, Session session)
+        {
+            foreach (var node in data?.get("nodes"))
+            {
+                var actor = node?.get("messaging_actor");
+                var typename = actor?.get("__typename")?.Value<string>();
+                var thread_id = actor?.get("id")?.Value<string>();
+
+                if (typename == "User")
+                    yield return new FB_User(session: session, uid: thread_id);
+                else if (typename == "MessageThread")
+                    // MessageThread => Group thread
+                    yield return new FB_Group(session: session, uid: thread_id);
+                else if (typename == "Page")
+                    yield return new FB_Page(session: session, uid: thread_id);
+                else if (typename == "Group")
+                    // We don't handle Facebook "Groups"
+                    continue;
+                else
+                    Debug.WriteLine("Unknown type %r in %s", typename, data);
+            }
+        }
+
         public static Dictionary<string, object> _parse_customization_info(JToken data)
         {
             var rtn = new Dictionary<string, object>();
@@ -128,7 +152,7 @@ namespace fbchat_sharp.API
                 return rtn;
             var info = data.get("customization_info");
             rtn["emoji"] = info.get("emoji");
-            rtn["color"]= ThreadColor._from_graphql(info.get("outgoing_bubble_color"));
+            rtn["color"] = ThreadColor._from_graphql(info.get("outgoing_bubble_color"));
 
             if (
                 data.get("thread_type")?.Value<string>() == "GROUP"
@@ -162,7 +186,7 @@ namespace fbchat_sharp.API
             return rtn;
         }
 
-        public virtual Dictionary<string,object> _to_send_data()
+        public virtual Dictionary<string, object> _to_send_data()
         {
             // TODO: Only implement this in subclasses
             return new Dictionary<string, object>() { { "other_user_fbid", this.uid } };

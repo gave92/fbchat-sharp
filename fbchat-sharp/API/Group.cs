@@ -11,8 +11,8 @@ namespace fbchat_sharp.API
     /// </summary>
     public class FB_Group : FB_Thread
     {
-        /// Unique list (set) of the group thread"s participant user IDs
-        public ISet<string> participants { get; set; }
+        /// Unique list (set) of the group thread"s participants
+        public ISet<FB_Thread> participants { get; set; }
         /// Dict, containing user nicknames mapped to their IDs
         public Dictionary<string, string> nicknames { get; set; }
         /// A `ThreadColor`. The groups"s message color
@@ -46,10 +46,10 @@ namespace fbchat_sharp.API
         /// <param name="approval_mode"></param>
         /// <param name="approval_requests"></param>
         /// <param name="join_link"></param>
-        public FB_Group(string uid, Session session, FB_Image photo = null, string name = null, int message_count = 0, string last_message_timestamp = null, FB_Plan plan = null, ISet<string> participants = null, Dictionary<string, string> nicknames = null, string color = null, JToken emoji = null, ISet<string> admins = null, bool approval_mode = false, ISet<string> approval_requests = null, string join_link = null)
+        public FB_Group(string uid, Session session, FB_Image photo = null, string name = null, int message_count = 0, string last_message_timestamp = null, FB_Plan plan = null, ISet<FB_Thread> participants = null, Dictionary<string, string> nicknames = null, string color = null, JToken emoji = null, ISet<string> admins = null, bool approval_mode = false, ISet<string> approval_requests = null, string join_link = null)
             : base(uid, session, photo, name, message_count: message_count, last_message_timestamp: last_message_timestamp, plan: plan)
         {
-            this.participants = participants ?? new HashSet<string>();
+            this.participants = participants ?? new HashSet<FB_Thread>();
             this.nicknames = nicknames ?? new Dictionary<string, string>();
             this.color = color ?? ThreadColor.MESSENGER_BLUE;
             this.emoji = emoji;
@@ -82,7 +82,7 @@ namespace fbchat_sharp.API
             return new FB_Group(
                 uid: data.get("thread_key")?.get("thread_fbid")?.Value<string>(),
                 session: session,
-                participants: new HashSet<string>(data.get("all_participants")?.get("nodes")?.Select(node => node.get("messaging_actor")?.get("id")?.Value<string>())),
+                participants: new HashSet<FB_Thread>(FB_Thread._parse_participants(data.get("all_participants"), session)),
                 nicknames: (Dictionary<string, string>)c_info.GetValueOrDefault("nicknames"),
                 color: (string)c_info.GetValueOrDefault("color"),
                 emoji: (JToken)c_info.GetValueOrDefault("emoji"),
@@ -308,51 +308,6 @@ namespace fbchat_sharp.API
             var files = this.session.get_files_from_paths(new Dictionary<string, Stream>() { { image_path, image_stream } });
             var upl = await this.session._upload(files);
             return await this._changeImage(upl[0].Item1);
-        }
-    }
-
-    /// <summary>
-    /// Represents a Facebook room. Inherits `Group`
-    /// </summary>
-    public class FB_Room : FB_Group
-    {
-        /// True is room is not discoverable
-        public bool privacy_mode { get; set; }
-
-        /// <summary>
-        /// Represents a Facebook room. Inherits `Group`
-        /// </summary>
-        /// <param name="uid"></param>
-        /// <param name="session"></param>
-        /// <param name="photo"></param>
-        /// <param name="name"></param>
-        /// <param name="message_count"></param>
-        /// <param name="last_message_timestamp"></param>
-        /// <param name="plan"></param>
-        /// <param name="participants"></param>
-        /// <param name="nicknames"></param>
-        /// <param name="color"></param>
-        /// <param name="emoji"></param>
-        /// <param name="admins"></param>
-        /// <param name="approval_mode"></param>
-        /// <param name="approval_requests"></param>
-        /// <param name="join_link"></param>
-        /// <param name="privacy_mode"></param>
-        public FB_Room(string uid, Session session, FB_Image photo = null, string name = null, int message_count = 0, string last_message_timestamp = null, FB_Plan plan = null, ISet<string> participants = null, Dictionary<string, string> nicknames = null, string color = null, string emoji = null, ISet<string> admins = null, bool approval_mode = false, ISet<string> approval_requests = null, string join_link = null, bool privacy_mode = false) 
-            : base(uid, session, photo, name, message_count, last_message_timestamp, plan, participants, nicknames, color, emoji, admins, approval_mode, approval_requests, join_link)
-        {
-            this.privacy_mode = privacy_mode;
-        }
-
-        /// <summary>
-        /// Represents a Facebook room. Inherits `Group`
-        /// </summary>
-        /// <param name="uid"></param>
-        /// <param name="session"></param>
-        public FB_Room(string uid, Session session) :
-            base(uid, session)
-        {
-
         }
     }
 }
