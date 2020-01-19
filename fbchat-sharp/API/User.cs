@@ -125,12 +125,10 @@ namespace fbchat_sharp.API
 
         public static FB_User _from_graphql(Session session, JToken data)
         {
-            if (data.get("profile_picture") == null)
-            {
-                data["profile_picture"] = new JObject(new JProperty("uri", ""));
-            }
             var c_info = FB_User._parse_customization_info(data);
-            var plan = data.get("event_reminders")?.get("nodes")?.FirstOrDefault() != null ? FB_Plan._from_graphql(data.get("event_reminders")?.get("nodes")?.FirstOrDefault(), session) : null;
+
+            var plan = data.get("event_reminders")?.get("nodes")?.FirstOrDefault() != null ? 
+                FB_Plan._from_graphql(data.get("event_reminders")?.get("nodes")?.FirstOrDefault(), session) : null;
 
             var name = data.get("name")?.Value<string>();
             var first_name = data.get("first_name")?.Value<string>() ?? data.get("short_name")?.Value<string>();
@@ -194,11 +192,6 @@ namespace fbchat_sharp.API
                     gender = GENDER.graphql_GENDERS[data.get("gender")?.Value<string>() ?? "UNKNOWN"];
             };
 
-            if (user.get("big_image_src") == null)
-            {
-                user["big_image_src"] = new JObject(new JProperty("uri", ""));
-            }
-
             var plan = data.get("event_reminders")?.get("nodes")?.FirstOrDefault() != null ? FB_Plan._from_graphql(data.get("event_reminders")?.get("nodes")?.FirstOrDefault(), session) : null;
 
             return new FB_User(                
@@ -218,6 +211,7 @@ namespace fbchat_sharp.API
                 photo: FB_Image._from_uri_or_none(user?.get("big_image_src")),
                 message_count: data.get("messages_count")?.Value<int>() ?? 0,
                 last_message_timestamp: last_message_timestamp,
+                //last_active = _util.millis_to_datetime(int(data["updated_time_precise"])),
                 plan: plan);
         }
 
