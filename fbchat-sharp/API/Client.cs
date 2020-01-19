@@ -453,7 +453,7 @@ namespace fbchat_sharp.API
         /// <param name="offset">Number of messages to skip</param>
         /// <param name="limit">Max. number of threads to retrieve</param>
         /// <returns>Iterable with tuples of threads, and the total amount of matching messages in each</returns>
-        public async Task<List<(FB_Thread thread,int count)>> searchMessages(string query, int offset = 0, int limit = 5)
+        public async Task<List<(FB_Thread thread, int count)>> searchMessages(string query, int offset = 0, int limit = 5)
         {
             /*
              * Search for messages in all threads.
@@ -468,7 +468,7 @@ namespace fbchat_sharp.API
              *   Returns:
              *     Iterable with tuples of threads, and the total amount of matching messages in each.
              */
-            
+
             var data = new Dictionary<string, object>() {
                 { "query", query },
                 { "offset", offset.ToString() },
@@ -477,7 +477,7 @@ namespace fbchat_sharp.API
             var j = await this._session._payload_post("/ajax/mercury/search_snippets.php?dpr=1", data);
             var total_snippets = j?.get("search_snippets")?.get(query);
 
-            var rtn = new List<(FB_Thread,int)>();
+            var rtn = new List<(FB_Thread, int)>();
             foreach (var node in j?.get("graphql_payload")?.get("message_threads"))
             {
                 FB_Thread thread = null;
@@ -1930,6 +1930,15 @@ namespace fbchat_sharp.API
                     this._buddylist[user_id] = statuses[user_id];
 
                     await this.onBuddylistOverlay(statuses: statuses, msg: event_data);
+                }
+            }
+            else if (event_type == "/legacy_web")
+            {
+                // Friend request
+                if (event_data?.get("type")?.Value<string>() == "jewel_requests_add")
+                {
+                    var from_id = event_data?.get("from")?.Value<string>();
+                    await this.onFriendRequest(from_id: from_id, msg: event_data);
                 }
             }
         }
