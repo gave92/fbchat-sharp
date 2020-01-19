@@ -877,28 +877,6 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Fetches list of`PollOption` objects from the poll id
-        /// </summary>
-        /// <param name="poll_id">Poll ID to fetch from</param>
-        /// <returns></returns>
-        public async Task<List<FB_PollOption>> fetchPollOptions(string poll_id)
-        {
-            /*
-             * Fetches list of`PollOption` objects from the poll id
-             * :param poll_id: Poll ID to fetch from
-             * :rtype: list
-             * :raises: FBchatException if request failed
-             * */
-
-            var data = new Dictionary<string, object>()
-            {
-                { "question_id", poll_id }
-            };
-            var j = await this._payload_post("/ajax/mercury/get_poll_options", data);
-            return j.Select((m) => FB_PollOption._from_graphql(m)).ToList();
-        }
-
-        /// <summary>
         /// Gets friend active status as an `ActiveStatus` object.
         /// Returns ``null`` if status isn't known.
         /// .. warning::
@@ -942,51 +920,6 @@ namespace fbchat_sharp.API
                 this._buddylist[buddy.get("id")?.Value<string>()] = FB_ActiveStatus._from_buddylist_update(buddy);
             return j.get("buddylist")?.Select((b) => b.get("id")?.Value<string>())?.ToList();
         }
-
-        #endregion
-
-        #region SEND METHODS
-
-        /// <summary>
-        /// Updates a poll vote
-        /// </summary>
-        /// <param name="poll_id">ID of the poll to update vote</param>
-        /// <param name="option_ids">List of the option IDs to vote</param>
-        /// <param name="new_options">List of the new option names</param>
-        /// <returns></returns>
-        public async Task updatePollVote(string poll_id, List<string> option_ids = null, List<string> new_options = null)
-        {
-            /*
-             * Updates a poll vote
-             * :param poll_id: ID of the poll to update vote
-             * : param option_ids: List of the option IDs to vote
-             * : param new_options: List of the new option names
-             * : param thread_id: User / Group ID to change status in. See: ref:`intro_threads`
-             * :param thread_type: See: ref:`intro_threads`
-             * :type thread_type: ThreadType
-             * : raises: FBchatException if request failed
-             * */
-            var data = new Dictionary<string, object>() { { "question_id", poll_id } };
-
-            if (option_ids != null)
-            {
-                foreach (var obj in option_ids.Select((x, index) => new { option_id = x, i = index }))
-                    data[string.Format("selected_options[{0}]", obj.i)] = obj.option_id;
-            }
-
-            if (new_options != null)
-            {
-                foreach (var obj in new_options.Select((x, index) => new { option_text = x, i = index }))
-                    data[string.Format("new_options[{0}]", obj.i)] = obj.option_text;
-            }
-
-            var j = await this._payload_post("/messaging/group_polling/update_vote/?dpr=1", data);
-            if (j.get("status")?.Value<string>() != "success")
-                throw new FBchatFacebookError(
-                    string.Format("Failed updating poll vote: {0}", j.get("errorTitle")),
-                    fb_error_message: j.get("errorMessage")?.Value<string>()
-                );
-        }        
 
         #endregion
 
@@ -1506,7 +1439,7 @@ namespace fbchat_sharp.API
                 var thread = FB_Thread._from_metadata(metadata, _session);
                 var event_type = delta.get("untypedData")?.get("event_type")?.Value<string>();
                 var poll_json = JToken.Parse(delta.get("untypedData")?.get("question_json")?.Value<string>());
-                var poll = FB_Poll._from_graphql(poll_json);
+                var poll = FB_Poll._from_graphql(poll_json, _session);
                 if (event_type == "question_creation")
                     // User created group poll
                     await this.onPollCreated(
