@@ -377,9 +377,10 @@ namespace fbchat_sharp.API
                     rtn.attachments.Add(attachment);
                 }
             }
-            if (data.get("replied_to_message") != null)
+            if (data.get("replied_to_message") != null && data.get("replied_to_message").get("message") != null)
             {
-                rtn.replied_to = FB_Message._from_graphql(data.get("replied_to_message")?.get("message"), thread);
+                // data["replied_to_message"]["message"] is None if the message is deleted
+                rtn.replied_to = FB_Message._from_graphql(data.get("replied_to_message").get("message"), thread);
                 rtn.reply_to_id = rtn.replied_to.uid;
             }
 
