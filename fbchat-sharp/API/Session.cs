@@ -538,7 +538,7 @@ namespace fbchat_sharp.API
             return (await this.graphql_requests(new[] { query }.ToList()))[0];
         }
 
-        public async Task<List<Tuple<string, string>>> _upload(List<FB_File> files, bool voice_clip = false)
+        public async Task<List<(string mimeKey, string fileType)>> _upload(List<FB_File> files, bool voice_clip = false)
         {
             /*
              * Uploads files to Facebook
@@ -561,7 +561,7 @@ namespace fbchat_sharp.API
                     string.Format("Some files could not be uploaded: {0}", j));
 
             return j.get("metadata").Select(md =>
-                new Tuple<string, string>(md[Utils.mimetype_to_key(md.get("filetype")?.Value<string>())]?.Value<string>(), md.get("filetype")?.Value<string>())).ToList();
+                (md[Utils.mimetype_to_key(md.get("filetype")?.Value<string>())]?.Value<string>(), md.get("filetype")?.Value<string>())).ToList();
         }
 
         public async Task<dynamic> _do_send_request(Dictionary<string, object> data, bool get_thread_id = false)

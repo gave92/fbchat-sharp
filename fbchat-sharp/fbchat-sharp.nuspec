@@ -17,8 +17,10 @@
     <dependencies>
       <group>
         <dependency id="AngleSharp" version="0.9.11" />
+		<dependency id="MQTTnet" version="3.0.8" />
         <dependency id="Newtonsoft.Json" version="11.0.2" />
-        <dependency id="MQTTnet" version="3.0.8" />
+		<dependency id="System.ComponentModel.Annotations" version="4.5.0" />
+		<dependency id="System.ValueTuple" version="4.5.0" />
       </group>
     </dependencies>
   </metadata>

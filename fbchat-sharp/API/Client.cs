@@ -447,38 +447,63 @@ namespace fbchat_sharp.API
 
         /// <summary>
         /// Searches for messages in all threads
+        /// Intended to be used alongside `FB_Thread.searchMessages`
         /// </summary>
         /// <param name="query">Text to search for</param>
-        /// <param name="fetch_messages">Whether to fetch `Message` objects or IDs only</param>
-        /// <param name="thread_limit">Max. number of threads to retrieve</param>
-        /// <param name="message_limit">Max. number of messages to retrieve</param>
-        /// <returns>Dictionary with thread IDs as keys and iterables to get messages as values</returns>
-        public async Task<Dictionary<string, object>> searchMessages(string query, bool fetch_messages = false, int thread_limit = 5, int message_limit = 5)
+        /// <param name="offset">Number of messages to skip</param>
+        /// <param name="limit">Max. number of threads to retrieve</param>
+        /// <returns>Iterable with tuples of threads, and the total amount of matching messages in each</returns>
+        public async Task<List<(FB_Thread thread,int count)>> searchMessages(string query, int offset = 0, int limit = 5)
         {
+            /*
+             * Search for messages in all threads.
+             * Intended to be used alongside `FB_Thread.searchMessages`
+             * Warning! If someone send a message to a thread that matches the query, while
+             * we're searching, some snippets will get returned twice.
+             * Not sure if we should handle it, Facebook's implementation doesn't...
+             * Args:
+             *   query: Text to search for
+             *   limit: Max. number of threads to retrieve. If ``None``, all threads will be
+             *   retrieved.
+             *   Returns:
+             *     Iterable with tuples of threads, and the total amount of matching messages in each.
+             */
+            
             var data = new Dictionary<string, object>() {
                 { "query", query },
-                { "snippetLimit", thread_limit.ToString() }
+                { "offset", offset.ToString() },
+                { "limit", limit.ToString() }
             };
             var j = await this._session._payload_post("/ajax/mercury/search_snippets.php?dpr=1", data);
-            var result = j.get("search_snippets")?.get(query).ToObject<List<string>>();
+            var total_snippets = j?.get("search_snippets")?.get(query);
 
-            if (result == null)
-                return null;
-
-            if (fetch_messages)
+            var rtn = new List<(FB_Thread,int)>();
+            foreach (var node in j?.get("graphql_payload")?.get("message_threads"))
             {
-                var rtn = new Dictionary<string, object>();
-                foreach (var thread_id in result)
-                    rtn.Add(thread_id, new FB_Thread(thread_id, _session).searchMessages(query, limit: message_limit));
-                return rtn;
+                FB_Thread thread = null;
+                var type_ = node?.get("thread_type")?.Value<string>();
+                if (type_ == "GROUP")
+                    thread = new FB_Group(
+                        session: _session, uid: node?.get("thread_key")?.get("thread_fbid")?.Value<string>()
+                    );
+                else if (type_ == "ONE_TO_ONE")
+                    thread = new FB_Thread(
+                        session: _session, uid: node?.get("thread_key")?.get("other_user_id")?.Value<string>()
+                    );
+                //if True:  // TODO: This check!
+                // thread = UserData._from_graphql(self.session, node)
+                //else:
+                // thread = PageData._from_graphql(self.session, node)
+                else
+                {
+                    throw new FBchatException(string.Format("Unknown thread type: {0}", type_));
+                }
+                if (thread != null)
+                    rtn.Add((thread, total_snippets?.get(thread.uid)?.get("num_total_snippets")?.Value<int>() ?? 0));
+                else
+                    rtn.Add((null, 0));
             }
-            else
-            {
-                var rtn = new Dictionary<string, object>();
-                foreach (var thread_id in result)
-                    rtn.Add(thread_id, new FB_Thread(thread_id, _session).searchMessageIDs(query, limit: message_limit));
-                return rtn;
-            }
+            return rtn;
         }
 
         private async Task<JObject> _fetchInfo(List<string> ids)

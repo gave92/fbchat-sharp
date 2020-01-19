@@ -289,7 +289,7 @@ namespace fbchat_sharp.API
              * :raises: FBchatException if request failed
              * */
             var upl = await this.session._upload(await this.session.get_files_from_urls(new HashSet<string>() { image_url }));
-            return await this._changeImage(upl[0].Item1);
+            return await this._changeImage(upl[0].mimeKey);
         }
 
         /// <summary>
@@ -307,7 +307,7 @@ namespace fbchat_sharp.API
              * */
             var files = this.session.get_files_from_paths(new Dictionary<string, Stream>() { { image_path, image_stream } });
             var upl = await this.session._upload(files);
-            return await this._changeImage(upl[0].Item1);
+            return await this._changeImage(upl[0].mimeKey);
         }
     }
 }

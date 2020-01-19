@@ -136,7 +136,7 @@ namespace fbchat_sharp.API
         /// A list of `Mention` objects
         public List<FB_Mention> mentions { get; set; }
         /// A `EmojiSize`. Size of a sent emoji
-        public EmojiSize? emoji_size { get; set; }        
+        public EmojiSize? emoji_size { get; set; }
         /// ID of the sender
         public string author { get; set; }
         /// Timestamp of when the message was sent
@@ -163,7 +163,7 @@ namespace fbchat_sharp.API
         public bool forwarded { get; set; }
         /// The message was sent from me (not filled)
         public bool is_from_me { get; set; }
-        /// The thread this message belong to (not in fbchat)
+        /// The thread this message belong to
         public string thread_id { get; set; }
 
         /// <summary>
@@ -306,7 +306,7 @@ namespace fbchat_sharp.API
         {
             /*
              * Fetches`Message` object from the message id
-             * :param thread_id: Thread containing this message
+             * :param thread: Thread containing this message
              * :param mid: Message ID to fetch from             
              * :return: `Message` object
              * :rtype: Message
@@ -580,6 +580,44 @@ namespace fbchat_sharp.API
             var payl = new Dictionary<string, object>() { { "doc_id", 1491398900900362 }, { "variables", JsonConvert.SerializeObject(new Dictionary<string, object>() { { "data", data } }) } };
             var j = await this.session._payload_post("/webgraphql/mutation", payl);
             Utils.handle_graphql_errors(j);
+        }
+    }
+
+    /// <summary>
+    /// Represents data in a Facebook message snippet
+    /// </summary>
+    public class FB_Message_Snippet : FB_Message
+    {
+        // A dict with offsets, mapped to the matched text
+        Dictionary<int, string> matched_keywords;
+
+        /// <summary>
+        /// Represents data in a Facebook message snippet
+        /// </summary>
+        /// <param name="session"></param>
+        /// <param name="uid"></param>
+        /// <param name="text"></param>
+        /// <param name="author"></param>
+        /// <param name="timestamp"></param>
+        /// <param name="thread_id"></param>
+        /// <param name="matched_keywords"></param>
+        public FB_Message_Snippet(Session session, string uid = null, string text = null, string author = null, string timestamp = null, string thread_id = null, Dictionary<int, string> matched_keywords = null)
+            : base(session, uid: uid, text: text, timestamp: timestamp, author: author, thread_id: thread_id)
+        {
+            this.matched_keywords = matched_keywords;
+        }
+
+        public static FB_Message_Snippet _parse(JToken data, FB_Thread thread)
+        {
+            return new FB_Message_Snippet(
+                session: thread.session,
+                thread_id: thread.uid,
+                uid: data?.get("message_id")?.Value<string>(),
+                author: data?.get("author")?.Value<string>()?.Replace("fbid:",""),
+                timestamp: data?.get("timestamp")?.Value<string>(),
+                text: data?.get("body")?.Value<string>(),
+                matched_keywords: data?.get("matched_keywords")?.ToObject<Dictionary<int, string>>()
+            );
         }
     }
 }

@@ -5,7 +5,8 @@
     "MQTTnet": "3.0.8",
     "NETStandard.Library": "1.6.1",
     "Newtonsoft.Json": "11.0.2",
-    "System.ComponentModel.Annotations": "4.5.0"
+    "System.ComponentModel.Annotations": "4.5.0",
+    "System.ValueTuple": "4.5.0"
   },
   "frameworks": {
     "netstandard1.3": {}

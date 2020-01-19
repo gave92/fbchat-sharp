@@ -370,7 +370,7 @@ namespace fbchat_sharp.API
         }
 
         private async Task<dynamic> _sendFiles(
-            List<Tuple<string, string>> files, FB_Message message = null)
+            List<(string mimeKey, string fileType)> files, FB_Message message = null)
         {
             /*
              * Sends files from file IDs to a thread
@@ -383,19 +383,12 @@ namespace fbchat_sharp.API
             data["has_attachment"] = true;
 
             foreach (var obj in files.Select((x, index) => new { f = x, i = index }))
-                data[string.Format("{0}s[{1}]", Utils.mimetype_to_key(obj.f.Item2), obj.i)] = obj.f.Item1;
+                data[string.Format("{0}s[{1}]", Utils.mimetype_to_key(obj.f.fileType), obj.i)] = obj.f.mimeKey;
 
             return await this.session._do_send_request(data);
         }
 
-        /// <summary>
-        /// Find and get message IDs by query
-        /// </summary>
-        /// <param name="query">Text to search for</param>
-        /// <param name="offset">Number of messages to skip</param>
-        /// <param name="limit">Max. number of messages to retrieve</param>
-        /// <returns>Found Message IDs</returns>
-        public async Task<IEnumerable<string>> searchMessageIDs(string query, int offset = 0, int limit = 5)
+        public async Task<(int count,IEnumerable<FB_Message_Snippet> snippets)> _search_messages(string query, int offset = 0, int limit = 5)
         {
             var data = new Dictionary<string, object>() {
                 { "query", query },
@@ -405,40 +398,47 @@ namespace fbchat_sharp.API
                 { "thread_fbid", this.uid} };
             var j = await this.session._payload_post("/ajax/mercury/search_snippets.php?dpr=1", data);
 
-            var result = j.get("search_snippets")?.get(query);
-            return result[this.uid]?.get("snippets").Select((snippet) => snippet.get("message_id")?.Value<string>());
+            var result = j.get("search_snippets")?.get(query)?.get(this.uid);
+            if (result == null) return (0, null);
+
+            // TODO: May or may not be a good idea to attach the current thread?
+            var snippets = result.get("snippets")?.Select((snippet) => FB_Message_Snippet._parse(snippet, this));
+            return (result["num_total_snippets"]?.Value<int>() ?? 0, snippets);
         }
 
         /// <summary>
-        /// Find and get`FB_Message` objects by query
+        /// Find and get`FB_Message_Snippet` objects by query
         /// </summary>
         /// <param name="query">Text to search for</param>
         /// <param name="offset">Number of messages to skip</param>
         /// <param name="limit">Max.number of messages to retrieve</param>
         /// <returns>Found `FB_Message` objects</returns>
-        public IAsyncEnumerable<FB_Message> searchMessages(string query, int offset = 0, int limit = 5)
+        public IAsyncEnumerable<FB_Message_Snippet> searchMessages(string query, int offset = 0, int limit = 5)
         {
             /*
-             * Find and get`Message` objects by query
+             * Find and get`FB_Message_Snippet` objects by query
              * ..warning::
-             * This method sends request for every found message ID.
+             * Warning! If someone send a message to the thread that matches the query, while
+             * we're searching, some snippets will get returned twice.
+             * Not sure if we should handle it, Facebook's implementation doesn't...
              * :param query: Text to search for
              * :param offset: Number of messages to skip
              * :param limit: Max.number of messages to retrieve
              * :type offset: int
              * :type limit: int
-             * :return: Found `Message` objects
+             * :return: Found `FB_Message_Snippet` objects
              * :rtype: typing.Iterable
              * :raises: FBchatException if request failed
              * */
 
-            return new AsyncEnumerable<FB_Message>(async yield =>
+            // TODO: fbchat simplifies iteration calculating the offset + yield return
+            return new AsyncEnumerable<FB_Message_Snippet>(async yield =>
             {
-                var message_ids = await this.searchMessageIDs(
+                var message_snippets = await this._search_messages(
                     query, offset: offset, limit: limit
                 );
-                foreach (var mid in message_ids)
-                    await yield.ReturnAsync(await FB_Message._from_fetch(this, mid));
+                foreach (var snippet in message_snippets.snippets)
+                    await yield.ReturnAsync(snippet);
             });
         }
 
@@ -637,7 +637,7 @@ namespace fbchat_sharp.API
                 mimetype = "image/gif";
 
             return await this._sendFiles(
-                files: new List<Tuple<string, string>>() { new Tuple<string, string>(image_id, mimetype) },
+                files: new List<(string, string)>() { (image_id, mimetype) },
                 message: message);
         }
 
