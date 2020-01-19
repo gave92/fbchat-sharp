@@ -143,7 +143,7 @@ namespace fbchat_sharp.API
         public string timestamp { get; set; }
         /// Whether the message is read
         public bool is_read { get; set; }
-        /// A list of pepole IDs who read the message, works only with :func:`fbchat-sharp.Client.fetchThreadMessages`
+        /// A list of pepole IDs who read the message, works only with :func:`FB_Thread.fetchMessages`
         public List<string> read_by { get; set; }
         /// A dict with user's IDs as keys, and their `MessageReaction` as values
         public Dictionary<string, string> reactions { get; set; }
@@ -316,7 +316,7 @@ namespace fbchat_sharp.API
             return FB_Message._from_graphql(message_info, thread);
         }
 
-        public static FB_Message _from_graphql(JToken data, FB_Thread thread)
+        public static FB_Message _from_graphql(JToken data, FB_Thread thread, JToken read_receipts = null)
         {
             if (data["message_sender"] == null)
                 data["message_sender"] = new JObject(new JProperty("id", 0));
@@ -342,7 +342,10 @@ namespace fbchat_sharp.API
             rtn.unsent = false;
 
             if (data.get("unread") != null)
+            {
                 rtn.is_read = !data.get("unread").Value<bool>();
+            }
+
             rtn.reactions = new Dictionary<string, string>();
             foreach (var r in data.get("message_reactions"))
             {
@@ -383,7 +386,11 @@ namespace fbchat_sharp.API
                 rtn.replied_to = FB_Message._from_graphql(data.get("replied_to_message").get("message"), thread);
                 rtn.reply_to_id = rtn.replied_to.uid;
             }
-
+            if (read_receipts != null)
+            {
+                rtn.read_by = read_receipts.Where(r => long.Parse(r.get("watermark")?.Value<string>()) >= long.Parse(rtn.timestamp))
+                    .Select(r => r.get("actor")?.get("id")?.Value<string>()).ToList();
+            }
             return rtn;
         }
 
@@ -613,7 +620,7 @@ namespace fbchat_sharp.API
                 session: thread.session,
                 thread_id: thread.uid,
                 uid: data?.get("message_id")?.Value<string>(),
-                author: data?.get("author")?.Value<string>()?.Replace("fbid:",""),
+                author: data?.get("author")?.Value<string>()?.Replace("fbid:", ""),
                 timestamp: data?.get("timestamp")?.Value<string>(),
                 text: data?.get("body")?.Value<string>(),
                 matched_keywords: data?.get("matched_keywords")?.ToObject<Dictionary<int, string>>()

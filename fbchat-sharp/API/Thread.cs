@@ -466,6 +466,8 @@ namespace fbchat_sharp.API
                 { "message_limit", limit},
                 { "load_messages", true},
                 { "load_read_receipts", false},
+                // "load_delivery_receipts": False,
+                // "is_work_teamwork_not_putting_muted_in_unreads": False,
                 { "before", before }
             };
 
@@ -476,20 +478,9 @@ namespace fbchat_sharp.API
                 throw new FBchatException(string.Format("Could not fetch thread {0}", this.uid));
             }
 
-            var messages = j?.get("message_thread")?.get("messages")?.get("nodes")?.Select(message => FB_Message._from_graphql(message, this))?.Reverse()?.ToList();
-
             var read_receipts = j?.get("message_thread")?.get("read_receipts")?.get("nodes");
-            foreach (var message in messages)
-            {
-                if (read_receipts != null)
-                {
-                    foreach (var receipt in read_receipts)
-                    {
-                        if (long.Parse(receipt.get("watermark")?.Value<string>()) >= long.Parse(message.timestamp))
-                            message.read_by.Add(receipt.get("actor")?.get("id")?.Value<string>());
-                    }
-                }
-            }
+            var messages = j?.get("message_thread")?.get("messages")?.get("nodes")?.Select(message => 
+                FB_Message._from_graphql(message, this, read_receipts))?.Reverse()?.ToList();
 
             return messages;
         }
