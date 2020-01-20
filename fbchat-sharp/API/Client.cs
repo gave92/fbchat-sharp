@@ -46,6 +46,7 @@ namespace fbchat_sharp.API
         private string _sticky = null;
         private string _pool = null;
         private int _sequence_id = 0;
+        private int _mqtt_sequence_id = 0;
         private string _sync_token = null;
         private int _pull_channel = 0;
         private bool _markAlive = false;
@@ -63,6 +64,7 @@ namespace fbchat_sharp.API
             this._sticky = null;
             this._pool = null;
             this._sequence_id = 0;
+            this._mqtt_sequence_id = 0;
             this._sync_token = null;
             this._pull_channel = 0;
             this._markAlive = true;
@@ -1748,7 +1750,7 @@ namespace fbchat_sharp.API
             }
         }
 
-        private async Task<int> _fetch_sequence_id()
+        private async Task<int> _fetch_mqtt_sequence_id()
         {
             // Get the sync sequence ID used for the /messenger_sync_create_queue call later.
             // This is the same request as fetch_thread_list, but with includeSeqID=true
@@ -1780,7 +1782,7 @@ namespace fbchat_sharp.API
 
             this._markAlive = markAlive;
 
-            this._sequence_id = await _fetch_sequence_id();
+            this._mqtt_sequence_id = await _fetch_mqtt_sequence_id();
             
             var factory = new MqttFactory();
             if (this.mqttClient != null)
@@ -1824,7 +1826,7 @@ namespace fbchat_sharp.API
                         { "delta_batch_size", 500 },
                         { "encoding", "JSON" },
                         { "entity_fbid", this._uid },
-                        { "initial_titan_sequence_id", this._sequence_id },
+                        { "initial_titan_sequence_id", this._mqtt_sequence_id },
                         { "device_params", null }
                     })).Build();
                     await mqttClient.PublishAsync(message);
@@ -1839,7 +1841,7 @@ namespace fbchat_sharp.API
                         { "max_deltas_able_to_process", 1000 },
                         { "delta_batch_size", 500 },
                         { "encoding", "JSON" },
-                        { "last_seq_id", this._sequence_id.ToString() },
+                        { "last_seq_id", this._mqtt_sequence_id.ToString() },
                         { "sync_token", this._sync_token }
                     })).Build();
                     await mqttClient.PublishAsync(message);
@@ -1957,6 +1959,7 @@ namespace fbchat_sharp.API
                 if (event_data.get("errorCode") != null)
                 {
                     Debug.WriteLine(string.Format("MQTT error: {0}", event_data.get("errorCode")?.Value<string>()));
+                    this._sync_token = null;
                     await this.mqttClient.DisconnectAsync(); // Got error, connect again
                 }
                 else
@@ -1967,15 +1970,15 @@ namespace fbchat_sharp.API
                     if (event_data?.get("syncToken") != null && event_data?.get("firstDeltaSeqId") != null)
                     {
                         this._sync_token = event_data?.get("syncToken")?.Value<string>();
-                        this._sequence_id = event_data?.get("firstDeltaSeqId")?.Value<int>() ?? _sequence_id;
+                        this._mqtt_sequence_id = event_data?.get("firstDeltaSeqId")?.Value<int>() ?? _mqtt_sequence_id;
                     }
 
                     // Update last sequence id when received
                     if (event_data?.get("lastIssuedSeqId") != null)
                     {
-                        this._sequence_id = event_data?.get("lastIssuedSeqId")?.Value<int>() ?? _sequence_id;
-                        //this._sequence_id = Math.Max(this._sequence_id,
-                        //    event_data.get("lastIssuedSeqId")?.Value<int>() ?? event_data.get("deltas")?.LastOrDefault()?.get("irisSeqId")?.Value<int>() ?? _sequence_id);
+                        this._mqtt_sequence_id = event_data?.get("lastIssuedSeqId")?.Value<int>() ?? _mqtt_sequence_id;
+                        //this._mqtt_sequence_id = Math.Max(this._mqtt_sequence_id,
+                        //    event_data.get("lastIssuedSeqId")?.Value<int>() ?? event_data.get("deltas")?.LastOrDefault()?.get("irisSeqId")?.Value<int>() ?? _mqtt_sequence_id);
                     }
 
                     foreach (var delta in event_data.get("deltas") ?? new JObject())
