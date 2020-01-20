@@ -2840,6 +2840,13 @@ namespace fbchat_sharp.API
                     msg: m
                 );
             }
+            else if (delta.get("MarkFolderSeen") != null)
+            {
+                var locations = delta.get("folders")?.Select(folder =>
+                    folder?.Value<string>().Replace("FOLDER_", ""));
+                var at = delta?.get("timestamp")?.Value<string>();
+                await this._onSeen(locations: locations, at: at);
+            }
             // Emoji change
             else if (delta_type == "change_thread_icon")
             {
@@ -4306,6 +4313,17 @@ namespace fbchat_sharp.API
         protected virtual async Task onFriendRequest(object from_id = null, JToken msg = null)
         {
             Debug.WriteLine(string.Format("Friend request from {0}", from_id));
+            await Task.Yield();
+        }
+
+        ///<summary>
+        /// .. todo::
+        /// Documenting this and make it public
+        ///</summary>
+        private async Task _onSeen(
+            IEnumerable<string> locations = null, string at = null)
+        {
+            Debug.WriteLine(string.Format("OnSeen at {0}: {1}", at, string.Join(", ", locations)));
             await Task.Yield();
         }
 
