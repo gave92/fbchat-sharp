@@ -3781,6 +3781,15 @@ namespace fbchat_sharp.API
                     await this.onBuddylistOverlay(statuses: statuses, msg: event_data);
                 }
             }
+            else if (event_type == "/legacy_web")
+            {
+                // Friend request
+                if (event_data?.get("type")?.Value<string>() == "jewel_requests_add")
+                {
+                    var from_id = event_data?.get("from")?.Value<string>();
+                    await this.onFriendRequest(from_id: from_id, msg: event_data);
+                }
+            }
         }
 
         /// <summary>
