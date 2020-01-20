@@ -3728,7 +3728,9 @@ namespace fbchat_sharp.API
                 {
                     Debug.WriteLine(string.Format("MQTT error: {0}", event_data.get("errorCode")?.Value<string>()));
                     this._sync_token = null;
-                    await this.mqttClient.DisconnectAsync(); // Got error, connect again
+#pragma warning disable CS4014
+                    this.mqttClient.DisconnectAsync(); // Got error, connect again
+#pragma warning restore CS4014
                 }
                 else
                 {
