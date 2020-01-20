@@ -141,7 +141,7 @@ namespace fbchat_sharp.API
                     // We don't handle Facebook "Groups"
                     continue;
                 else
-                    Debug.WriteLine("Unknown type %r in %s", typename, data);
+                    Debug.WriteLine($"Unknown type {typename} in {data.ToString()}");
             }
         }
 
