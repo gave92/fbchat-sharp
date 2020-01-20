@@ -3594,7 +3594,7 @@ namespace fbchat_sharp.API
                         { "delta_batch_size", 500 },
                         { "encoding", "JSON" },
                         { "entity_fbid", this._uid },
-                        { "initial_titan_sequence_id", this._mqtt_sequence_id },
+                        { "initial_titan_sequence_id", this._mqtt_sequence_id.ToString() },
                         { "device_params", null }
                     })).Build();
                     await mqttClient.PublishAsync(message);
