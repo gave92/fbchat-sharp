@@ -47,6 +47,7 @@ namespace fbchat_sharp.API
         private string _sticky = null;
         private string _pool = null;
         private int _sequence_id = 0;
+        private int _mqtt_sequence_id = 0;
         private string _sync_token = null;
         private string _default_thread_id = null;
         private ThreadType? _default_thread_type = null;
@@ -72,6 +73,7 @@ namespace fbchat_sharp.API
             this._sticky = null;
             this._pool = null;
             this._sequence_id = 0;
+            this._mqtt_sequence_id = 0;
             this._sync_token = null;
             this._default_thread_id = null;
             this._default_thread_type = null;
@@ -3516,16 +3518,16 @@ namespace fbchat_sharp.API
             }
         }
 
-        private async Task<int> _fetch_sequence_id()
+        private async Task<int> _fetch_mqtt_sequence_id()
         {
             // Get the sync sequence ID used for the /messenger_sync_create_queue call later.
             // This is the same request as fetch_thread_list, but with includeSeqID=true
             var j = await this.graphql_request(GraphQL.from_doc_id("1349387578499440", new Dictionary<string, object> {
                 { "limit", 1 },
                 { "tags", new string[] {ThreadLocation.INBOX } },
-                {"before", null },
-                {"includeDeliveryReceipts", false},
-                {"includeSeqID", true},
+                { "before", null },
+                { "includeDeliveryReceipts", false },
+                { "includeSeqID", true },
             }));
 
             var sequence_id = j.get("viewer")?.get("message_threads")?.get("sync_sequence_id")?.Value<int>();
@@ -3548,7 +3550,7 @@ namespace fbchat_sharp.API
 
             this._markAlive = markAlive;
 
-            this._sequence_id = await _fetch_sequence_id();
+            this._mqtt_sequence_id = await _fetch_mqtt_sequence_id();
 
             var factory = new MqttFactory();
             if (this.mqttClient != null)
@@ -3579,8 +3581,7 @@ namespace fbchat_sharp.API
                     new TopicFilterBuilder().WithTopic("/orca_presence").Build());
 
                 // I read somewhere that not doing this might add message send limits
-                await mqttClient.UnsubscribeAsync("/orca_message_notifications");                
-
+                await mqttClient.UnsubscribeAsync("/orca_message_notifications");
                 // This is required to actually receive messages. The parameters probably do something.
                 if (this._sync_token == null)
                 {
@@ -3593,7 +3594,7 @@ namespace fbchat_sharp.API
                         { "delta_batch_size", 500 },
                         { "encoding", "JSON" },
                         { "entity_fbid", this._uid },
-                        { "initial_titan_sequence_id", this._sequence_id },
+                        { "initial_titan_sequence_id", this._mqtt_sequence_id },
                         { "device_params", null }
                     })).Build();
                     await mqttClient.PublishAsync(message);
@@ -3608,7 +3609,7 @@ namespace fbchat_sharp.API
                         { "max_deltas_able_to_process", 1000 },
                         { "delta_batch_size", 500 },
                         { "encoding", "JSON" },
-                        { "last_seq_id", this._sequence_id.ToString() },
+                        { "last_seq_id", this._mqtt_sequence_id.ToString() },
                         { "sync_token", this._sync_token }
                     })).Build();
                     await mqttClient.PublishAsync(message);
@@ -3686,7 +3687,7 @@ namespace fbchat_sharp.API
             // Headers for the websocket connection. Not including Origin will cause 502's.
             // User agent and Referer also probably required. Cookie is how it auths.
             // Accept is there just for fun.
-            var cookies = this._state.get_cookies();
+            var cookies = this.getSession();
 
             var headers = new Dictionary<string, string>() {
                 { "Referer", "https://www.facebook.com" },
@@ -3726,6 +3727,7 @@ namespace fbchat_sharp.API
                 if (event_data.get("errorCode") != null)
                 {
                     Debug.WriteLine(string.Format("MQTT error: {0}", event_data.get("errorCode")?.Value<string>()));
+                    this._sync_token = null;
                     await this.mqttClient.DisconnectAsync(); // Got error, connect again
                 }
                 else
@@ -3736,15 +3738,15 @@ namespace fbchat_sharp.API
                     if (event_data?.get("syncToken") != null && event_data?.get("firstDeltaSeqId") != null)
                     {
                         this._sync_token = event_data?.get("syncToken")?.Value<string>();
-                        this._sequence_id = event_data?.get("firstDeltaSeqId")?.Value<int>() ?? _sequence_id;
+                        this._mqtt_sequence_id = event_data?.get("firstDeltaSeqId")?.Value<int>() ?? _mqtt_sequence_id;
                     }
 
                     // Update last sequence id when received
                     if (event_data?.get("lastIssuedSeqId") != null)
                     {
-                        this._sequence_id = event_data?.get("lastIssuedSeqId")?.Value<int>() ?? _sequence_id;
-                        //this._sequence_id = Math.Max(this._sequence_id,
-                        //    event_data.get("lastIssuedSeqId")?.Value<int>() ?? event_data.get("deltas")?.LastOrDefault()?.get("irisSeqId")?.Value<int>() ?? _sequence_id);
+                        this._mqtt_sequence_id = event_data?.get("lastIssuedSeqId")?.Value<int>() ?? _mqtt_sequence_id;
+                        //this._mqtt_sequence_id = Math.Max(this._mqtt_sequence_id,
+                        //    event_data.get("lastIssuedSeqId")?.Value<int>() ?? event_data.get("deltas")?.LastOrDefault()?.get("irisSeqId")?.Value<int>() ?? _mqtt_sequence_id);
                     }
 
                     foreach (var delta in event_data.get("deltas") ?? new JObject())
