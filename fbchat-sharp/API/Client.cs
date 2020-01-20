@@ -1145,7 +1145,22 @@ namespace fbchat_sharp.API
             {
                 mid = delta.get("messageId")?.Value<string>();
                 if (mid == null)
-                    await this.onUnknownMesssageType(msg: m);
+                {
+                    if (delta.get("threadKey") != null)
+                    {
+                        // Looks like the whole delta is metadata in this case
+                        var thread_id = delta.get("threadKey")?.get("threadFbId")?.Value<string>();
+                        var thread = new FB_Thread(thread_id, _session);
+                        await this.onPendingMessage(
+                            thread: thread,
+                            metadata: delta,
+                            msg: delta);
+                    }
+                    else
+                    {
+                        await this.onUnknownMesssageType(msg: m);
+                    }
+                }
                 else
                 {
                     var thread_id = delta.get("threadKey")?.get("threadFbId")?.Value<string>();
@@ -1568,7 +1583,7 @@ namespace fbchat_sharp.API
                 }
             }
             // New message
-            else if (delta.get("class")?.Value<string>() == "NewMessage")
+            else if (delta_class == "NewMessage")
             {
                 var thread = FB_Thread._from_metadata(metadata, _session);
                 await this.onMessage(
@@ -1588,6 +1603,16 @@ namespace fbchat_sharp.API
                     metadata: metadata,
                     msg: m
                 );
+            }
+            else if (delta_class == "ThreadFolder" && delta?.get("folder")?.Value<string>() == "FOLDER_PENDING")
+            {
+                // Looks like the whole delta is metadata in this case
+                var thread_id = delta.get("threadKey")?.get("threadFbId")?.Value<string>();
+                var thread = new FB_Thread(thread_id, _session);
+                await this.onPendingMessage(
+                    thread: thread,
+                    metadata: delta,
+                    msg: delta);
             }
             // Unknown message type
             else
@@ -2186,6 +2211,30 @@ namespace fbchat_sharp.API
             :param msg: A full set of the data received
             */
             Debug.WriteLine(string.Format("Message from {0} in {1}: {2}", author_id, thread.uid, message));
+            await Task.Yield();
+        }
+
+        /// <summary>
+        /// Called when the client is listening, and somebody that isn't
+        /// connected with you on either Facebook or Messenger sends a message.
+        /// After that, you need to use fetchThreadList to actually read the message.
+        /// </summary>
+        /// <param name="thread">Thread that the message was sent to</param>
+        /// <param name="metadata">Extra metadata about the message</param>
+        /// <param name="msg">A full set of the data received</param>
+        /// <returns></returns>
+        protected virtual async Task onPendingMessage(FB_Thread thread = null, JToken metadata = null, JToken msg = null)
+        {
+            /*
+             * Called when the client is listening, and somebody that isn't
+             * connected with you on either Facebook or Messenger sends a message.
+             * After that, you need to use fetchThreadList to actually read the message.
+             * Args:
+             *   thread: Thread that the message was sent to. See: ref:`intro_threads`
+             *   metadata: Extra metadata about the message
+             *   msg: A full set of the data received
+             */
+            Debug.WriteLine(string.Format("New pending message from {0}", thread.uid));
             await Task.Yield();
         }
 
