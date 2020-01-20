@@ -45,7 +45,8 @@ namespace fbchat_sharp.API
 
         private string _sticky = null;
         private string _pool = null;
-        private int _seq = 0;
+        private int _sequence_id = 0;
+        private string _sync_token = null;
         private int _pull_channel = 0;
         private bool _markAlive = false;
         private Dictionary<string, FB_ActiveStatus> _buddylist = null;
@@ -61,7 +62,8 @@ namespace fbchat_sharp.API
         {
             this._sticky = null;
             this._pool = null;
-            this._seq = 0;
+            this._sequence_id = 0;
+            this._sync_token = null;
             this._pull_channel = 0;
             this._markAlive = true;
             this._buddylist = new Dictionary<string, FB_ActiveStatus>();
@@ -1016,16 +1018,16 @@ namespace fbchat_sharp.API
         private async Task _ping(CancellationToken cancellationToken = default(CancellationToken))
         {
             var data = new Dictionary<string, object>() {
-                { "seq", this._seq},
-                {"channel", "p_" + this._uid},
-                { "clientid", this._session.get_client_id()},
-                { "partition", -2},
-                { "cap", 0},
-                { "uid", this._uid},
-                { "sticky_token", this._sticky},
-                { "sticky_pool", this._pool},
-                { "viewer_uid", this._uid},
-                { "state", "active"},
+                { "seq", this._sequence_id },
+                { "channel", "p_" + this._uid },
+                { "clientid", this._session.get_client_id() },
+                { "partition", -2 },
+                { "cap", 0 },
+                { "uid", this._uid },
+                { "sticky_token", this._sticky },
+                { "sticky_pool", this._pool },
+                { "viewer_uid", this._uid },
+                { "state", "active" },
             };
             var j = await this._session._get(
                 string.Format("https://{0}-edge-chat.facebook.com/active_ping", this._pull_channel), data, cancellationToken);
@@ -1035,12 +1037,12 @@ namespace fbchat_sharp.API
         {
             /*Call pull api with seq value to get message data.*/
             var data = new Dictionary<string, object>() {
-                { "seq", this._seq },
+                { "seq", this._sequence_id },
                 { "msgs_recv", 0 },
                 { "sticky_token", this._sticky },
                 { "sticky_pool", this._pool },
                 { "clientid", this._session.get_client_id() },
-                { "state", this._markAlive ? "active" : "offline"},
+                { "state", this._markAlive ? "active" : "offline" },
             };
 
             return await this._session._get(
@@ -1595,7 +1597,7 @@ namespace fbchat_sharp.API
         private async Task _parseMessage(JToken content)
         {
             /*Get message and author name from content. May contain multiple messages in the content.*/
-            this._seq = content.get("seq")?.Value<int>() ?? _seq;
+            this._sequence_id = content.get("seq")?.Value<int>() ?? _sequence_id;
 
             if (content.get("lb_info") != null)
             {
@@ -1721,6 +1723,24 @@ namespace fbchat_sharp.API
             }
         }
 
+        private async Task<int> _fetch_sequence_id()
+        {
+            // Get the sync sequence ID used for the /messenger_sync_create_queue call later.
+            // This is the same request as fetch_thread_list, but with includeSeqID=true
+            var j = await this._session.graphql_request(GraphQL.from_doc_id("1349387578499440", new Dictionary<string, object> {
+                { "limit", 1 },
+                { "tags", new string[] {ThreadLocation.INBOX } },
+                { "before", null },
+                { "includeDeliveryReceipts", false },
+                { "includeSeqID", true },
+            }));
+
+            var sequence_id = j.get("viewer")?.get("message_threads")?.get("sync_sequence_id")?.Value<int>();
+            if (sequence_id == null)
+                throw new FBchatException("Could not fetch sequence id");
+            return (int)sequence_id;
+        }
+
         /// <summary>
         /// Start listening from an external event loop
         /// </summary>
@@ -1735,18 +1755,116 @@ namespace fbchat_sharp.API
 
             this._markAlive = markAlive;
 
-            // Get the sync sequence ID used for the /messenger_sync_create_queue call later.
-            // This is the same request as fetch_thread_list, but with includeSeqID=true
-            var j = await this._session.graphql_request(GraphQL.from_doc_id("1349387578499440", new Dictionary<string, object> {
-                { "limit", 1 },
-                { "tags", new string[] {ThreadLocation.INBOX } },
-                {"before", null },
-                {"includeDeliveryReceipts", false},
-                {"includeSeqID", true},
-            }));
+            this._sequence_id = await _fetch_sequence_id();
+            
+            var factory = new MqttFactory();
+            if (this.mqttClient != null)
+            {
+                this.mqttClient.UseDisconnectedHandler((e) => { });
+                try { await this.mqttClient.DisconnectAsync(); }
+                catch { }
+                this.mqttClient.Dispose();
+                this.mqttClient = null;
+            }
+            this.mqttClient = factory.CreateMqttClient();
 
-            this._seq = j.get("viewer")?.get("message_threads")?.get("sync_sequence_id")?.Value<int>() ?? _seq;
+            mqttClient.UseConnectedHandler(async e =>
+            {
+                Debug.WriteLine("MQTT: connected with server");
 
+                // Subscribe to a topic
+                await mqttClient.SubscribeAsync(
+                    new TopicFilterBuilder().WithTopic("/legacy_web").Build(),
+                    new TopicFilterBuilder().WithTopic("/webrtc").Build(),
+                    new TopicFilterBuilder().WithTopic("/br_sr").Build(),
+                    new TopicFilterBuilder().WithTopic("/sr_res").Build(),
+                    new TopicFilterBuilder().WithTopic("/t_ms").Build(), // Messages
+                    new TopicFilterBuilder().WithTopic("/thread_typing").Build(), // Group typing notifications
+                    new TopicFilterBuilder().WithTopic("/orca_typing_notifications").Build(), // Private chat typing notifications
+                    new TopicFilterBuilder().WithTopic("/thread_typing").Build(),
+                    new TopicFilterBuilder().WithTopic("/notify_disconnect").Build(),
+                    new TopicFilterBuilder().WithTopic("/orca_presence").Build());
+
+                // I read somewhere that not doing this might add message send limits
+                await mqttClient.UnsubscribeAsync("/orca_message_notifications");
+                // This is required to actually receive messages. The parameters probably do something.
+                if (this._sync_token == null)
+                {
+                    Debug.WriteLine("MQTT: sending messenger sync create queue request");
+                    var message = new MqttApplicationMessageBuilder()
+                    .WithTopic("/messenger_sync_create_queue")
+                    .WithPayload(JsonConvert.SerializeObject(new Dictionary<string, object>(){
+                        { "sync_api_version", 10 },
+                        { "max_deltas_able_to_process", 1000 },
+                        { "delta_batch_size", 500 },
+                        { "encoding", "JSON" },
+                        { "entity_fbid", this._uid },
+                        { "initial_titan_sequence_id", this._sequence_id },
+                        { "device_params", null }
+                    })).Build();
+                    await mqttClient.PublishAsync(message);
+                }
+                else
+                {
+                    Debug.WriteLine("MQTT: sending messenger sync get diffs request");
+                    var message = new MqttApplicationMessageBuilder()
+                    .WithTopic("/messenger_sync_get_diffs")
+                    .WithPayload(JsonConvert.SerializeObject(new Dictionary<string, object>(){
+                        { "sync_api_version", 10 },
+                        { "max_deltas_able_to_process", 1000 },
+                        { "delta_batch_size", 500 },
+                        { "encoding", "JSON" },
+                        { "last_seq_id", this._sequence_id.ToString() },
+                        { "sync_token", this._sync_token }
+                    })).Build();
+                    await mqttClient.PublishAsync(message);
+                }
+
+                Debug.WriteLine("MQTT: subscribed");
+            });
+
+            mqttClient.UseApplicationMessageReceivedHandler(async e =>
+            {
+                Debug.WriteLine("MQTT: received application message");
+                Debug.WriteLine($"+ Topic = {e.ApplicationMessage.Topic}");
+                Debug.WriteLine($"+ Payload = {Encoding.UTF8.GetString(e.ApplicationMessage.Payload)}");
+                Debug.WriteLine($"+ QoS = {e.ApplicationMessage.QualityOfServiceLevel}");
+
+                var event_type = e.ApplicationMessage.Topic;
+                var data = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
+                try
+                {
+                    var event_data = Utils.to_json(data);
+                    await this._try_parse_mqtt(event_type, event_data);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex.ToString());
+                }
+            });
+
+            mqttClient.UseDisconnectedHandler(async e =>
+            {
+                Debug.WriteLine("MQTT: disconnected from server");
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5), _cancellationTokenSource.Token);
+                    await mqttClient.ConnectAsync(_get_connect_options(), _cancellationTokenSource.Token);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex.ToString());
+                }
+            });
+
+            await mqttClient.ConnectAsync(_get_connect_options(), _cancellationTokenSource.Token);
+
+            this.listening = true;
+            return this.listening;
+        }
+
+        private IMqttClientOptions _get_connect_options()
+        {
             // Random session ID
             var sid = new Random().Next(1, int.MaxValue);
 
@@ -1792,93 +1910,7 @@ namespace fbchat_sharp.API
                         .WithProtocolVersion(MQTTnet.Formatter.MqttProtocolVersion.V310)
                         .WithCredentials(JsonConvert.SerializeObject(username), "")
                         .Build();
-            var factory = new MqttFactory();
-            if (this.mqttClient != null)
-            {
-                this.mqttClient.UseDisconnectedHandler((e) => { });
-                try { await this.mqttClient.DisconnectAsync(); }
-                catch { }
-                this.mqttClient.Dispose();
-                this.mqttClient = null;
-            }
-            this.mqttClient = factory.CreateMqttClient();
-
-            mqttClient.UseConnectedHandler(async e =>
-            {
-                Debug.WriteLine("MQTT: connected with server");
-
-                // Subscribe to a topic
-                await mqttClient.SubscribeAsync(
-                    new TopicFilterBuilder().WithTopic("/legacy_web").Build(),
-                    new TopicFilterBuilder().WithTopic("/webrtc").Build(),
-                    new TopicFilterBuilder().WithTopic("/br_sr").Build(),
-                    new TopicFilterBuilder().WithTopic("/sr_res").Build(),
-                    new TopicFilterBuilder().WithTopic("/t_ms").Build(), // Messages
-                    new TopicFilterBuilder().WithTopic("/thread_typing").Build(), // Group typing notifications
-                    new TopicFilterBuilder().WithTopic("/orca_typing_notifications").Build(), // Private chat typing notifications
-                    new TopicFilterBuilder().WithTopic("/thread_typing").Build(),
-                    new TopicFilterBuilder().WithTopic("/notify_disconnect").Build(),
-                    new TopicFilterBuilder().WithTopic("/orca_presence").Build());
-
-                // I read somewhere that not doing this might add message send limits
-                await mqttClient.UnsubscribeAsync("/orca_message_notifications");
-                Debug.WriteLine("MQTT: sending messenger sync create queue request");
-                // This is required to actually receive messages. The parameters probably do something.
-                var message = new MqttApplicationMessageBuilder()
-                .WithTopic("/messenger_sync_create_queue")
-                .WithPayload(JsonConvert.SerializeObject(new Dictionary<string, object>(){
-                    { "sync_api_version", 10},
-                    { "max_deltas_able_to_process", 1000},
-                    { "delta_batch_size", 500},
-                    { "encoding", "JSON"},
-                    { "entity_fbid", this._uid},
-                    { "initial_titan_sequence_id", this._seq},
-                    { "device_params", null} }))
-                    .Build();
-                await mqttClient.PublishAsync(message);
-
-                Debug.WriteLine("MQTT: subscribed");
-            });
-
-            mqttClient.UseApplicationMessageReceivedHandler(async e =>
-            {
-                Debug.WriteLine("MQTT: received application message");
-                Debug.WriteLine($"+ Topic = {e.ApplicationMessage.Topic}");
-                Debug.WriteLine($"+ Payload = {Encoding.UTF8.GetString(e.ApplicationMessage.Payload)}");
-                Debug.WriteLine($"+ QoS = {e.ApplicationMessage.QualityOfServiceLevel}");
-
-                var event_type = e.ApplicationMessage.Topic;
-                var data = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
-                try
-                {
-                    var event_data = Utils.to_json(data);
-                    await this._try_parse_mqtt(event_type, event_data);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine(ex.ToString());
-                }
-            });
-
-            mqttClient.UseDisconnectedHandler(async e =>
-            {
-                Debug.WriteLine("MQTT: disconnected from server");
-                try
-                {
-                    await this.stopListening();
-                    await Task.Delay(TimeSpan.FromSeconds(5), _cancellationTokenSource.Token);
-                    await this.startListening(_cancellationTokenSource, this._markAlive);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine(ex.ToString());
-                }
-            });
-
-            await mqttClient.ConnectAsync(options, _cancellationTokenSource.Token);
-
-            this.listening = true;
-            return this.listening;
+            return options;
         }
 
         private async Task _try_parse_mqtt(string event_type, JToken event_data)
@@ -1904,8 +1936,23 @@ namespace fbchat_sharp.API
                 }
                 else
                 {
-                    this._seq = Math.Max(this._seq,
-                        event_data.get("lastIssuedSeqId")?.Value<int>() ?? event_data.get("deltas")?.LastOrDefault()?.get("irisSeqId")?.Value<int>() ?? _seq);
+                    // Update sync_token when received
+                    // This is received in the first message after we've created a messenger
+                    // sync queue.
+                    if (event_data?.get("syncToken") != null && event_data?.get("firstDeltaSeqId") != null)
+                    {
+                        this._sync_token = event_data?.get("syncToken")?.Value<string>();
+                        this._sequence_id = event_data?.get("firstDeltaSeqId")?.Value<int>() ?? _sequence_id;
+                    }
+
+                    // Update last sequence id when received
+                    if (event_data?.get("lastIssuedSeqId") != null)
+                    {
+                        this._sequence_id = event_data?.get("lastIssuedSeqId")?.Value<int>() ?? _sequence_id;
+                        //this._sequence_id = Math.Max(this._sequence_id,
+                        //    event_data.get("lastIssuedSeqId")?.Value<int>() ?? event_data.get("deltas")?.LastOrDefault()?.get("irisSeqId")?.Value<int>() ?? _sequence_id);
+                    }
+
                     foreach (var delta in event_data.get("deltas") ?? new JObject())
                         await this._parseDelta(new JObject() { { "delta", delta } });
                 }
@@ -2010,6 +2057,7 @@ namespace fbchat_sharp.API
             this.listening = false;
             this._sticky = null;
             this._pool = null;
+            this._sync_token = null;
         }
 
         /// <summary>
@@ -2484,7 +2532,7 @@ namespace fbchat_sharp.API
         private async Task _onSeen(
             IEnumerable<string> locations = null, string at = null)
         {
-            Debug.WriteLine(string.Format("OnSeen at {0}: {1}", at, string.Join(", ",  locations)));
+            Debug.WriteLine(string.Format("OnSeen at {0}: {1}", at, string.Join(", ", locations)));
             await Task.Yield();
         }
 
