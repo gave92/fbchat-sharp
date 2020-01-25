@@ -1782,8 +1782,6 @@ namespace fbchat_sharp.API
 
             this._markAlive = markAlive;
 
-            this._mqtt_sequence_id = await _fetch_mqtt_sequence_id();
-            
             var factory = new MqttFactory();
             if (this.mqttClient != null)
             {
@@ -1814,38 +1812,7 @@ namespace fbchat_sharp.API
 
                 // I read somewhere that not doing this might add message send limits
                 await mqttClient.UnsubscribeAsync("/orca_message_notifications");
-                // This is required to actually receive messages. The parameters probably do something.
-                if (this._sync_token == null)
-                {
-                    Debug.WriteLine("MQTT: sending messenger sync create queue request");
-                    var message = new MqttApplicationMessageBuilder()
-                    .WithTopic("/messenger_sync_create_queue")
-                    .WithPayload(JsonConvert.SerializeObject(new Dictionary<string, object>(){
-                        { "sync_api_version", 10 },
-                        { "max_deltas_able_to_process", 1000 },
-                        { "delta_batch_size", 500 },
-                        { "encoding", "JSON" },
-                        { "entity_fbid", this._uid },
-                        { "initial_titan_sequence_id", this._mqtt_sequence_id.ToString() },
-                        { "device_params", null }
-                    })).Build();
-                    await mqttClient.PublishAsync(message);
-                }
-                else
-                {
-                    Debug.WriteLine("MQTT: sending messenger sync get diffs request");
-                    var message = new MqttApplicationMessageBuilder()
-                    .WithTopic("/messenger_sync_get_diffs")
-                    .WithPayload(JsonConvert.SerializeObject(new Dictionary<string, object>(){
-                        { "sync_api_version", 10 },
-                        { "max_deltas_able_to_process", 1000 },
-                        { "delta_batch_size", 500 },
-                        { "encoding", "JSON" },
-                        { "last_seq_id", this._mqtt_sequence_id.ToString() },
-                        { "sync_token", this._sync_token }
-                    })).Build();
-                    await mqttClient.PublishAsync(message);
-                }
+                await this._messenger_queue_publish();
 
                 Debug.WriteLine("MQTT: subscribed");
             });
@@ -1888,6 +1855,44 @@ namespace fbchat_sharp.API
 
             this.listening = true;
             return this.listening;
+        }
+
+        private async Task _messenger_queue_publish()
+        {
+            this._mqtt_sequence_id = await _fetch_mqtt_sequence_id();
+
+            var payload = new Dictionary<string, object>(){
+                        { "sync_api_version", 10 },
+                        { "max_deltas_able_to_process", 1000 },
+                        { "delta_batch_size", 500 },
+                        { "encoding", "JSON" },
+                        { "entity_fbid", this._uid }
+                };
+
+            if (this._sync_token == null)
+            {
+                Debug.WriteLine("MQTT: sending messenger sync create queue request");
+                var message = new MqttApplicationMessageBuilder()
+                .WithTopic("/messenger_sync_create_queue")
+                .WithPayload(JsonConvert.SerializeObject(
+                    new Dictionary<string, object>(payload) {
+                        { "initial_titan_sequence_id", this._mqtt_sequence_id.ToString() },
+                        { "device_params", null }
+                    })).Build();
+                await mqttClient.PublishAsync(message);
+            }
+            else
+            {
+                Debug.WriteLine("MQTT: sending messenger sync get diffs request");
+                var message = new MqttApplicationMessageBuilder()
+                .WithTopic("/messenger_sync_get_diffs")
+                .WithPayload(JsonConvert.SerializeObject(
+                    new Dictionary<string, object>(payload) {
+                        { "last_seq_id", this._mqtt_sequence_id.ToString() },
+                        { "sync_token", this._sync_token }
+                    })).Build();
+                await mqttClient.PublishAsync(message);
+            }
         }
 
         private IMqttClientOptions _get_connect_options()
@@ -1960,9 +1965,7 @@ namespace fbchat_sharp.API
                 {
                     Debug.WriteLine(string.Format("MQTT error: {0}", event_data.get("errorCode")?.Value<string>()));
                     this._sync_token = null;
-#pragma warning disable CS4014
-                    this.mqttClient.DisconnectAsync(); // Got error, connect again
-#pragma warning restore CS4014
+                    await this._messenger_queue_publish();
                 }
                 else
                 {
