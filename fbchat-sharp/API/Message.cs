@@ -442,49 +442,42 @@ namespace fbchat_sharp.API
 
             if (data.get("attachments") != null)
             {
-                try
+                foreach (var a in data.get("attachments"))
                 {
-                    foreach (var a in data.get("attachments"))
+                    var mercury = a.get("mercury");
+                    if (mercury.get("blob_attachment") != null)
                     {
-                        var mercury = a.get("mercury");
-                        if (mercury.get("blob_attachment") != null)
-                        {
-                            var image_metadata = a.get("imageMetadata");
-                            var attach_type = mercury.get("blob_attachment")?.get("__typename")?.Value<string>();
-                            var attachment = FB_Attachment.graphql_to_attachment(
-                                mercury.get("blob_attachment")
-                            );
+                        var image_metadata = a.get("imageMetadata");
+                        var attach_type = mercury.get("blob_attachment")?.get("__typename")?.Value<string>();
+                        var attachment = FB_Attachment.graphql_to_attachment(
+                            mercury.get("blob_attachment")
+                        );
 
-                            if (new string[] { "MessageFile", "MessageVideo", "MessageAudio" }.Contains(attach_type)) {
-                                // TODO: Add more data here for audio files
-                                if (attachment is FB_FileAttachment)
-                                    ((FB_FileAttachment)attachment).size = a?.get("fileSize")?.Value<int>() ?? 0;
-                                if (attachment is FB_VideoAttachment)
-                                    ((FB_VideoAttachment)attachment).size = a?.get("fileSize")?.Value<int>() ?? 0;
-                            }
-                            rtn.attachments.Add(attachment);
+                        if (new string[] { "MessageFile", "MessageVideo", "MessageAudio" }.Contains(attach_type)) {
+                            // TODO: Add more data here for audio files
+                            if (attachment is FB_FileAttachment)
+                                ((FB_FileAttachment)attachment).size = a?.get("fileSize")?.Value<int>() ?? 0;
+                            if (attachment is FB_VideoAttachment)
+                                ((FB_VideoAttachment)attachment).size = a?.get("fileSize")?.Value<int>() ?? 0;
                         }
-                        else if (mercury.get("sticker_attachment") != null)
-                        {
-                            rtn.sticker = FB_Sticker._from_graphql(
-                                mercury.get("sticker_attachment")
-                            );
-                        }
-                        else if (mercury.get("extensible_attachment") != null)
-                        {
-                            var attachment = FB_Attachment.graphql_to_extensible_attachment(
-                                mercury.get("extensible_attachment")
-                            );
-                            if (attachment is FB_UnsentMessage)
-                                rtn.unsent = true;
-                            else if (attachment != null)
-                                rtn.attachments.Add(attachment);
-                        }
+                        rtn.attachments.Add(attachment);
                     }
-                }
-                catch
-                {
-                    Debug.WriteLine(string.Format("An exception occured while reading attachments: {0}", data.get("attachments")));
+                    else if (mercury.get("sticker_attachment") != null)
+                    {
+                        rtn.sticker = FB_Sticker._from_graphql(
+                            mercury.get("sticker_attachment")
+                        );
+                    }
+                    else if (mercury.get("extensible_attachment") != null)
+                    {
+                        var attachment = FB_Attachment.graphql_to_extensible_attachment(
+                            mercury.get("extensible_attachment")
+                        );
+                        if (attachment is FB_UnsentMessage)
+                            rtn.unsent = true;
+                        else if (attachment != null)
+                            rtn.attachments.Add(attachment);
+                    }
                 }
             }
 

@@ -17,18 +17,19 @@ namespace wpfapp
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             var client = ((App)Application.Current).client;
-            var logged_in = await client.TryLogin();
-
-            Progress.IsEnabled = false;
-            Progress.Visibility = Visibility.Collapsed;
-
-            if (!logged_in)
+            try
             {
-                Frame.Navigate(new Uri("LoginPage.xaml", UriKind.RelativeOrAbsolute));                
-            }
-            else
-            {
+                await client.TryLogin();
                 Frame.Navigate(new Uri("MainPage.xaml", UriKind.RelativeOrAbsolute));
+            }
+            catch
+            {
+                Frame.Navigate(new Uri("LoginPage.xaml", UriKind.RelativeOrAbsolute));
+            }
+            finally
+            {
+                Progress.IsEnabled = false;
+                Progress.Visibility = Visibility.Collapsed;
             }
         }
     }

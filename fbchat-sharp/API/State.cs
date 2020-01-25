@@ -444,7 +444,7 @@ namespace fbchat_sharp.API
             }
         }
 
-        public async Task<JToken> _get(string url, Dictionary<string, object> query = null, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<JToken> _get(string url, Dictionary<string, object> query = null, CancellationToken cancellationToken = default(CancellationToken), bool retry = true)
         {
             query.update(get_params());
             var r = await this._cleanGet(Utils.prefix_url(url), query: query, cancellationToken: cancellationToken);
@@ -453,16 +453,20 @@ namespace fbchat_sharp.API
             try
             {
                 Utils.handle_payload_error(j);
+                return j;
             }
             catch (FBchatPleaseRefresh ex)
             {
-                //await this._do_refresh();
+                if (retry)
+                {
+                    await this._do_refresh();
+                    return await _get(url, query, cancellationToken, false);
+                }
                 throw ex;
-            }
-            return j;
+            }            
         }
 
-        public async Task<object> _post(string url, Dictionary<string, object> query = null, Dictionary<string, FB_File> files = null, bool as_graphql = false, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<object> _post(string url, Dictionary<string, object> query = null, Dictionary<string, FB_File> files = null, bool as_graphql = false, CancellationToken cancellationToken = default(CancellationToken), bool retry = true)
         {
             query.update(get_params());
             var r = await this._cleanPost(Utils.prefix_url(url), query: query, files: files, cancellationToken: cancellationToken);
@@ -484,8 +488,12 @@ namespace fbchat_sharp.API
             }
             catch (FBchatPleaseRefresh ex)
             {
-                //await this._do_refresh();
-                throw ex;
+                if (retry)
+                {
+                    await this._do_refresh();
+                    return await _post(url, query, files, as_graphql, cancellationToken);
+                }
+                throw ex;                
             }
         }
 

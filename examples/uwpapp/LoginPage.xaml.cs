@@ -1,6 +1,7 @@
 ﻿using fbchat_sharp.API;
 using System;
 using System.Threading.Tasks;
+using Windows.UI.Popups;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 
@@ -51,14 +52,17 @@ namespace uwpapp
             var email = Email.Text;
             var password = Password.Password;
             if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password))
-            {
-                // Login with username and password
-                var logged_in = await Client.DoLogin(email, password);
-
-                // Check login was successful
-                if (logged_in)
+            {                
+                try
                 {
+                    // Login with username and password
+                    await Client.DoLogin(email, password);
                     this.Frame.Navigate(typeof(MainPage));
+                }
+                catch (Exception ex)
+                {
+                    var messageDialog = new MessageDialog($"Could not login: {ex.ToString()}", "Login error.");
+                    await messageDialog.ShowAsync();
                 }
             }
         }

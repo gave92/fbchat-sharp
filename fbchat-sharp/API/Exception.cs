@@ -7,6 +7,9 @@ namespace fbchat_sharp.API
     /// </summary>
     public class FBchatException : Exception
     {
+        /// <summary>
+        /// Custom exception thrown by fbchat-sharp. All exceptions in the fbchat-sharp module inherits this
+        /// </summary>
         public FBchatException(string message) : base(message)
         {
         }
@@ -107,6 +110,9 @@ namespace fbchat_sharp.API
     /// </summary>
     public class FBchatUserError : FBchatException
     {
+        /// <summary>
+        /// Thrown by fbchat-sharp when wrong values are entered
+        /// </summary>
         public FBchatUserError(string message) : base(message)
         {
         }

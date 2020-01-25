@@ -44,13 +44,18 @@ namespace wpfapp
             var password = Password.Password;
             if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password))
             {
-                // Login with username and password
-                var logged_in = await Client.DoLogin(email, password);
-
-                // Check login was successful
-                if (logged_in)
+                try
                 {
+                    // Login with username and password
+                    await Client.DoLogin(email, password);
                     NavigationService.Navigate(new Uri("MainPage.xaml", UriKind.RelativeOrAbsolute));
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Could not login: {ex.Message}",
+                                    "Login error.",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Information);
                 }
             }
         }

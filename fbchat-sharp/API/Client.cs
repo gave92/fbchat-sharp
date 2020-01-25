@@ -90,14 +90,15 @@ namespace fbchat_sharp.API
         public async Task fromSession(Dictionary<string, List<Cookie>> session_cookies = null, string user_agent = null)
         {
             // If session cookies aren't set, not properly loaded or gives us an invalid session, then do the login
-            if (
-                session_cookies == null ||
-                !await this.setSession(session_cookies, user_agent: user_agent) ||
-                !await this.isLoggedIn()
-                )
+            if (session_cookies == null)
+            {
+                throw new FBchatException(message: "Cookies are not set.");
+            }
+            await this.setSession(session_cookies, user_agent: user_agent);
+            if (!await this.isLoggedIn())
             {
                 throw new FBchatException(message: "Login from session failed.");
-            }
+            }            
         }
 
         #region INTERNAL REQUEST METHODS
@@ -163,21 +164,11 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="session_cookies"></param>
         /// <param name="user_agent"></param>
-        /// <returns>false if ``session_cookies`` does not contain proper cookies</returns>
-        public async Task<bool> setSession(Dictionary<string, List<Cookie>> session_cookies, string user_agent = null)
+        public async Task setSession(Dictionary<string, List<Cookie>> session_cookies, string user_agent = null)
         {
-            try
-            {
-                // Load cookies into current session
-                this._state = await State.from_cookies(session_cookies, user_agent: user_agent);
-                this._uid = this._state.get_user_id();
-            }
-            catch (Exception)
-            {
-                Debug.WriteLine("Failed loading session");
-                return false;
-            }
-            return true;
+            // Load cookies into current session
+            this._state = await State.from_cookies(session_cookies, user_agent: user_agent);
+            this._uid = this._state.get_user_id();
         }
 
         /// <summary>
@@ -193,20 +184,13 @@ namespace fbchat_sharp.API
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
                 throw new FBchatUserError("Email and password not set");
 
-            try
-            {
-                this._state = await State.login(
+            this._state = await State.login(
                     email,
                     password,
                     on_2fa_callback: this.on2FACode,
                     user_agent: user_agent);
-                this._uid = this._state.get_user_id();
-                await this.onLoggedIn(email: email);
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
+            this._uid = this._state.get_user_id();
+            await this.onLoggedIn(email: email);
         }
 
         /// <summary>
@@ -1245,12 +1229,8 @@ namespace fbchat_sharp.API
                 var j = await this.graphql_request(GraphQL.from_query_id("515216185516880", data));
                 while (true)
                 {
-                    JToken i = null;
-                    try
-                    {
-                        i = j.get(thread_id).get("message_shared_media").get("edges").First();
-                    }
-                    catch (Exception)
+                    JToken i = j?.get(thread_id)?.get("message_shared_media")?.get("edges")?.First();
+                    if (i == null)
                     {
                         if (j?.get(thread_id)?.get("message_shared_media")?.get("page_info")?.get("has_next_page")?.Value<bool>() ?? false)
                         {
@@ -3594,29 +3574,15 @@ namespace fbchat_sharp.API
 
                 var event_type = e.ApplicationMessage.Topic;
                 var data = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
-                try
-                {
-                    var event_data = Utils.to_json(data);
-                    await this._try_parse_mqtt(event_type, event_data);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine(ex.ToString());
-                }
+                var event_data = Utils.to_json(data);
+                await this._try_parse_mqtt(event_type, event_data);
             });
 
             mqttClient.UseDisconnectedHandler(async e =>
             {
                 Debug.WriteLine("MQTT: disconnected from server");
-                try
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(5), _cancellationTokenSource.Token);
-                    await mqttClient.ConnectAsync(_get_connect_options(), _cancellationTokenSource.Token);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine(ex.ToString());
-                }
+                await Task.Delay(TimeSpan.FromSeconds(5), _cancellationTokenSource.Token);
+                await mqttClient.ConnectAsync(_get_connect_options(), _cancellationTokenSource.Token);
             });
 
             await mqttClient.ConnectAsync(_get_connect_options(), _cancellationTokenSource.Token);

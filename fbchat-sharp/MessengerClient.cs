@@ -19,20 +19,10 @@ namespace fbchat_sharp.API
         /// <summary>
         /// Loads sessions cookies calling ReadCookiesFromDiskAsync and tries to login.
         /// </summary>
-        /// <returns>Returns true if login was successful</returns>
-        public async Task<bool> TryLogin()
+        public async Task TryLogin()
         {
-            try
-            {
-                var session_cookies = await this.ReadCookiesFromDiskAsync();
-                await base.fromSession(session_cookies);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                this.Log(ex.ToString());
-                return false;
-            }
+            var session_cookies = await this.ReadCookiesFromDiskAsync();
+            await base.fromSession(session_cookies);
         }
 
         /// <summary>
@@ -40,39 +30,19 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="email">User facebook email</param>
         /// <param name="password">User facebook password</param>
-        /// <returns>Returns true if login was successful</returns>
-        public async Task<bool> DoLogin(string email, string password)
+        public async Task DoLogin(string email, string password)
         {
-            try
-            {
-                await this.login(email, password);
-                await this.WriteCookiesAsync();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                this.Log(ex.ToString());
-                return false;
-            }
+            await this.login(email, password);
+            await this.WriteCookiesAsync();
         }
 
         /// <summary>
         /// Deletes session cookies calling DeleteCookiesAsync and logs out the client
         /// </summary>
-        /// <returns>Returns true if logout was successful</returns>
-        public async Task<bool> DoLogout()
+        public async Task DoLogout()
         {
-            try
-            {
-                await this.DeleteCookiesAsync();
-                await base.logout();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                this.Log(ex.ToString());
-                return false;
-            }
+            await this.DeleteCookiesAsync();
+            await base.logout();
         }
 
         /// <returns>Returns the user id or null if not logged in</returns>
@@ -87,7 +57,7 @@ namespace fbchat_sharp.API
         public async Task StartListening(bool markAlive = true)
         {
             this._cancellationTokenSource = new CancellationTokenSource();
-            if (await this.SafeWrapper(() => base.startListening(_cancellationTokenSource, markAlive)))
+            if (await base.startListening(_cancellationTokenSource, markAlive))
             {
                 await base.onListening();
                 // Store this references as a private member, call Cancel() on it if UI wants to stop            
