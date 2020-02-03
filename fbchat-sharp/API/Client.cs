@@ -1060,7 +1060,7 @@ namespace fbchat_sharp.API
 
             var mid = metadata?.get("messageId")?.Value<string>();
             var author_id = metadata?.get("actorFbId")?.Value<string>();
-            var ts = long.Parse(metadata?.get("timestamp")?.Value<string>());
+            long.TryParse(metadata?.get("timestamp")?.Value<string>(), out long ts);
 
             // Added participants
             if (delta.get("addedParticipants") != null)
