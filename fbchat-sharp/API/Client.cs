@@ -2776,7 +2776,7 @@ namespace fbchat_sharp.API
 
             var mid = metadata?.get("messageId")?.Value<string>();
             var author_id = metadata?.get("actorFbId")?.Value<string>();
-            var ts = long.Parse(metadata?.get("timestamp")?.Value<string>());
+            long.TryParse(metadata?.get("timestamp")?.Value<string>(), out long ts);
 
             // Added participants
             if (delta.get("addedParticipants") != null)
@@ -3209,9 +3209,10 @@ namespace fbchat_sharp.API
             // Client payload (that weird numbers)
             else if (delta_class == "ClientPayload")
             {
-                var payload = JToken.Parse(string.Join("", delta.get("payload")?.Value<string>()));
+                var json = string.Join("", delta.get("payload")?.Value<string>());
+                var payload = JToken.Parse(json);
                 ts = m.get("ofd_ts")?.Value<long>() ?? 0;
-                foreach (var d in payload.get("deltas") ?? new JObject())
+                foreach (var d in payload.get("deltas") ?? new JArray())
                 {
                     // Message reaction
                     if (d.get("deltaMessageReaction") != null)
@@ -3720,7 +3721,7 @@ namespace fbchat_sharp.API
                         //    event_data.get("lastIssuedSeqId")?.Value<int>() ?? event_data.get("deltas")?.LastOrDefault()?.get("irisSeqId")?.Value<int>() ?? _mqtt_sequence_id);
                     }
 
-                    foreach (var delta in event_data.get("deltas") ?? new JObject())
+                    foreach (var delta in event_data.get("deltas") ?? new JArray())
                         await this._parseDelta(new JObject() { { "delta", delta } });
                 }
             }

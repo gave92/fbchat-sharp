@@ -67,7 +67,9 @@ namespace fbchat_sharp.API
         {
             var uri = new Uri(url);
             // Check the urls `/home.php` and `/`
-            return (uri.AbsolutePath.Contains("home") || uri.AbsolutePath == "/");
+            return (uri.AbsolutePath.Contains("home")
+                || uri.AbsolutePath.Contains("gettingstarted")
+                || uri.AbsolutePath == "/");
         }
 
         private static string get_decoded(byte[] content)
