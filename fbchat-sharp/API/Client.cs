@@ -1475,7 +1475,7 @@ namespace fbchat_sharp.API
             {
                 var payload = JToken.Parse(string.Join("", delta.get("payload")?.Value<string>()));
                 ts = m.get("ofd_ts")?.Value<long>() ?? 0;
-                foreach (var d in payload.get("deltas") ?? new JObject())
+                foreach (var d in payload.get("deltas") ?? new JArray())
                 {
                     // Message reaction
                     if (d.get("deltaMessageReaction") != null)
@@ -1986,7 +1986,7 @@ namespace fbchat_sharp.API
                         //    event_data.get("lastIssuedSeqId")?.Value<int>() ?? event_data.get("deltas")?.LastOrDefault()?.get("irisSeqId")?.Value<int>() ?? _mqtt_sequence_id);
                     }
 
-                    foreach (var delta in event_data.get("deltas") ?? new JObject())
+                    foreach (var delta in event_data.get("deltas") ?? new JArray())
                         await this._parseDelta(new JObject() { { "delta", delta } });
                 }
             }
@@ -2191,6 +2191,18 @@ namespace fbchat_sharp.API
              * :param exception: The exception that was encountered
              */
             Debug.WriteLine(string.Format("Got mqtt exception while listening: {0}", exception));
+            await Task.Yield();
+        }
+
+        /// <summary>
+        /// Called when the client is listening, and an event happens.
+        /// </summary>
+        /// <param name="ev"></param>
+        /// <returns></returns>
+        protected virtual async Task onEvent(FB_Event ev)
+        {
+            /*Called when the client is listening, and an event happens.*/
+            Debug.WriteLine("Got event: {0}", ev);
             await Task.Yield();
         }
 

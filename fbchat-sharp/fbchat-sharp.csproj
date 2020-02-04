@@ -54,6 +54,7 @@
   <ItemGroup>
     <Compile Include="API\Attachment.cs" />
     <Compile Include="API\Client.cs" />
+    <Compile Include="API\Event.cs" />
     <Compile Include="API\Exception.cs" />
     <Compile Include="API\File.cs" />
     <Compile Include="API\GraphQl.cs" />

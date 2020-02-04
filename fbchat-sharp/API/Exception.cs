@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 
 namespace fbchat_sharp.API
 {
@@ -7,8 +8,36 @@ namespace fbchat_sharp.API
     /// </summary>
     public class FBchatException : Exception
     {
+        /// <summary>
+        /// Custom exception thrown by fbchat-sharp. All exceptions in the fbchat-sharp module inherits this
+        /// </summary>
+        /// <param name="message"></param>
         public FBchatException(string message) : base(message)
         {
+        }
+    }
+
+    /// <summary>
+    /// Raised when we fail parsing a response from Facebook.
+    /// This may contain sensitive data, so should not be logged to file.
+    /// </summary>
+    public class FBchatParseError : FBchatException
+    {
+        /// <summary>
+        /// Raised when we fail parsing a response from Facebook.
+        /// This may contain sensitive data, so should not be logged to file.
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="data"></param>
+        public FBchatParseError(string message, JToken data = null) : base(message)
+        {
+            this.Data.Add("data", data);
+        }
+
+        public override string ToString()
+        {
+            var msg = "{0}. Please report this, along with the data below!\n{1}";
+            return string.Format(msg, this.Message, this.Data["data"]?.ToString());
         }
     }
 
@@ -107,6 +136,10 @@ namespace fbchat_sharp.API
     /// </summary>
     public class FBchatUserError : FBchatException
     {
+        /// <summary>
+        /// Thrown by fbchat-sharp when wrong values are entered
+        /// </summary>
+        /// <param name="message"></param>
         public FBchatUserError(string message) : base(message)
         {
         }
