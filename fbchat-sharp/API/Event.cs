@@ -20,9 +20,9 @@ namespace fbchat_sharp.API
     public class FB_UnknownEvent : FB_Event
     {
         /// The unknown data. This cannot be relied on, it's only for debugging purposes.
-        JToken data { get; set; }
+        public JToken data { get; set; }
 
-        public static FB_UnknownEvent _parse(Session session, JToken data)
+        public static new FB_UnknownEvent _parse(Session session, JToken data)
         {
             throw new NotImplementedException();
         }
@@ -34,9 +34,9 @@ namespace fbchat_sharp.API
     public class FB_ThreadEvent : FB_Event
     {
         /// The person who did the action
-        FB_User author { get; set; }
+        public FB_User author { get; set; }
         /// Thread that the action was done in
-        FB_Thread thread { get; set; }
+        public FB_Thread thread { get; set; }
 
         public static FB_Thread _get_thread(Session session, JToken data)
         {

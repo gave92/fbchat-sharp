@@ -412,6 +412,7 @@ namespace fbchat_sharp.API
             rtn.thread_id = thread.uid; // Added
             rtn.author = metadata?.get("actorFbId")?.Value<string>();
             rtn.timestamp = metadata?.get("timestamp")?.Value<string>();
+            rtn.reply_to_id = data?.get("messageReply")?.get("replyToMessageId")?.get("id")?.Value<string>();
             rtn.unsent = false;
 
             if (data.get("data")?.get("platform_xmd") != null)
@@ -422,26 +423,23 @@ namespace fbchat_sharp.API
                 else
                     rtn.quick_replies = new List<FB_QuickReply>() { FB_QuickReply.graphql_to_quick_reply(quick_replies) };
             }
-            if (data.get("attachments") != null)
+            foreach (var atc in data.get("attachments").OrEmptyIfNull())
             {
-                foreach (var atc in data.get("attachments"))
+                var attachment = JToken.Parse(atc.get("mercuryJSON")?.Value<string>());
+                if (attachment.get("blob_attachment") != null)
                 {
-                    var attachment = JToken.Parse(atc.get("mercuryJSON")?.Value<string>());
-                    if (attachment.get("blob_attachment") != null)
+                    rtn.attachments.Add(
+                        FB_Attachment.graphql_to_attachment(attachment.get("blob_attachment"))
+                    );
+                }
+                if (attachment.get("extensible_attachment") != null)
+                {
+                    var ext_attachment = FB_Attachment.graphql_to_extensible_attachment(attachment.get("extensible_attachment"));
+                    if (ext_attachment is FB_UnsentMessage)
+                        rtn.unsent = true;
+                    else if (ext_attachment != null)
                     {
-                        rtn.attachments.Add(
-                            FB_Attachment.graphql_to_attachment(attachment.get("blob_attachment"))
-                        );
-                    }
-                    if (attachment.get("extensible_attachment") != null)
-                    {
-                        var ext_attachment = FB_Attachment.graphql_to_extensible_attachment(attachment.get("extensible_attachment"));
-                        if (ext_attachment is FB_UnsentMessage)
-                            rtn.unsent = true;
-                        else if (ext_attachment != null)
-                        {
-                            rtn.attachments.Add(ext_attachment);
-                        }
+                        rtn.attachments.Add(ext_attachment);
                     }
                 }
             }

@@ -1473,115 +1473,9 @@ namespace fbchat_sharp.API
             // Client payload (that weird numbers)
             else if (delta_class == "ClientPayload")
             {
-                var payload = JToken.Parse(string.Join("", delta.get("payload")?.Value<string>()));
-                ts = m.get("ofd_ts")?.Value<long>() ?? 0;
-                foreach (var d in payload.get("deltas") ?? new JArray())
+                foreach (var ev in ClientPayload.parse_client_payloads(this._session, delta).OrEmptyIfNull())
                 {
-                    // Message reaction
-                    if (d.get("deltaMessageReaction") != null)
-                    {
-                        var i = d.get("deltaMessageReaction");
-                        var thread = FB_Thread._from_metadata(i, _session);
-                        mid = i.get("messageId")?.Value<string>();
-                        author_id = i.get("userId")?.Value<string>();
-                        var add_reaction = !(i.get("action")?.Value<bool>() ?? false);
-                        if (add_reaction)
-                            await this.onReactionAdded(
-                                mid: mid,
-                                reaction: i.get("reaction"),
-                                author_id: author_id,
-                                thread: thread,
-                                ts: ts,
-                                msg: m
-                            );
-                        else
-                            await this.onReactionRemoved(
-                                mid: mid,
-                                author_id: author_id,
-                                thread: thread,
-                                ts: ts,
-                                msg: m
-                            );
-                    }
-                    // Viewer status change
-                    else if (d.get("deltaChangeViewerStatus") != null)
-                    {
-                        var i = d.get("deltaChangeViewerStatus");
-                        var thread = FB_Thread._from_metadata(i, _session);
-                        author_id = i.get("actorFbid")?.Value<string>();
-                        var reason = i.get("reason")?.Value<int>();
-                        var can_reply = i.get("canViewerReply")?.Value<bool>() ?? false;
-                        if (reason == 2)
-                            if (can_reply)
-                                await this.onUnblock(
-                                    author_id: author_id,
-                                    thread: thread,
-                                    ts: ts,
-                                    msg: m
-                                );
-                            else
-                                await this.onBlock(
-                                    author_id: author_id,
-                                    thread: thread,
-                                    ts: ts,
-                                    msg: m
-                                );
-                    }
-                    // Live location info
-                    else if (d.get("liveLocationData") != null)
-                    {
-                        var i = d.get("liveLocationData");
-                        var thread = FB_Thread._from_metadata(i, _session);
-                        foreach (var l in i.get("messageLiveLocations"))
-                        {
-                            mid = l.get("messageId")?.Value<string>();
-                            author_id = l.get("senderId")?.Value<string>();
-                            var location = FB_LiveLocationAttachment._from_pull(l);
-                            await this.onLiveLocation(
-                                mid: mid,
-                                location: location,
-                                author_id: author_id,
-                                thread: thread,
-                                ts: ts,
-                                msg: m
-                            );
-                        }
-                    }
-                    // Message deletion
-                    else if (d.get("deltaRecallMessageData") != null)
-                    {
-                        var i = d.get("deltaRecallMessageData");
-                        var thread = FB_Thread._from_metadata(i, _session);
-                        mid = i.get("messageID")?.Value<string>();
-                        ts = i.get("deletionTimestamp")?.Value<long>() ?? 0;
-                        author_id = i.get("senderID")?.Value<string>();
-                        await this.onMessageUnsent(
-                            mid: mid,
-                            author_id: author_id,
-                            thread: thread,
-                            ts: ts,
-                            msg: m
-                        );
-                    }
-                    else if (d.get("deltaMessageReply") != null)
-                    {
-                        var i = d.get("deltaMessageReply");
-                        metadata = i.get("message")?.get("messageMetadata");
-                        var thread = FB_Thread._from_metadata(metadata, _session);
-                        var message = FB_Message._from_reply(i.get("message"), thread);
-                        message.replied_to = FB_Message._from_reply(i.get("repliedToMessage"), thread);
-                        message.reply_to_id = message.replied_to.uid;
-                        await this.onMessage(
-                            mid: message.uid,
-                            author_id: message.author,
-                            message: message.text,
-                            message_object: message,
-                            thread: thread,
-                            ts: long.Parse(message.timestamp),
-                            metadata: metadata,
-                            msg: m
-                        );
-                    }
+                    await this.onEvent(ev);
                 }
             }
             // New message
@@ -1986,7 +1880,7 @@ namespace fbchat_sharp.API
                         //    event_data.get("lastIssuedSeqId")?.Value<int>() ?? event_data.get("deltas")?.LastOrDefault()?.get("irisSeqId")?.Value<int>() ?? _mqtt_sequence_id);
                     }
 
-                    foreach (var delta in event_data.get("deltas") ?? new JArray())
+                    foreach (var delta in event_data.get("deltas").OrEmptyIfNull())
                         await this._parseDelta(new JObject() { { "delta", delta } });
                 }
             }
@@ -2522,6 +2416,7 @@ namespace fbchat_sharp.API
             await Task.Yield();
         }
 
+        /*
         ///<summary>
         /// Called when the client is listening, and someone unsends (deletes for everyone) a message
         ///</summary>
@@ -2540,6 +2435,7 @@ namespace fbchat_sharp.API
             Debug.WriteLine(string.Format("{0} unsent the message {1} in {2} at {3}s", author_id, mid, thread.uid, ts / 1000));
             await Task.Yield();
         }
+        */
 
         ///<summary>
         /// Called when the client is listening, and somebody adds people to a group thread
@@ -2668,6 +2564,7 @@ namespace fbchat_sharp.API
             await Task.Yield();
         }
 
+        /*
         ///<summary>
         /// Called when the client is listening, and somebody reacts to a message
         ///</summary>
@@ -2762,6 +2659,7 @@ namespace fbchat_sharp.API
             Debug.WriteLine(string.Format("{0} sent live location info in {1} with latitude {2} and longitude {3}", author_id, thread.uid, location.latitude, location.longitude));
             await Task.Yield();
         }
+        */
 
         ///<summary>
         /// .. todo::

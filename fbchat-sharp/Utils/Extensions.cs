@@ -10,6 +10,11 @@ namespace fbchat_sharp
 {
     internal static class Extensions
     {
+        public static IEnumerable<T> OrEmptyIfNull<T>(this IEnumerable<T> source)
+        {
+            return source ?? Enumerable.Empty<T>();
+        }
+
         public static void update<TKey, TValue1, TValue2>(this Dictionary<TKey, TValue1> dict, Dictionary<TKey, TValue2> mergeDict)
         {
             if (mergeDict != null)
