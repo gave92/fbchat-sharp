@@ -43,14 +43,9 @@ namespace fbchat_sharp.API
         /// Mqtt client for receiving messages
         private IMqttClient mqttClient;
 
-        private string _sticky = null;
-        private string _pool = null;
-        private int _sequence_id = 0;
         private int _mqtt_sequence_id = 0;
         private string _sync_token = null;
-        private int _pull_channel = 0;
         private bool _markAlive = false;
-        private Dictionary<string, FB_ActiveStatus> _buddylist = null;
 
         /// <summary>
         /// The ID of the client.
@@ -59,16 +54,17 @@ namespace fbchat_sharp.API
         /// </summary>
         protected string _uid { get; set; }
 
+        /// <summary>
+        /// A client for the Facebook Chat (Messenger).
+        /// This contains all the methods you use to interact with Facebook.You can extend this
+        /// class, and overwrite the ``on`` methods, to provide custom event handling (mainly
+        /// useful while listening).
+        /// </summary>
         public Client()
         {
-            this._sticky = null;
-            this._pool = null;
-            this._sequence_id = 0;
             this._mqtt_sequence_id = 0;
             this._sync_token = null;
-            this._pull_channel = 0;
             this._markAlive = true;
-            this._buddylist = new Dictionary<string, FB_ActiveStatus>();
         }
 
         /// <summary>
@@ -785,28 +781,6 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Gets friend active status as an `ActiveStatus` object.
-        /// Returns ``null`` if status isn't known.
-        /// .. warning::
-        /// Only works when listening.
-        /// </summary>
-        /// <param name="user_id">ID of the user</param>
-        /// <returns>Given user active status</returns>
-        public FB_ActiveStatus getUserActiveStatus(string user_id)
-        {
-            /*
-             * Gets friend active status as an `ActiveStatus` object.
-             * Returns ``null`` if status isn't known.
-             * .. warning::
-             * Only works when listening.
-             * :param user_id: ID of the user
-             * :return: Given user active status
-             * :rtype: ActiveStatus
-             * */
-            return this._buddylist.GetValueOrDefault(user_id);
-        }
-
-        /// <summary>
         /// Fetches currently active users
         /// </summary>
         /// <returns>List of active user ids</returns>
@@ -824,8 +798,8 @@ namespace fbchat_sharp.API
                 { "send_full_data", true }
             };
             var j = await this._session._payload_post("https://m.facebook.com/buddylist_update.php", data);
-            foreach (var buddy in j.get("buddylist"))
-                this._buddylist[buddy.get("id")?.Value<string>()] = FB_ActiveStatus._from_buddylist_update(buddy);
+            //foreach (var buddy in j.get("buddylist"))
+            //    this._buddylist[buddy.get("id")?.Value<string>()] = FB_ActiveStatus._from_buddylist_update(buddy);
             return j.get("buddylist")?.Select((b) => b.get("id")?.Value<string>())?.ToList();
         }
 
@@ -1017,198 +991,6 @@ namespace fbchat_sharp.API
 
         #region LISTEN METHODS
 
-        private async Task _ping(CancellationToken cancellationToken = default(CancellationToken))
-        {
-            var data = new Dictionary<string, object>() {
-                { "seq", this._sequence_id },
-                { "channel", "p_" + this._uid },
-                { "clientid", this._session.get_client_id() },
-                { "partition", -2 },
-                { "cap", 0 },
-                { "uid", this._uid },
-                { "sticky_token", this._sticky },
-                { "sticky_pool", this._pool },
-                { "viewer_uid", this._uid },
-                { "state", "active" },
-            };
-            var j = await this._session._get(
-                string.Format("https://{0}-edge-chat.facebook.com/active_ping", this._pull_channel), data, cancellationToken);
-        }
-
-        private async Task<JToken> _pullMessage(CancellationToken cancellationToken = default(CancellationToken))
-        {
-            /*Call pull api with seq value to get message data.*/
-            var data = new Dictionary<string, object>() {
-                { "seq", this._sequence_id },
-                { "msgs_recv", 0 },
-                { "sticky_token", this._sticky },
-                { "sticky_pool", this._pool },
-                { "clientid", this._session.get_client_id() },
-                { "state", this._markAlive ? "active" : "offline" },
-            };
-
-            return await this._session._get(
-                string.Format("https://{0}-edge-chat.facebook.com/pull", this._pull_channel), data, cancellationToken);
-        }
-
-        private async Task _parseDelta(JToken m)
-        {
-            var delta = m.get("delta");            
-            
-            // Client payload (that weird numbers)
-            if (delta.get("class")?.Value<string>() == "ClientPayload")
-            {
-                foreach (var ev in ClientPayload.parse_client_payloads(this._session, delta) ?? Enumerable.Empty<FB_Event>())
-                {
-                    await this.onEvent(ev);
-                }
-            }
-            else if (delta.get("class")?.Value<string>() != null)
-            {
-                var ev = DeltaClass.parse_delta(_session, delta);
-                if (ev != null)
-                    await this.onEvent(ev);
-            }
-            else if (delta.get("type")?.Value<string>() != null)
-            {
-                var ev = DeltaType.parse_delta(_session, delta);
-                if (ev != null)
-                    await this.onEvent(ev);
-            }
-            // Unknown message type
-            else
-                await this.onUnknownMesssageType(msg: m);
-        }
-
-        private async Task _parseMessage(JToken content)
-        {
-            /*Get message and author name from content. May contain multiple messages in the content.*/
-            this._sequence_id = content.get("seq")?.Value<int>() ?? _sequence_id;
-
-            if (content.get("lb_info") != null)
-            {
-                this._sticky = content.get("lb_info")?.get("sticky")?.Value<string>();
-                this._pool = content.get("lb_info")?.get("pool")?.Value<string>();
-            }
-
-            if (content.get("batches") != null)
-            {
-                foreach (var batch in content.get("batches"))
-                    await this._parseMessage(batch);
-            }
-
-            if (content.get("ms") == null) return;
-
-            foreach (var m in content.get("ms"))
-            {
-                var mtype = m.get("type").Value<string>();
-                try
-                {
-                    // Things that directly change chat
-                    if (mtype == "delta")
-                    {
-                        await this._parseDelta(m);
-                    }
-                    // Inbox
-                    else if (mtype == "inbox")
-                    {
-                        await this.onInbox(unseen: m.get("unseen").Value<int>(), unread: m.get("unread").Value<int>(), recent_unread: m.get("recent_unread").Value<int>(), msg: m);
-                    }
-                    // Typing
-                    else if (mtype == "typ" || mtype == "ttyp")
-                    {
-                        var author_id = m.get("from")?.Value<string>();
-                        var thread_id = m.get("thread_fbid")?.Value<string>();
-                        FB_Thread thread = null;
-                        if (thread_id != null)
-                        {
-                            thread = new FB_Group(thread_id, _session);
-                        }
-                        else
-                        {
-                            if (author_id == this._uid)
-                                thread_id = m.get("to")?.Value<string>();
-                            else
-                                thread_id = author_id;
-                            thread = new FB_User(thread_id, _session);
-                        }
-                        var typing_status = m.get("st")?.Value<int>() == 1;
-                        await this.onTyping(
-                            author_id: author_id,
-                            status: typing_status,
-                            thread: thread,
-                            msg: m
-                        );
-                    }
-                    // Delivered
-
-                    // Seen
-                    //else if (mtype == "m_read_receipt":
-                    //
-                    // this.onSeen(m.get('realtime_viewer_fbid'), m.get('reader'), m.get('time'))
-
-                    else if (mtype == "jewel_requests_add")
-                    {
-                        var from_id = m.get("from")?.Value<string>();
-                        await this.onFriendRequest(from_id: from_id, msg: m);
-                    }
-
-                    // Happens on every login
-                    else if (mtype == "qprimer")
-                        await this.onQprimer(ts: m.get("made")?.Value<long>() ?? 0, msg: m);
-
-                    // Is sent before any other message
-                    else if (mtype == "deltaflow")
-                    { }
-
-                    // Chat timestamp
-                    else if (mtype == "chatproxy-presence")
-                    {
-                        var statuses = new Dictionary<string, FB_ActiveStatus>();
-                        if (m.get("buddyList") != null)
-                        {
-                            foreach (var payload in m.get("buddyList").Value<JObject>().Properties())
-                            {
-                                statuses[payload.Name] = FB_ActiveStatus._from_chatproxy_presence(payload.Name, payload.Value);
-                                this._buddylist[payload.Name] = statuses[payload.Name];
-                            }
-                            await this.onChatTimestamp(buddylist: statuses, msg: m);
-                        }
-                    }
-
-                    // Buddylist overlay
-                    else if (mtype == "buddylist_overlay")
-                    {
-                        var statuses = new Dictionary<string, FB_ActiveStatus>();
-                        if (m.get("overlay") != null)
-                        {
-                            foreach (var payload in m.get("overlay").Value<JObject>().Properties())
-                            {
-                                bool old_in_game = false;
-                                if (this._buddylist.ContainsKey(payload.Name))
-                                    old_in_game = this._buddylist[payload.Name].in_game;
-
-                                statuses[payload.Name] = FB_ActiveStatus._from_buddylist_overlay(
-                                    payload.Value, old_in_game
-                                );
-                                this._buddylist[payload.Name] = statuses[payload.Name];
-                            }
-                            await this.onBuddylistOverlay(statuses: statuses, msg: m);
-                        }
-                        // Unknown message type
-                        else
-                        {
-                            await this.onUnknownMesssageType(msg: m);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    await this.onMessageError(exception: ex, msg: m);
-                }
-            }
-        }
-
         private async Task<int> _fetch_mqtt_sequence_id()
         {
             // Get the sync sequence ID used for the /messenger_sync_create_queue call later.
@@ -1288,7 +1070,7 @@ namespace fbchat_sharp.API
                 try
                 {
                     var event_data = Utils.to_json(data);
-                    await this._try_parse_mqtt(event_type, event_data);
+                    await this._parse_message(event_type, event_data);
                 }
                 catch (Exception ex)
                 {
@@ -1404,88 +1186,16 @@ namespace fbchat_sharp.API
             return options;
         }
 
-        private async Task _try_parse_mqtt(string event_type, JToken event_data)
+        private async Task _parse_message(string topic, JToken data)
         {
             try
             {
-                await this._parse_mqtt(event_type, event_data);
+                foreach (FB_Event ev in EventCommon.parse_events(_session, topic, data))
+                    await this.onEvent(ev);
             }
-            catch (Exception ex)
+            catch (FBchatParseError ex)
             {
                 Debug.WriteLine(ex.ToString());
-            }
-        }
-
-        private async Task _parse_mqtt(string event_type, JToken event_data)
-        {
-            if (event_type == "/t_ms")
-            {
-                if (event_data.get("errorCode") != null)
-                {
-                    Debug.WriteLine(string.Format("MQTT error: {0}", event_data.get("errorCode")?.Value<string>()));
-                    this._sync_token = null;
-                    await this._messenger_queue_publish();
-                }
-                else
-                {
-                    // Update sync_token when received
-                    // This is received in the first message after we've created a messenger
-                    // sync queue.
-                    if (event_data?.get("syncToken") != null && event_data?.get("firstDeltaSeqId") != null)
-                    {
-                        this._sync_token = event_data?.get("syncToken")?.Value<string>();
-                        this._mqtt_sequence_id = event_data?.get("firstDeltaSeqId")?.Value<int>() ?? _mqtt_sequence_id;
-                    }
-
-                    // Update last sequence id when received
-                    if (event_data?.get("lastIssuedSeqId") != null)
-                    {
-                        this._mqtt_sequence_id = event_data?.get("lastIssuedSeqId")?.Value<int>() ?? _mqtt_sequence_id;
-                        //this._mqtt_sequence_id = Math.Max(this._mqtt_sequence_id,
-                        //    event_data.get("lastIssuedSeqId")?.Value<int>() ?? event_data.get("deltas")?.LastOrDefault()?.get("irisSeqId")?.Value<int>() ?? _mqtt_sequence_id);
-                    }
-
-                    foreach (var delta in event_data.get("deltas") ?? Enumerable.Empty<JToken>())
-                        await this._parseDelta(new JObject() { { "delta", delta } });
-                }
-            }
-            else if (new string[] { "/thread_typing", "/orca_typing_notifications" }.Contains(event_type))
-            {
-                var author_id = event_data.get("sender_fbid")?.Value<string>();
-                var thread_id = event_data.get("thread")?.Value<string>() ?? author_id;
-                var typing_status = event_data.get("state")?.Value<int>() == 1;
-                await this.onTyping(
-                    author_id: author_id,
-                    status: typing_status,
-                    thread: thread_id == author_id ? (FB_Thread)new FB_User(thread_id, _session) : (FB_Thread)new FB_Group(thread_id, _session),
-                    msg: event_data
-                );
-            }
-            else if (event_type == "/orca_presence")
-            {
-                var statuses = new Dictionary<string, FB_ActiveStatus>();
-                foreach (var data in event_data.get("list"))
-                {
-                    var user_id = data["u"]?.Value<string>();
-
-                    bool old_in_game = false;
-                    if (this._buddylist.ContainsKey(user_id))
-                        old_in_game = this._buddylist[user_id].in_game;
-
-                    statuses[user_id] = FB_ActiveStatus._from_orca_presence(data, old_in_game);
-                    this._buddylist[user_id] = statuses[user_id];
-
-                    await this.onBuddylistOverlay(statuses: statuses, msg: event_data);
-                }
-            }
-            else if (event_type == "/legacy_web")
-            {
-                // Friend request
-                if (event_data?.get("type")?.Value<string>() == "jewel_requests_add")
-                {
-                    var from_id = event_data?.get("from")?.Value<string>();
-                    await this.onFriendRequest(from_id: from_id, msg: event_data);
-                }
             }
         }
 
@@ -1504,28 +1214,10 @@ namespace fbchat_sharp.API
              * :rtype: bool
              */
 
-            try
-            {
-                if (this._markAlive) await this._ping(cancellationToken);
-                var content = await this._pullMessage(cancellationToken);
-                if (content != null) await this._parseMessage(content);
-            }
-            catch (FBchatFacebookError ex)
-            {
-                if (new int[] { 502, 503 }.Contains(ex.request_status_code))
-                {
-                    // Bump pull channel, while contraining withing 0-4
-                    this._pull_channel = (this._pull_channel + 1) % 5;
-                }
-                else
-                {
-                    throw (ex);
-                }
-            }
-            catch (Exception ex)
-            {
-                return await this.onListenError(exception: ex);
-            }
+            // TODO: Remove this wierd check, and let the user handle the chat_on parameter
+            //if self._markAlive != self._mqtt._chat_on:
+            //self._mqtt.set_chat_on(self._markAlive)
+            await Task.Yield();
 
             return true;
         }
@@ -1547,8 +1239,6 @@ namespace fbchat_sharp.API
 
             // Cleans up the variables from startListening
             this.listening = false;
-            this._sticky = null;
-            this._pool = null;
             this._sync_token = null;
         }
 
@@ -1626,34 +1316,6 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Called when an error was encountered while listening
-        /// </summary>
-        /// <param name="exception">The exception that was encountered</param>
-        protected virtual async Task<bool> onListenError(Exception exception = null)
-        {
-            /*
-             * Called when an error was encountered while listening
-             * :param exception: The exception that was encountered
-             */
-            Debug.WriteLine(string.Format("Got exception while listening: {0}", exception));
-            return await Task.FromResult(true);
-        }
-
-        /// <summary>
-        /// Called when an error was encountered while listening on mqtt
-        /// </summary>
-        /// <param name="exception">The exception that was encountered</param>
-        public virtual async Task onMqttListenError(Exception exception = null)
-        {
-            /*
-             * Called when an error was encountered while listening on mqtt
-             * :param exception: The exception that was encountered
-             */
-            Debug.WriteLine(string.Format("Got mqtt exception while listening: {0}", exception));
-            await Task.Yield();
-        }
-
-        /// <summary>
         /// Called when the client is listening, and an event happens.
         /// </summary>
         /// <param name="ev"></param>
@@ -1663,130 +1325,7 @@ namespace fbchat_sharp.API
             /*Called when the client is listening, and an event happens.*/
             Debug.WriteLine("Got event: {0}", ev);
             await Task.Yield();
-        }        
-
-        /// <summary>
-        /// Called when the client is listening, and somebody that isn't
-        /// connected with you on either Facebook or Messenger sends a message.
-        /// After that, you need to use fetchThreadList to actually read the message.
-        /// </summary>
-        /// <param name="thread">Thread that the message was sent to</param>
-        /// <param name="metadata">Extra metadata about the message</param>
-        /// <param name="msg">A full set of the data received</param>
-        /// <returns></returns>
-        protected virtual async Task onPendingMessage(FB_Thread thread = null, JToken metadata = null, JToken msg = null)
-        {
-            /*
-             * Called when the client is listening, and somebody that isn't
-             * connected with you on either Facebook or Messenger sends a message.
-             * After that, you need to use fetchThreadList to actually read the message.
-             * Args:
-             *   thread: Thread that the message was sent to. See: ref:`intro_threads`
-             *   metadata: Extra metadata about the message
-             *   msg: A full set of the data received
-             */
-            Debug.WriteLine(string.Format("New pending message from {0}", thread.uid));
-            await Task.Yield();
         }
-
-        ///<summary>
-        /// Called when the client is listening, and somebody sends a friend request
-        ///</summary>
-        /// <param name="from_id">The ID of the person that sent the request</param>
-        /// <param name="msg">A full set of the data received</param>
-        protected virtual async Task onFriendRequest(object from_id = null, JToken msg = null)
-        {
-            Debug.WriteLine(string.Format("Friend request from {0}", from_id));
-            await Task.Yield();
-        }
-
-        ///<summary>
-        /// .. todo::
-        /// Documenting this
-        ///</summary>
-        /// <param name="unseen">--</param>
-        /// <param name="unread">--</param>
-        /// <param name="recent_unread">--</param>
-        /// <param name="msg">A full set of the data received</param>
-        protected virtual async Task onInbox(
-            object unseen = null,
-            object unread = null,
-            object recent_unread = null,
-            JToken msg = null)
-        {
-            Debug.WriteLine(string.Format("Inbox event: {0}, {1}, {2}", unseen, unread, recent_unread));
-            await Task.Yield();
-        }
-
-        ///<summary>
-        /// Called when the client is listening, and somebody starts or stops typing into a chat
-        ///</summary>
-        /// <param name="author_id">The ID of the person who sent the action</param>
-        /// <param name="status">The typing status: true is typing, false if not.</param>
-        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>
-        /// <param name="msg">A full set of the data received</param>
-        protected virtual async Task onTyping(
-            string author_id = null,
-            object status = null,
-            FB_Thread thread = null,
-            JToken msg = null)
-        {
-            await Task.Yield();
-        }
-
-        ///<summary>
-        /// Called when the client just started listening
-        ///</summary>
-        /// <param name="ts">A timestamp of the action</param>
-        /// <param name="msg">A full set of the data received</param>
-        protected virtual async Task onQprimer(long ts = 0, JToken msg = null)
-        {
-            await Task.Yield();
-        }
-
-        ///<summary>
-        /// Called when the client receives chat online presence update
-        ///</summary>
-        /// <param name="buddylist">A list of dicts with friend id and last seen timestamp</param>
-        /// <param name="msg">A full set of the data received</param>
-        protected virtual async Task onChatTimestamp(object buddylist = null, JToken msg = null)
-        {
-            Debug.WriteLine(string.Format("Chat Timestamps received: {0}", buddylist));
-            await Task.Yield();
-        }
-
-        ///<summary>
-        /// Called when the client is listening and client receives information about friend active status
-        ///</summary>
-        /// <param name="statuses">Dictionary with user IDs as keys and `ActiveStatus` as values</param>
-        /// <param name="msg">A full set of the data received</param>
-        protected virtual async Task onBuddylistOverlay(object statuses = null, JToken msg = null)
-        {
-            Debug.WriteLine(string.Format("Buddylist overlay received: {0}", statuses));
-            await Task.Yield();
-        }
-
-        ///<summary>
-        /// Called when the client is listening, and some unknown data was received
-        ///</summary>
-        /// <param name="msg">A full set of the data received</param>
-        protected virtual async Task onUnknownMesssageType(JToken msg = null)
-        {
-            Debug.WriteLine(string.Format("Unknown message received: {0}", msg));
-            await Task.Yield();
-        }
-
-        ///<summary>
-        /// Called when an error was encountered while parsing received data
-        ///</summary>
-        /// <param name="exception">The exception that was encountered</param>
-        /// <param name="msg">A full set of the data received</param>
-        protected virtual async Task onMessageError(object exception = null, JToken msg = null)
-        {
-            Debug.WriteLine(string.Format("Exception in parsing of {0}", msg));
-            await Task.Yield();
-        }
-
         #endregion
 
         /// <returns>Pretty string representation of the client</returns>

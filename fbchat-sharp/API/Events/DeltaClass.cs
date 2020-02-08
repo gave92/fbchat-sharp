@@ -18,7 +18,7 @@ namespace fbchat_sharp.API
         /// When the people were added
         public long at { get; set; }
 
-        public static new FB_PeopleAdded _parse(Session session, JToken data)
+        internal static new FB_PeopleAdded _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_PeopleAdded._parse_metadata(session, data);
             var added = data?.get("addedParticipants")?.Select(x => new FB_User(x.get("userFbId")?.Value<string>(), session));
@@ -46,7 +46,7 @@ namespace fbchat_sharp.API
         /// When the people were added
         public long at { get; set; }
 
-        public static new FB_PersonRemoved _parse(Session session, JToken data)
+        internal static new FB_PersonRemoved _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_PersonRemoved._parse_metadata(session, data);
             var removed = new FB_User(data?.get("leftParticipantFbId")?.Value<string>(), session);
@@ -74,7 +74,7 @@ namespace fbchat_sharp.API
         /// When the title was set
         public long at { get; set; }
 
-        public static new FB_TitleSet _parse(Session session, JToken data)
+        internal static new FB_TitleSet _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_TitleSet._parse_metadata(session, data);
 
@@ -102,7 +102,7 @@ namespace fbchat_sharp.API
         /// The message
         public FB_Message message { get; set; }
 
-        public static new FB_UnfetchedThreadEvent _parse(Session session, JToken data)
+        internal static new FB_UnfetchedThreadEvent _parse(Session session, JToken data)
         {
             var thread = FB_ThreadEvent._get_thread(session, data);
             var message = new FB_Message(session, thread_id: thread.uid, uid: data?.get("messageId")?.Value<string>());
@@ -124,7 +124,7 @@ namespace fbchat_sharp.API
         /// When the messages were delivered
         public long at { get; set; }
 
-        public static new FB_MessagesDelivered _parse(Session session, JToken data)
+        internal static new FB_MessagesDelivered _parse(Session session, JToken data)
         {
             var author = new FB_User(data?.get("actorFbId")?.Value<string>(), session);
             var thread = FB_MessagesDelivered._get_thread(session, data);
@@ -152,7 +152,7 @@ namespace fbchat_sharp.API
         /// When the threads were read
         public long at { get; set; }
 
-        public static FB_ThreadsRead _parse_read_receipt(Session session, JToken data)
+        internal static FB_ThreadsRead _parse_read_receipt(Session session, JToken data)
         {
             var author = new FB_User(session: session, uid: data?.get("actorFbId")?.Value<string>());
             var thread = FB_ThreadEvent._get_thread(session, data);
@@ -164,7 +164,8 @@ namespace fbchat_sharp.API
                 at = at
             };
         }
-        public static new FB_ThreadsRead _parse(Session session, JToken data)
+
+        internal static new FB_ThreadsRead _parse(Session session, JToken data)
         {
             var author = new FB_User(session.get_user_id(), session);
             var threads = data?.get("threadKeys")?.Select(x => FB_ThreadEvent._get_thread(session, new JObject() { { "threadKey", x } }));
@@ -188,7 +189,7 @@ namespace fbchat_sharp.API
         /// When the message was sent
         public long at { get; set; }
 
-        public static new FB_MessageEvent _parse(Session session, JToken data)
+        internal static new FB_MessageEvent _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_MessageEvent._parse_metadata(session, data);
             var message = FB_Message._from_pull(data, thread: thread, author: author.uid, timestamp: at.ToString());
@@ -238,7 +239,7 @@ namespace fbchat_sharp.API
                 throw new FBchatParseError("This is implemented in `parse_events`");
             else if (class_ == "NewMessage")
                 return FB_MessageEvent._parse(session, data);
-            return new FB_UnknownEvent() { data = data };
+            return new FB_UnknownEvent() { source = "Delta class", data = data };
         }
     }
 }
