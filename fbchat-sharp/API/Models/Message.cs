@@ -249,9 +249,12 @@ namespace fbchat_sharp.API
             if (this.text != null)
                 data["body"] = this.text;
 
-            foreach (var item in this.mentions.Select((mention, i) => new { i, mention }))
+            if (this.mentions != null)
             {
-                data.update(item.mention._to_send_data(item.i));
+                foreach (var item in this.mentions.Select((mention, i) => new { i, mention }))
+                {
+                    data.update(item.mention._to_send_data(item.i));
+                }
             }
 
             if (this.emoji_size != null)
@@ -423,7 +426,7 @@ namespace fbchat_sharp.API
                 else
                     rtn.quick_replies = new List<FB_QuickReply>() { FB_QuickReply.graphql_to_quick_reply(quick_replies) };
             }
-            foreach (var atc in data.get("attachments").OrEmptyIfNull())
+            foreach (var atc in data.get("attachments") ?? Enumerable.Empty<JToken>())
             {
                 var attachment = JToken.Parse(atc.get("mercuryJSON")?.Value<string>());
                 if (attachment.get("blob_attachment") != null)
@@ -459,7 +462,7 @@ namespace fbchat_sharp.API
             rtn.session = thread.session;
             rtn.thread_id = thread.uid;
             rtn.author = author;
-            rtn.timestamp = timestamp;            
+            rtn.timestamp = timestamp;
             rtn.mentions = JToken.Parse(data.get("data")?.get("prng")?.Value<string>() ?? "{}")?.Select((m) =>
                     FB_Mention._from_prng(m)
                 ).ToList();

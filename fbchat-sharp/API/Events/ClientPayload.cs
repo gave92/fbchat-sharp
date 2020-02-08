@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace fbchat_sharp.API
 {
@@ -58,7 +59,7 @@ namespace fbchat_sharp.API
         {
             var thread = FB_LiveLocationEvent._get_thread(session, data);
 
-            foreach (var location_data in data?.get("messageLiveLocations").OrEmptyIfNull())
+            foreach (var location_data in data?.get("messageLiveLocations") ?? Enumerable.Empty<JToken>())
             {
                 var message = new FB_Message(session: session, thread_id: thread.uid, uid: data?.get("messageId")?.Value<string>());
                 var author = new FB_User(session: session, uid: location_data?.get("senderId")?.Value<string>());
@@ -123,9 +124,9 @@ namespace fbchat_sharp.API
     {
         public static IEnumerable<FB_Event> parse_client_payloads(Session session, JToken data)
         {
-            var payload = JToken.Parse(string.Join("", data.get("payload")?.Value<string>()));
+            var payload = JToken.Parse(string.Join("", data.get("payload")?.Select(x => x?.Value<int?>()?.ToString())));
 
-            foreach (var d in payload.get("deltas").OrEmptyIfNull())
+            foreach (var d in payload?.get("deltas") ?? Enumerable.Empty<JToken>())
             {
                 yield return parse_client_delta(session, d);
             }
