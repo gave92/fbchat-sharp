@@ -447,16 +447,19 @@ namespace fbchat_sharp.API
             return rtn;
         }
 
-        public static FB_Message _from_pull(JToken data, FB_Thread thread, string mid = null, List<string> tags = null, string author = null, string timestamp = null)
+        public static FB_Message _from_pull(JToken data, FB_Thread thread, string author = null, string timestamp = null)
         {
+            var metadata = data?.get("messageMetadata");
+            var tags = metadata?.get("tags")?.ToObject<List<string>>();
+
             var rtn = new FB_Message(
                 session: thread.session,
                 text: data.get("body")?.Value<string>());
-            rtn.uid = mid;
-            rtn.thread_id = thread.uid; // Added
+            rtn.uid = metadata?.get("messageId")?.Value<string>();
+            rtn.session = thread.session;
+            rtn.thread_id = thread.uid;
             rtn.author = author;
-            rtn.timestamp = timestamp;
-
+            rtn.timestamp = timestamp;            
             rtn.mentions = JToken.Parse(data.get("data")?.get("prng")?.Value<string>() ?? "{}")?.Select((m) =>
                     FB_Mention._from_prng(m)
                 ).ToList();

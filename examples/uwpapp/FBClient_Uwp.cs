@@ -56,9 +56,17 @@ namespace uwpapp
             }
         }
 
-        protected override async Task onMessage(string mid = null, string author_id = null, string message = null, FB_Message message_object = null, FB_Thread thread = null, long ts = 0, JToken metadata = null, JToken msg = null)
+        protected override async Task onEvent(FB_Event ev)
         {
-            UpdateEvent?.Invoke(this, new UpdateEventArgs(UpdateStatus.NEW_MESSAGE, message_object));
+            switch (ev)
+            {
+                case FB_MessageEvent t1:
+                    UpdateEvent?.Invoke(this, new UpdateEventArgs(UpdateStatus.NEW_MESSAGE, t1.message));
+                    break;
+                default:
+                    Console.WriteLine(string.Format("Something happened: {0}", ev.ToString()));
+                    break;
+            }
             await Task.Yield();
         }
         #endregion

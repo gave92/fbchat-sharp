@@ -1,0 +1,719 @@
+[1mdiff --git a/examples/netcore/FBClient_Cookies.cs b/examples/netcore/FBClient_Cookies.cs[m
+[1mindex 3209cf0..8bbcd17 100644[m
+[1m--- a/examples/netcore/FBClient_Cookies.cs[m
+[1m+++ b/examples/netcore/FBClient_Cookies.cs[m
+[36m@@ -27,9 +27,9 @@[m [mnamespace examples[m
+             return Console.ReadLine();[m
+         }[m
+ [m
+[31m-        protected override async Task onMessage(string mid = null, string author_id = null, string message = null, FB_Message message_object = null, FB_Thread thread = null, long ts = 0, JToken metadata = null, JToken msg = null)[m
+[32m+[m[32m        protected override async Task onEvent(FB_Event ev)[m
+         {[m
+[31m-            Console.WriteLine(string.Format("Got new message from {0}: {1}", author_id, message));[m
+[32m+[m[32m            Console.WriteLine(string.Format("Something happened: {0}", ev.ToString()));[m
+             await Task.Yield();[m
+         }[m
+ [m
+[1mdiff --git a/examples/netcore/FBClient_Simple.cs b/examples/netcore/FBClient_Simple.cs[m
+[1mindex 7b37fae..70f9917 100644[m
+[1m--- a/examples/netcore/FBClient_Simple.cs[m
+[1m+++ b/examples/netcore/FBClient_Simple.cs[m
+[36m@@ -21,9 +21,9 @@[m [mnamespace examples[m
+             return Console.ReadLine();[m
+         }[m
+ [m
+[31m-        protected override async Task onMessage(string mid = null, string author_id = null, string message = null, FB_Message message_object = null, FB_Thread thread = null, long ts = 0, JToken metadata = null, JToken msg = null)[m
+[32m+[m[32m        protected override async Task onEvent(FB_Event ev)[m
+         {[m
+[31m-            Console.WriteLine(string.Format("Got new message from {0}: {1}", author_id, message));[m
+[32m+[m[32m            Console.WriteLine(string.Format("Something happened: {0}", ev.ToString()));[m
+             await Task.Yield();[m
+         }[m
+ [m
+[1mdiff --git a/examples/uwpapp/FBClient_Uwp.cs b/examples/uwpapp/FBClient_Uwp.cs[m
+[1mindex b3ee484..91f3e6c 100644[m
+[1m--- a/examples/uwpapp/FBClient_Uwp.cs[m
+[1m+++ b/examples/uwpapp/FBClient_Uwp.cs[m
+[36m@@ -56,9 +56,9 @@[m [mnamespace uwpapp[m
+             }[m
+         }[m
+ [m
+[31m-        protected override async Task onMessage(string mid = null, string author_id = null, string message = null, FB_Message message_object = null, FB_Thread thread = null, long ts = 0, JToken metadata = null, JToken msg = null)[m
+[32m+[m[32m        protected override async Task onEvent(FB_Event ev)[m
+         {[m
+[31m-            UpdateEvent?.Invoke(this, new UpdateEventArgs(UpdateStatus.NEW_MESSAGE, message_object));[m
+[32m+[m[32m            Console.WriteLine(string.Format("Something happened: {0}", ev.ToString()));[m
+             await Task.Yield();[m
+         }[m
+         #endregion[m
+[1mdiff --git a/examples/wpfapp/FBClient_Wpf.cs b/examples/wpfapp/FBClient_Wpf.cs[m
+[1mindex d84e2ba..a10f1a8 100644[m
+[1m--- a/examples/wpfapp/FBClient_Wpf.cs[m
+[1m+++ b/examples/wpfapp/FBClient_Wpf.cs[m
+[36m@@ -55,9 +55,9 @@[m [mnamespace wpfapp[m
+             }[m
+         }[m
+ [m
+[31m-        protected override async Task onMessage(string mid = null, string author_id = null, string message = null, FB_Message message_object = null, FB_Thread thread = null, long ts = 0, JToken metadata = null, JToken msg = null)[m
+[32m+[m[32m        protected override async Task onEvent(FB_Event ev)[m
+         {[m
+[31m-            UpdateEvent?.Invoke(this, new UpdateEventArgs(UpdateStatus.NEW_MESSAGE, message_object));[m
+[32m+[m[32m            Console.WriteLine(string.Format("Something happened: {0}", ev.ToString()));[m
+             await Task.Yield();[m
+         }[m
+         #endregion[m
+[1mdiff --git a/fbchat-sharp/API/Client.cs b/fbchat-sharp/API/Client.cs[m
+[1mindex bfa2c49..a09c0a3 100644[m
+[1m--- a/fbchat-sharp/API/Client.cs[m
+[1m+++ b/fbchat-sharp/API/Client.cs[m
+[36m@@ -1055,43 +1055,14 @@[m [mnamespace fbchat_sharp.API[m
+         {[m
+             var delta = m.get("delta");[m
+             var delta_type = delta.get("type")?.Value<string>();[m
+[31m-            var delta_class = delta.get("class")?.Value<string>();[m
+             var metadata = delta.get("messageMetadata");[m
+ [m
+             var mid = metadata?.get("messageId")?.Value<string>();[m
+             var author_id = metadata?.get("actorFbId")?.Value<string>();[m
+             long.TryParse(metadata?.get("timestamp")?.Value<string>(), out long ts);[m
+ [m
+[31m-            // Added participants[m
+[31m-            if (delta.get("addedParticipants") != null)[m
+[31m-            {[m
+[31m-                var added_ids = delta.get("addedParticipants").Select(x => x.get("userFbId")?.Value<string>()).ToList();[m
+[31m-                var thread_id = metadata?.get("threadKey")?.get("threadFbId")?.Value<string>();[m
+[31m-                await this.onPeopleAdded([m
+[31m-                    mid: mid,[m
+[31m-                    added_ids: added_ids,[m
+[31m-                    author_id: author_id,[m
+[31m-                    thread_id: thread_id,[m
+[31m-                    ts: ts,[m
+[31m-                    msg: m[m
+[31m-                );[m
+[31m-            }[m
+[31m-            // Left/removed participants[m
+[31m-            else if (delta.get("leftParticipantFbId") != null)[m
+[31m-            {[m
+[31m-                var removed_id = delta.get("leftParticipantFbId")?.Value<string>();[m
+[31m-                var thread_id = metadata?.get("threadKey")?.get("threadFbId")?.Value<string>();[m
+[31m-                await this.onPersonRemoved([m
+[31m-                    mid: mid,[m
+[31m-                    removed_id: removed_id,[m
+[31m-                    author_id: author_id,[m
+[31m-                    thread_id: thread_id,[m
+[31m-                    ts: ts,[m
+[31m-                    msg: m[m
+[31m-                );[m
+[31m-            }[m
+             // Color change[m
+[31m-            else if (delta.get("change_thread_theme") != null)[m
+[32m+[m[32m            if (delta.get("change_thread_theme") != null)[m[41m[m
+             {[m
+                 var new_color = ThreadColor._from_graphql(delta.get("untypedData")?.get("theme_color"));[m
+                 var thread = FB_Thread._from_metadata(metadata, _session);[m
+[36m@@ -1105,13 +1076,6 @@[m [mnamespace fbchat_sharp.API[m
+                     msg: m[m
+                 );[m
+             }[m
+[31m-            else if (delta.get("MarkFolderSeen") != null)[m
+[31m-            {[m
+[31m-                var locations = delta.get("folders")?.Select(folder =>[m
+[31m-                    folder?.Value<string>().Replace("FOLDER_", ""));[m
+[31m-                var at = delta?.get("timestamp")?.Value<string>();[m
+[31m-                await this._onSeen(locations: locations, at: at);[m
+[31m-            }[m
+             // Emoji change[m
+             else if (delta_type == "change_thread_icon")[m
+             {[m
+[36m@@ -1127,66 +1091,6 @@[m [mnamespace fbchat_sharp.API[m
+                     msg: m[m
+                 );[m
+             }[m
+[31m-            // Thread title change[m
+[31m-            else if (delta_class == "ThreadName")[m
+[31m-            {[m
+[31m-                var new_title = delta.get("name")?.Value<string>();[m
+[31m-                var thread = FB_Thread._from_metadata(metadata, _session);[m
+[31m-                await this.onTitleChange([m
+[31m-                    mid: mid,[m
+[31m-                    author_id: author_id,[m
+[31m-                    new_title: new_title,[m
+[31m-                    thread: thread,[m
+[31m-                    ts: ts,[m
+[31m-                    metadata: metadata,[m
+[31m-                    msg: m[m
+[31m-                );[m
+[31m-            }[m
+[31m-            // Forced fetch[m
+[31m-            else if (delta_class == "ForcedFetch")[m
+[31m-            {[m
+[31m-                mid = delta.get("messageId")?.Value<string>();[m
+[31m-                if (mid == null)[m
+[31m-                {[m
+[31m-                    if (delta.get("threadKey") != null)[m
+[31m-                    {[m
+[31m-                        // Looks like the whole delta is metadata in this case[m
+[31m-                        var thread_id = delta.get("threadKey")?.get("threadFbId")?.Value<string>();[m
+[31m-                        var thread = new FB_Thread(thread_id, _session);[m
+[31m-                        await this.onPendingMessage([m
+[31m-                            thread: thread,[m
+[31m-                            metadata: delta,[m
+[31m-                            msg: delta);[m
+[31m-                    }[m
+[31m-                    else[m
+[31m-                    {[m
+[31m-                        await this.onUnknownMesssageType(msg: m);[m
+[31m-                    }[m
+[31m-                }[m
+[31m-                else[m
+[31m-                {[m
+[31m-                    var thread_id = delta.get("threadKey")?.get("threadFbId")?.Value<string>();[m
+[31m-                    var thread = new FB_Thread(thread_id, _session);[m
+[31m-                    var fetch_info = await thread._forcedFetch(mid);[m
+[31m-                    var fetch_data = fetch_info.get("message");[m
+[31m-                    author_id = fetch_data.get("message_sender")?.get("id")?.Value<string>();[m
+[31m-                    ts = long.Parse(fetch_data.get("timestamp_precise")?.Value<string>());[m
+[31m-                    if (fetch_data.get("__typename")?.Value<string>() == "ThreadImageMessage")[m
+[31m-                    {[m
+[31m-                        // Thread image change[m
+[31m-                        var image_metadata = fetch_data.get("image_with_metadata");[m
+[31m-                        var image_id = image_metadata != null ? (int?)long.Parse(image_metadata.get("legacy_attachment_id")?.Value<string>()) : null;[m
+[31m-                        await this.onImageChange([m
+[31m-                            mid: mid,[m
+[31m-                            author_id: author_id,[m
+[31m-                            new_image: image_id,[m
+[31m-                            thread: thread,[m
+[31m-                            ts: ts,[m
+[31m-                            msg: m[m
+[31m-                        );[m
+[31m-                    }[m
+[31m-                }[m
+[31m-            }[m
+             // Nickname change[m
+             else if (delta_type == "change_thread_nickname")[m
+             {[m
+[36m@@ -1243,61 +1147,6 @@[m [mnamespace fbchat_sharp.API[m
+                     msg: m[m
+                 );[m
+             }[m
+[31m-            // Message delivered[m
+[31m-            else if (delta_class == "DeliveryReceipt")[m
+[31m-            {[m
+[31m-                var message_ids = delta.get("messageIds");[m
+[31m-                var delivered_for =[m
+[31m-                    delta.get("actorFbId")?.Value<string>() ?? delta.get("threadKey")?.get("otherUserFbId")?.Value<string>();[m
+[31m-                ts = long.Parse(delta.get("deliveredWatermarkTimestampMs")?.Value<string>());[m
+[31m-                var thread = FB_Thread._from_metadata(metadata, _session);[m
+[31m-                await this.onMessageDelivered([m
+[31m-                    msg_ids: message_ids,[m
+[31m-                    delivered_for: delivered_for,[m
+[31m-                    thread: thread,[m
+[31m-                    ts: ts,[m
+[31m-                    metadata: metadata,[m
+[31m-                    msg: m[m
+[31m-                );[m
+[31m-            }[m
+[31m-            // Message seen[m
+[31m-            else if (delta_class == "ReadReceipt")[m
+[31m-            {[m
+[31m-                var seen_by = delta.get("actorFbId")?.Value<string>() ?? delta.get("threadKey")?.get("otherUserFbId")?.Value<string>();[m
+[31m-                var seen_ts = long.Parse(delta.get("actionTimestampMs")?.Value<string>());[m
+[31m-                var delivered_ts = long.Parse(delta.get("watermarkTimestampMs")?.Value<string>());[m
+[31m-                var thread = FB_Thread._from_metadata(metadata, _session);[m
+[31m-                await this.onMessageSeen([m
+[31m-                    seen_by: seen_by,[m
+[31m-                    thread: thread,[m
+[31m-                    seen_ts: seen_ts,[m
+[31m-                    ts: delivered_ts,[m
+[31m-                    metadata: metadata,[m
+[31m-                    msg: m[m
+[31m-                );[m
+[31m-            }[m
+[31m-            // Messages marked as seen[m
+[31m-            else if (delta_class == "MarkRead")[m
+[31m-            {[m
+[31m-                var seen_ts = long.Parse([m
+[31m-                delta.get("actionTimestampMs")?.Value<string>() ?? delta.get("actionTimestamp")?.Value<string>()[m
+[31m-                );[m
+[31m-                var delivered_ts = long.Parse([m
+[31m-                    delta.get("watermarkTimestampMs")?.Value<string>() ?? delta.get("watermarkTimestamp")?.Value<string>()[m
+[31m-                );[m
+[31m-[m
+[31m-                var threads = new List<FB_Thread>();[m
+[31m-                if (delta.get("folders") == null)[m
+[31m-                {[m
+[31m-                    threads = delta.get("threadKeys").Select(thr => FB_Thread._from_metadata([m
+[31m-                        new JObject(new JProperty("threadKey", thr)), _session)).ToList();[m
+[31m-                }[m
+[31m-[m
+[31m-                // var thread = getThreadIdAndThreadType(delta);[m
+[31m-                await this.onMarkedSeen([m
+[31m-                    threads: threads, seen_ts: seen_ts, ts: delivered_ts, metadata: delta, msg: m[m
+[31m-                );[m
+[31m-            }[m
+             // Game played[m
+             else if (delta_type == "instant_game_update")[m
+             {[m
+[36m@@ -1471,44 +1320,19 @@[m [mnamespace fbchat_sharp.API[m
+                 );[m
+             }[m
+             // Client payload (that weird numbers)[m
+[31m-            else if (delta_class == "ClientPayload")[m
+[32m+[m[32m            else if (delta.get("class")?.Value<string>() == "ClientPayload")[m[41m[m
+             {[m
+                 foreach (var ev in ClientPayload.parse_client_payloads(this._session, delta).OrEmptyIfNull())[m
+                 {[m
+                     await this.onEvent(ev);[m
+                 }[m
+             }[m
+[31m-            // New message[m
+[31m-            else if (delta_class == "NewMessage")[m
+[31m-            {[m
+[31m-                var thread = FB_Thread._from_metadata(metadata, _session);[m
+[31m-                await this.onMessage([m
+[31m-                    mid: mid,[m
+[31m-                    author_id: author_id,[m
+[31m-                    message: delta.get("body")?.Value<string>() ?? "",[m
+[31m-                    message_object: FB_Message._from_pull([m
+[31m-                        delta,[m
+[31m-                        thread,[m
+[31m-                        mid: mid,[m
+[31m-                        tags: metadata.get("tags")?.ToObject<List<string>>(),[m
+[31m-                        author: author_id,[m
+[31m-                        timestamp: ts.ToString()[m
+[31m-                    ),[m
+[31m-                    thread: thread,[m
+[31m-                    ts: ts,[m
+[31m-                    metadata: metadata,[m
+[31m-                    msg: m[m
+[31m-                );[m
+[31m-            }[m
+[31m-            else if (delta_class == "ThreadFolder" && delta?.get("folder")?.Value<string>() == "FOLDER_PENDING")[m
+[32m+[m[32m            // Client payload (that weird numbers)[m[41m[m
+[32m+[m[32m            else if (delta.get("class")?.Value<string>() != null)[m[41m[m
+             {[m
+[31m-                // Looks like the whole delta is metadata in this case[m
+[31m-                var thread_id = delta.get("threadKey")?.get("threadFbId")?.Value<string>();[m
+[31m-                var thread = new FB_Thread(thread_id, _session);[m
+[31m-                await this.onPendingMessage([m
+[31m-                    thread: thread,[m
+[31m-                    metadata: delta,[m
+[31m-                    msg: delta);[m
+[32m+[m[32m                var ev = DeltaClass.parse_delta(_session, delta);[m[41m[m
+[32m+[m[32m                if (ev != null)[m[41m[m
+[32m+[m[32m                    await this.onEvent(ev);[m[41m[m
+             }[m
+             // Unknown message type[m
+             else[m
+[36m@@ -2098,35 +1922,7 @@[m [mnamespace fbchat_sharp.API[m
+             /*Called when the client is listening, and an event happens.*/[m
+             Debug.WriteLine("Got event: {0}", ev);[m
+             await Task.Yield();[m
+[31m-        }[m
+[31m-[m
+[31m-        /// <summary>[m
+[31m-        /// Called when the client is listening, and somebody sends a message[m
+[31m-        /// </summary>[m
+[31m-        /// <param name="mid">The message ID</param>[m
+[31m-        /// <param name="author_id">The ID of the author</param>[m
+[31m-        /// <param name="message">The message content</param>[m
+[31m-        /// <param name="message_object">The message object</param>[m
+[31m-        /// <param name="thread">Thread that the message was sent to</param>[m
+[31m-        /// <param name="ts">The timestamp of the message</param>[m
+[31m-        /// <param name="metadata">Extra metadata about the message</param>[m
+[31m-        /// <param name="msg">A full set of the data received</param>[m
+[31m-        protected virtual async Task onMessage(string mid = null, string author_id = null, string message = null, FB_Message message_object = null, FB_Thread thread = null, long ts = 0, JToken metadata = null, JToken msg = null)[m
+[31m-        {[m
+[31m-            /*[m
+[31m-            Called when the client is listening, and somebody sends a message[m
+[31m-            :param mid: The message ID[m
+[31m-            :param author_id: The ID of the author[m
+[31m-            :param message: (deprecated. Use `message_object.text` instead)[m
+[31m-            :param message_object: The message (As a `Message` object)[m
+[31m-            :param thread: Thread that the message was sent to.See :ref:`intro_threads`[m
+[31m-            :param ts: The timestamp of the message[m
+[31m-            :param metadata: Extra metadata about the message[m
+[31m-            :param msg: A full set of the data received[m
+[31m-            */[m
+[31m-            Debug.WriteLine(string.Format("Message from {0} in {1}: {2}", author_id, thread.uid, message));[m
+[31m-            await Task.Yield();[m
+[31m-        }[m
+[32m+[m[32m        }[m[41m        [m
+ [m
+         /// <summary>[m
+         /// Called when the client is listening, and somebody that isn't[m
+[36m@@ -2204,57 +2000,7 @@[m [mnamespace fbchat_sharp.API[m
+             Debug.WriteLine(string.Format("Emoji change from {0} in {1}: {2}", author_id, thread.uid, new_emoji));[m
+             await Task.Yield();[m
+         }[m
+[31m-[m
+[31m-        /// <summary>[m
+[31m-        /// Called when the client is listening, and somebody changes a thread's title[m
+[31m-        /// </summary>[m
+[31m-        /// <param name="mid">The action ID</param>[m
+[31m-        /// <param name="author_id">The ID of the person who changed the title</param>[m
+[31m-        /// <param name="new_title">The new title</param>[m
+[31m-        /// <param name="thread">Thread that the action was sent to</param>[m
+[31m-        /// <param name="ts">A timestamp of the action</param>[m
+[31m-        /// <param name="metadata">Extra metadata about the action</param>[m
+[31m-        /// <param name="msg">A full set of the data received</param>[m
+[31m-        protected virtual async Task onTitleChange(string mid = null, string author_id = null, string new_title = null, FB_Thread thread = null, long ts = 0, JToken metadata = null, JToken msg = null)[m
+[31m-        {[m
+[31m-            /*[m
+[31m-             * Called when the client is listening, and somebody changes a thread's title[m
+[31m-             * :param mid: The action ID[m
+[31m-             * : param author_id: The ID of the person who changed the title[m
+[31m-             * : param new_title: The new title[m
+[31m-             * :param thread: Thread that the action was sent to. See: ref:`intro_threads`[m
+[31m-             * :param ts: A timestamp of the action[m
+[31m-             * : param metadata: Extra metadata about the action[m
+[31m-             * : param msg: A full set of the data received[m
+[31m-             * */[m
+[31m-            Debug.WriteLine(string.Format("Title change from {0} in {1}: {2}", author_id, thread.uid, new_title));[m
+[31m-            await Task.Yield();[m
+[31m-        }[m
+[31m-[m
+[31m-        /// <summary>[m
+[31m-        /// Called when the client is listening, and somebody changes a thread's image[m
+[31m-        /// </summary>[m
+[31m-        /// <param name="mid">The action ID</param>[m
+[31m-        /// <param name="author_id">The ID of the person who changed the image</param>[m
+[31m-        /// <param name="new_image">The new image</param>[m
+[31m-        /// <param name="thread">Thread that the action was sent to</param>[m
+[31m-        /// <param name="ts">A timestamp of the action</param>[m
+[31m-        /// <param name="msg">A full set of the data received</param>[m
+[31m-        protected virtual async Task onImageChange(string mid = null, string author_id = null, int? new_image = null, FB_Thread thread = null, long ts = 0, JToken msg = null)[m
+[31m-        {[m
+[31m-            /*[m
+[31m-             * Called when the client is listening, and somebody changes a thread's image[m
+[31m-             * :param mid: The action ID[m
+[31m-             * : param author_id: The ID of the person who changed the image[m
+[31m-             * : param new_color: The new image[m
+[31m-             * :param thread: Thread that the action was sent to. See: ref:`intro_threads`[m
+[31m-             * :param ts: A timestamp of the action[m
+[31m-             * : param msg: A full set of the data received[m
+[31m-             * */[m
+[31m-            Debug.WriteLine(string.Format("Image change from {0} in {1}", author_id, thread.uid));[m
+[31m-            await Task.Yield();[m
+[31m-        }[m
+[31m-[m
+[32m+[m[41m       [m
+         /// <summary>[m
+         /// Called when the client is listening, and somebody changes the nickname of a person[m
+         /// </summary>[m
+[36m@@ -2354,132 +2100,6 @@[m [mnamespace fbchat_sharp.API[m
+         }[m
+ [m
+         ///<summary>[m
+[31m-        /// Called when the client is listening, and somebody marks a message as seen[m
+[31m-        ///</summary>[m
+[31m-        /// <param name="seen_by">The ID of the person who marked the message as seen</param>[m
+[31m-        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>[m
+[31m-        /// <param name="seen_ts">A timestamp of when the person saw the message</param>[m
+[31m-        /// <param name="ts">A timestamp of the action</param>[m
+[31m-        /// <param name="metadata">Extra metadata about the action</param>[m
+[31m-        /// <param name="msg">A full set of the data received</param>[m
+[31m-        protected virtual async Task onMessageSeen([m
+[31m-            object seen_by = null,[m
+[31m-            FB_Thread thread = null,[m
+[31m-            long seen_ts = 0,[m
+[31m-            long ts = 0,[m
+[31m-            JToken metadata = null,[m
+[31m-            JToken msg = null)[m
+[31m-        {[m
+[31m-            Debug.WriteLine(string.Format("Messages seen by {0} in {1} at {2}s", seen_by, thread.uid, seen_ts / 1000));[m
+[31m-            await Task.Yield();[m
+[31m-        }[m
+[31m-[m
+[31m-        ///<summary>[m
+[31m-        /// Called when the client is listening, and somebody marks messages as delivered[m
+[31m-        ///</summary>[m
+[31m-        /// <param name="msg_ids">The messages that are marked as delivered</param>[m
+[31m-        /// <param name="delivered_for">The person that marked the messages as delivered</param>[m
+[31m-        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>[m
+[31m-        /// <param name="ts">A timestamp of the action</param>[m
+[31m-        /// <param name="metadata">Extra metadata about the action</param>[m
+[31m-        /// <param name="msg">A full set of the data received</param>[m
+[31m-        protected virtual async Task onMessageDelivered([m
+[31m-            JToken msg_ids = null,[m
+[31m-            object delivered_for = null,[m
+[31m-            FB_Thread thread = null,[m
+[31m-            long ts = 0,[m
+[31m-            JToken metadata = null,[m
+[31m-            JToken msg = null)[m
+[31m-        {[m
+[31m-            Debug.WriteLine(string.Format("Messages {0} delivered to {1} in {2} at {3}s", msg_ids, delivered_for, thread.uid, ts / 1000));[m
+[31m-            await Task.Yield();[m
+[31m-        }[m
+[31m-[m
+[31m-        ///<summary>[m
+[31m-        /// Called when the client is listening, and the client has successfully marked threads as seen[m
+[31m-        ///</summary>[m
+[31m-        /// <param name="threads">The threads that were marked</param>[m
+[31m-        /// <param name="seen_ts">A timestamp of when the threads were seen</param>[m
+[31m-        /// <param name="ts">A timestamp of the action</param>[m
+[31m-        /// <param name="metadata">Extra metadata about the action</param>[m
+[31m-        /// <param name="msg">A full set of the data received</param>[m
+[31m-        protected virtual async Task onMarkedSeen([m
+[31m-            List<FB_Thread> threads = null,[m
+[31m-            long seen_ts = 0,[m
+[31m-            long ts = 0,[m
+[31m-            JToken metadata = null,[m
+[31m-            JToken msg = null)[m
+[31m-        {[m
+[31m-            Debug.WriteLine(string.Format("Marked messages as seen in threads {0} at {1}s",[m
+[31m-                string.Join(",", from x in threads[m
+[31m-                                 select x.uid), seen_ts / 1000));[m
+[31m-            await Task.Yield();[m
+[31m-        }[m
+[31m-[m
+[31m-        /*[m
+[31m-        ///<summary>[m
+[31m-        /// Called when the client is listening, and someone unsends (deletes for everyone) a message[m
+[31m-        ///</summary>[m
+[31m-        /// <param name="mid">ID of the unsent message</param>[m
+[31m-        /// <param name="author_id">The ID of the person who unsent the message</param>[m
+[31m-        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>[m
+[31m-        /// <param name="ts">A timestamp of the action</param>[m
+[31m-        /// <param name="msg">A full set of the data received</param>[m
+[31m-        protected virtual async Task onMessageUnsent([m
+[31m-            string mid = null,[m
+[31m-            string author_id = null,[m
+[31m-            FB_Thread thread = null,[m
+[31m-            long ts = 0,[m
+[31m-            JToken msg = null)[m
+[31m-        {[m
+[31m-            Debug.WriteLine(string.Format("{0} unsent the message {1} in {2} at {3}s", author_id, mid, thread.uid, ts / 1000));[m
+[31m-            await Task.Yield();[m
+[31m-        }[m
+[31m-        */[m
+[31m-[m
+[31m-        ///<summary>[m
+[31m-        /// Called when the client is listening, and somebody adds people to a group thread[m
+[31m-        ///</summary>[m
+[31m-        /// <param name="mid">The action ID</param>[m
+[31m-        /// <param name="added_ids">The IDs of the people who got added</param>[m
+[31m-        /// <param name="author_id">The ID of the person who added the people</param>[m
+[31m-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>[m
+[31m-        /// <param name="ts">A timestamp of the action</param>[m
+[31m-        /// <param name="msg">A full set of the data received</param>[m
+[31m-        protected virtual async Task onPeopleAdded([m
+[31m-            string mid = null,[m
+[31m-            List<string> added_ids = null,[m
+[31m-            string author_id = null,[m
+[31m-            string thread_id = null,[m
+[31m-            long ts = 0,[m
+[31m-            JToken msg = null)[m
+[31m-        {[m
+[31m-            Debug.WriteLine(string.Format("{0} added: {1} in {2}", author_id, string.Join(", ", added_ids), thread_id));[m
+[31m-            await Task.Yield();[m
+[31m-        }[m
+[31m-[m
+[31m-        ///<summary>[m
+[31m-        /// Called when the client is listening, and somebody removes a person from a group thread[m
+[31m-        ///</summary>[m
+[31m-        /// <param name="mid">The action ID</param>[m
+[31m-        /// <param name="removed_id">The ID of the person who got removed</param>[m
+[31m-        /// <param name="author_id">The ID of the person who removed the person</param>[m
+[31m-        /// <param name="thread_id">Thread ID that the action was sent to. See :ref:`intro_threads`</param>[m
+[31m-        /// <param name="ts">A timestamp of the action</param>[m
+[31m-        /// <param name="msg">A full set of the data received</param>[m
+[31m-        protected virtual async Task onPersonRemoved([m
+[31m-            string mid = null,[m
+[31m-            string removed_id = null,[m
+[31m-            string author_id = null,[m
+[31m-            string thread_id = null,[m
+[31m-            long ts = 0,[m
+[31m-            JToken msg = null)[m
+[31m-        {[m
+[31m-            Debug.WriteLine(string.Format("{0} removed: {1} in {2}", author_id, removed_id, thread_id));[m
+[31m-            await Task.Yield();[m
+[31m-        }[m
+[31m-[m
+[31m-        ///<summary>[m
+         /// Called when the client is listening, and somebody sends a friend request[m
+         ///</summary>[m
+         /// <param name="from_id">The ID of the person that sent the request</param>[m
+[36m@@ -2492,17 +2112,6 @@[m [mnamespace fbchat_sharp.API[m
+ [m
+         ///<summary>[m
+         /// .. todo::[m
+[31m-        /// Documenting this and make it public[m
+[31m-        ///</summary>[m
+[31m-        private async Task _onSeen([m
+[31m-            IEnumerable<string> locations = null, string at = null)[m
+[31m-        {[m
+[31m-            Debug.WriteLine(string.Format("OnSeen at {0}: {1}", at, string.Join(", ", locations)));[m
+[31m-            await Task.Yield();[m
+[31m-        }[m
+[31m-[m
+[31m-        ///<summary>[m
+[31m-        /// .. todo::[m
+         /// Documenting this[m
+         ///</summary>[m
+         /// <param name="unseen">--</param>[m
+[36m@@ -2564,103 +2173,6 @@[m [mnamespace fbchat_sharp.API[m
+             await Task.Yield();[m
+         }[m
+ [m
+[31m-        /*[m
+[31m-        ///<summary>[m
+[31m-        /// Called when the client is listening, and somebody reacts to a message[m
+[31m-        ///</summary>[m
+[31m-        /// <param name="mid">Message ID, that user reacted to</param>[m
+[31m-        /// <param name="reaction">The added reaction. Not limited to the ones in `Message.react`</param>[m
+[31m-        /// <param name="author_id">The ID of the person who reacted to the message</param>[m
+[31m-        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>[m
+[31m-        /// <param name="ts">A timestamp of the action</param>[m
+[31m-        /// <param name="msg">A full set of the data received</param>[m
+[31m-        protected virtual async Task onReactionAdded([m
+[31m-            string mid = null,[m
+[31m-            object reaction = null,[m
+[31m-            string author_id = null,[m
+[31m-            FB_Thread thread = null,[m
+[31m-            long ts = 0,[m
+[31m-            JToken msg = null)[m
+[31m-        {[m
+[31m-            Debug.WriteLine(string.Format("{0} reacted to message {1} with {2} in {3}", author_id, mid, reaction.ToString(), thread.uid));[m
+[31m-            await Task.Yield();[m
+[31m-        }[m
+[31m-[m
+[31m-        ///<summary>[m
+[31m-        /// Called when the client is listening, and somebody removes reaction from a message[m
+[31m-        ///</summary>[m
+[31m-        /// <param name="mid">Message ID, that user reacted to</param>[m
+[31m-        /// <param name="author_id">The ID of the person who removed reaction</param>[m
+[31m-        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>[m
+[31m-        /// <param name="ts">A timestamp of the action</param>[m
+[31m-        /// <param name="msg">A full set of the data received</param>[m
+[31m-        protected virtual async Task onReactionRemoved([m
+[31m-            string mid = null,[m
+[31m-            string author_id = null,[m
+[31m-            FB_Thread thread = null,[m
+[31m-            long ts = 0,[m
+[31m-            JToken msg = null)[m
+[31m-        {[m
+[31m-            Debug.WriteLine(string.Format("{0} removed reaction from {1} message in {2}", author_id, mid, thread.uid));[m
+[31m-            await Task.Yield();[m
+[31m-        }[m
+[31m-[m
+[31m-        ///<summary>[m
+[31m-        /// Called when the client is listening, and somebody blocks client[m
+[31m-        ///</summary>[m
+[31m-        /// <param name="author_id">The ID of the person who blocked</param>[m
+[31m-        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>[m
+[31m-        /// <param name="ts">A timestamp of the action</param>[m
+[31m-        /// <param name="msg">A full set of the data received</param>[m
+[31m-        protected virtual async Task onBlock([m
+[31m-            string author_id = null,[m
+[31m-            FB_Thread thread = null,[m
+[31m-            long ts = 0,[m
+[31m-            JToken msg = null)[m
+[31m-        {[m
+[31m-            Debug.WriteLine(string.Format("{0} blocked {1} thread", author_id, thread.uid));[m
+[31m-            await Task.Yield();[m
+[31m-        }[m
+[31m-[m
+[31m-        ///<summary>[m
+[31m-        /// Called when the client is listening, and somebody blocks client[m
+[31m-        ///</summary>[m
+[31m-        /// <param name="author_id">The ID of the person who unblocked</param>[m
+[31m-        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>[m
+[31m-        /// <param name="ts">A timestamp of the action</param>[m
+[31m-        /// <param name="msg">A full set of the data received</param>[m
+[31m-        protected virtual async Task onUnblock([m
+[31m-            string author_id = null,[m
+[31m-            FB_Thread thread = null,[m
+[31m-            long ts = 0,[m
+[31m-            JToken msg = null)[m
+[31m-        {[m
+[31m-            Debug.WriteLine(string.Format("{0} unblocked {1} thread", author_id, thread.uid));[m
+[31m-            await Task.Yield();[m
+[31m-        }[m
+[31m-[m
+[31m-        ///<summary>[m
+[31m-        /// Called when the client is listening and somebody sends live location info[m
+[31m-        ///</summary>[m
+[31m-        /// <param name="mid">The action ID</param>[m
+[31m-        /// <param name="location">Sent location info</param>[m
+[31m-        /// <param name="author_id">The ID of the person who sent location info</param>[m
+[31m-        /// <param name="thread">Thread that the action was sent to. See :ref:`intro_threads`</param>[m
+[31m-        /// <param name="ts">A timestamp of the action</param>[m
+[31m-        /// <param name="msg">A full set of the data received</param>[m
+[31m-        protected virtual async Task onLiveLocation([m
+[31m-            string mid = null,[m
+[31m-            FB_LiveLocationAttachment location = null,[m
+[31m-            string author_id = null,[m
+[31m-            FB_Thread thread = null,[m
+[31m-            long ts = 0,[m
+[31m-            JToken msg = null)[m
+[31m-        {[m
+[31m-            Debug.WriteLine(string.Format("{0} sent live location info in {1} with latitude {2} and longitude {3}", author_id, thread.uid, location.latitude, location.longitude));[m
+[31m-            await Task.Yield();[m
+[31m-        }[m
+[31m-        */[m
+[31m-[m
+         ///<summary>[m
+         /// .. todo::[m
+         /// Make this work with private calls[m
+[1mdiff --git a/fbchat-sharp/API/Event.cs b/fbchat-sharp/API/Event.cs[m
+[1mindex 0505607..1945395 100644[m
+[1m--- a/fbchat-sharp/API/Event.cs[m
+[1m+++ b/fbchat-sharp/API/Event.cs[m
+[36m@@ -38,6 +38,15 @@[m [mnamespace fbchat_sharp.API[m
+         /// Thread that the action was done in[m
+         public FB_Thread thread { get; set; }[m
+ [m
+[32m+[m[32m        public static (FB_User author, FB_Thread thread, long at) _parse_metadata(Session session, JToken data)[m
+[32m+[m[32m        {[m
+[32m+[m[32m            var metadata = data?.get("messageMetadata");[m
+[32m+[m[32m            var author = new FB_User(session: session, uid: metadata?.get("actorFbId")?.Value<string>());[m
+[32m+[m[32m            var thread = FB_ThreadEvent._get_thread(session, metadata);[m
+[32m+[m[32m            var at = long.Parse(metadata?.get("timestamp")?.Value<string>());[m
+[32m+[m[32m            return (author, thread, at);[m
+[32m+[m[32m        }[m
+[32m+[m
+         public static FB_Thread _get_thread(Session session, JToken data)[m
+         {[m
+             // TODO: Handle pages? Is it even possible?[m
+[1mdiff --git a/fbchat-sharp/API/Message.cs b/fbchat-sharp/API/Message.cs[m
+[1mindex 6876184..1084236 100644[m
+[1m--- a/fbchat-sharp/API/Message.cs[m
+[1m+++ b/fbchat-sharp/API/Message.cs[m
+[36m@@ -447,16 +447,19 @@[m [mnamespace fbchat_sharp.API[m
+             return rtn;[m
+         }[m
+ [m
+[31m-        public static FB_Message _from_pull(JToken data, FB_Thread thread, string mid = null, List<string> tags = null, string author = null, string timestamp = null)[m
+[32m+[m[32m        public static FB_Message _from_pull(JToken data, FB_Thread thread, string author = null, string timestamp = null)[m
+         {[m
+[32m+[m[32m            var metadata = data?.get("messageMetadata");[m
+[32m+[m[32m            var tags = metadata?.get("tags")?.ToObject<List<string>>();[m
+[32m+[m
+             var rtn = new FB_Message([m
+                 session: thread.session,[m
+                 text: data.get("body")?.Value<string>());[m
+[31m-            rtn.uid = mid;[m
+[31m-            rtn.thread_id = thread.uid; // Added[m
+[32m+[m[32m            rtn.uid = metadata?.get("messageId")?.Value<string>();[m
+[32m+[m[32m            rtn.session = thread.session;[m
+[32m+[m[32m            rtn.thread_id = thread.uid;[m
+             rtn.author = author;[m
+[31m-            rtn.timestamp = timestamp;[m
+[31m-[m
+[32m+[m[32m            rtn.timestamp = timestamp;[m[41m            [m
+             rtn.mentions = JToken.Parse(data.get("data")?.get("prng")?.Value<string>() ?? "{}")?.Select((m) =>[m
+                     FB_Mention._from_prng(m)[m
+                 ).ToList();[m
+[1mdiff --git a/fbchat-sharp/fbchat-sharp.csproj b/fbchat-sharp/fbchat-sharp.csproj[m
+[1mindex 6d9c079..cd7e6ae 100644[m
+[1m--- a/fbchat-sharp/fbchat-sharp.csproj[m
+[1m+++ b/fbchat-sharp/fbchat-sharp.csproj[m
+[36m@@ -55,6 +55,7 @@[m
+     <Compile Include="API\Attachment.cs" />[m
+     <Compile Include="API\Client.cs" />[m
+     <Compile Include="API\ClientPayload.cs" />[m
+[32m+[m[32m    <Compile Include="API\DeltaClass.cs" />[m[41m[m
+     <Compile Include="API\Event.cs" />[m
+     <Compile Include="API\Exception.cs" />[m
+     <Compile Include="API\File.cs" />[m
