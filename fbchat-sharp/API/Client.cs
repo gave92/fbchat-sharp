@@ -1190,6 +1190,33 @@ namespace fbchat_sharp.API
         {
             try
             {
+                if (topic == "/t_ms")
+                {
+                    if (data.get("errorCode") != null)
+                    {
+                        Debug.WriteLine(string.Format("MQTT error: {0}", data.get("errorCode")?.Value<string>()));
+                        this._sync_token = null;
+                        await this._messenger_queue_publish();
+                    }
+                    else
+                    {
+                        // Update sync_token when received
+                        // This is received in the first message after we've created a messenger
+                        // sync queue.
+                        if (data?.get("syncToken") != null && data?.get("firstDeltaSeqId") != null)
+                        {
+                            this._sync_token = data?.get("syncToken")?.Value<string>();
+                            this._mqtt_sequence_id = data?.get("firstDeltaSeqId")?.Value<int>() ?? _mqtt_sequence_id;
+                        }
+
+                        // Update last sequence id when received
+                        if (data?.get("lastIssuedSeqId") != null)
+                        {
+                            this._mqtt_sequence_id = data?.get("lastIssuedSeqId")?.Value<int>() ?? _mqtt_sequence_id;
+                        }                        
+                    }
+                }
+
                 foreach (FB_Event ev in EventCommon.parse_events(_session, topic, data))
                     await this.onEvent(ev);
             }
