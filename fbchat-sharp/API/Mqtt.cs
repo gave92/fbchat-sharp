@@ -131,7 +131,7 @@ namespace fbchat_sharp.API
             // Get the sync sequence ID used for the /messenger_sync_create_queue call later.
             // This is the same request as fetch_thread_list, but with includeSeqID=true
             var j = await this._session.graphql_request(GraphQL.from_doc_id("1349387578499440", new Dictionary<string, object> {
-                { "limit", 1 },
+                { "limit", 0 },
                 { "tags", new string[] {ThreadLocation.INBOX } },
                 { "before", null },
                 { "includeDeliveryReceipts", false },

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Dasync.Collections;
 
 namespace Dasync.Collections.Internals
 {

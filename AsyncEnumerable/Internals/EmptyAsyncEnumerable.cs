@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading;
-using Dasync.Collections;
+﻿using System.Threading;
 
 namespace Dasync.Collections.Internals
 {

@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace fbchat_sharp.API
 {
-    public static class Utils
+    internal static class Utils
     {
         // Default list of user agents
         public static readonly string[] USER_AGENTS = {
