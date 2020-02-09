@@ -80,32 +80,31 @@ namespace fbchat_sharp.API
         public async Task StartListening(bool markAlive = true)
         {
             this._cancellationTokenSource = new CancellationTokenSource();
-            if (await this.SafeWrapper(() => base.startListening(_cancellationTokenSource, markAlive)))
-            {
-                await base.onListening();
-                // Store this references as a private member, call Cancel() on it if UI wants to stop            
-                new Task(async () => await Listen(_cancellationTokenSource.Token), _cancellationTokenSource.Token, TaskCreationOptions.LongRunning).Start();
-            }
-        }
-
-        private async Task Listen(CancellationToken token)
-        {
-            while (!token.IsCancellationRequested)
-            {
-                if (!await base.doOneListen(token))
-                    break;
-                token.WaitHandle.WaitOne((int)(1 * 1000));
-            }
-
-            await base.stopListening();
+            if (this._listener != null)
+                await this._listener.Disconnect();
+            this._listener = await this.SafeWrapper(() => Listener.Connect(this.getSession(), this.OnEvent, markAlive, markAlive, _cancellationTokenSource.Token));
         }
 
         /// <summary>
         /// Stops listening thread
         /// </summary>
-        public void StopListening()
+        public async Task StopListening()
         {
             this._cancellationTokenSource.Cancel();
+            await this._listener.Disconnect();
+            this._listener = null;
+        }
+
+        /// <summary>
+        /// Called when the client is listening, and an event happens.
+        /// </summary>
+        /// <param name="ev"></param>
+        /// <returns></returns>
+        protected virtual async Task OnEvent(FB_Event ev)
+        {
+            /*Called when the client is listening, and an event happens.*/
+            Debug.WriteLine("Got event: {0}", ev);
+            await Task.Yield();
         }
 
         /// <summary>
@@ -168,6 +167,7 @@ namespace fbchat_sharp.API
 
         #region PRIVATE
         private CancellationTokenSource _cancellationTokenSource;
+        private Listener _listener;
 
         private async Task<T> SafeWrapper<T>(Func<Task<T>> action, [CallerMemberName] string method = null)
         {

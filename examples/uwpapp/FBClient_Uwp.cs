@@ -56,7 +56,7 @@ namespace uwpapp
             }
         }
 
-        protected override async Task onEvent(FB_Event ev)
+        protected override async Task OnEvent(FB_Event ev)
         {
             switch (ev)
             {

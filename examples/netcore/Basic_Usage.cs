@@ -90,7 +90,7 @@ namespace examples
                 Console.WriteLine("Listening... Press Ctrl+C to exit.");
                 Console.CancelKeyPress += new ConsoleCancelEventHandler((s, e) => { e.Cancel = true; _closing.Set(); });
                 _closing.WaitOne();
-                client.StopListening();
+                await client.StopListening();
 
                 // Logging out is not required
                 // await client.DoLogout();

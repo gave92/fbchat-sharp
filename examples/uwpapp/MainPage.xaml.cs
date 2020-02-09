@@ -61,7 +61,7 @@ namespace uwpapp
         private void MainPage_Unloaded(object sender, RoutedEventArgs e)
         {
             Client.UpdateEvent -= Client_UpdateEvent;
-            Client.StopListening();
+            Client.StopListening().Wait();
         }
 
         private async void Client_UpdateEvent(object sender, UpdateEventArgs e)

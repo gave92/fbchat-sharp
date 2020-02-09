@@ -61,6 +61,7 @@
     <Compile Include="API\Exception.cs" />
     <Compile Include="API\Models\File.cs" />
     <Compile Include="API\GraphQl.cs" />
+    <Compile Include="API\Mqtt.cs" />
     <Compile Include="API\Threads\Group.cs" />
     <Compile Include="API\Models\Image.cs" />
     <Compile Include="API\Models\Location.cs" />
