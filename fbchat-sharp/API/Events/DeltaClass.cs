@@ -126,13 +126,15 @@ namespace fbchat_sharp.API
 
         internal static new FB_MessagesDelivered _parse(Session session, JToken data)
         {
-            var author = new FB_User(data?.get("actorFbId")?.Value<string>(), session);
             var thread = FB_MessagesDelivered._get_thread(session, data);
+            var author = thread;
+            if (data?.get("actorFbId")?.Value<string>() != null)
+                author = new FB_User(data?.get("actorFbId")?.Value<string>(), session);
             var messages = data?.get("messageIds")?.Select(x => new FB_Message(session, thread_id: thread.uid, uid: x?.Value<string>()));
             var at = long.Parse(data?.get("deliveredWatermarkTimestampMs")?.Value<string>());
             return new FB_MessagesDelivered()
             {
-                author = author,
+                author = author as FB_User,
                 thread = thread,
                 messages = messages.ToList(),
                 at = at
