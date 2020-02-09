@@ -205,6 +205,32 @@ namespace fbchat_sharp.API
         }
     }
 
+    /// <summary>
+    /// "A thread was created in a folder.
+    /// Somebody that isn't connected with you on either Facebook or Messenger sends a
+    /// message.After that, you need to use `ThreadABC.fetch_messages` to actually read it.
+    /// </summary>
+    public class FB_ThreadFolder : FB_Event
+    {
+        // TODO: Finish this
+
+        /// The created thread
+        public FB_Thread thread { get; set; }
+        /// The folder/location
+        public string folder { get; set; }
+
+        internal static new FB_ThreadFolder _parse(Session session, JToken data)
+        {
+            var thread = FB_ThreadEvent._get_thread(session, data);
+            var folder = data?.get("folder")?.Value<string>();
+            return new FB_ThreadFolder()
+            {
+                thread = thread,
+                folder = folder
+            };
+        }
+    }
+
     internal class DeltaClass
     {
         public static FB_Event parse_delta(Session session, JToken data)
@@ -241,6 +267,8 @@ namespace fbchat_sharp.API
                 throw new FBchatParseError("This is implemented in `parse_events`");
             else if (class_ == "NewMessage")
                 return FB_MessageEvent._parse(session, data);
+            else if (class_ == "ThreadFolder")
+                return FB_ThreadFolder._parse(session, data);
             return new FB_UnknownEvent() { source = "Delta class", data = data };
         }
     }

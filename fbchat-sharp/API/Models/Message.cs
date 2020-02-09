@@ -53,7 +53,7 @@ namespace fbchat_sharp.API
         };
 
         public static readonly List<string> SENDABLE_REACTIONS = new List<string>() {
-            "❤",  "😍",  "😆", "😮", "😢", "😠", "👍", "👎"
+            "❤", "😍", "😆", "😮", "😢", "😠", "👍", "👎"
         };
     }
 
