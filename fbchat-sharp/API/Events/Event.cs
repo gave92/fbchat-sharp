@@ -10,10 +10,7 @@ namespace fbchat_sharp.API
     /// </summary>
     public class FB_Event
     {
-        internal static FB_Event _parse(Session session, JToken data)
-        {
-            throw new NotImplementedException();
-        }
+
     }
 
     internal class EventCommon
@@ -86,7 +83,7 @@ namespace fbchat_sharp.API
         /// The unknown data. This cannot be relied on, it's only for debugging purposes.
         public JToken data { get; set; }
 
-        internal static new FB_UnknownEvent _parse(Session session, JToken data)
+        internal static FB_UnknownEvent _parse(Session session, JToken data)
         {
             throw new NotImplementedException();
         }
@@ -101,6 +98,13 @@ namespace fbchat_sharp.API
         public FB_User author { get; set; }
         /// Thread that the action was done in
         public FB_Thread thread { get; set; }
+
+        internal static (FB_User author, long at) _parse_fetch(Session session, JToken data)
+        {
+            var author = new FB_User(session: session, uid: data?.get("message_sender")?.get("id")?.Value<string>());
+            var at = long.Parse(data?.get("timestamp_precise")?.Value<string>());
+            return (author, at);
+        }
 
         internal static (FB_User author, FB_Thread thread, long at) _parse_metadata(Session session, JToken data)
         {
@@ -148,7 +152,7 @@ namespace fbchat_sharp.API
             };
         }
 
-        internal static new FB_Typing _parse(Session session, JToken data)
+        internal static FB_Typing _parse(Session session, JToken data)
         {
             var author = new FB_User(session: session, uid: data?.get("sender_fbid")?.Value<string>());
             var thread = new FB_Group(session: session, uid: data?.get("thread")?.Value<string>());
@@ -170,7 +174,7 @@ namespace fbchat_sharp.API
         /// The user that sent the request
         public FB_User author { get; set; }
 
-        internal static new FB_FriendRequest _parse(Session session, JToken data)
+        internal static FB_FriendRequest _parse(Session session, JToken data)
         {
             var author = new FB_User(session: session, uid: data?.get("from")?.Value<string>());
             return new FB_FriendRequest()
@@ -191,7 +195,7 @@ namespace fbchat_sharp.API
         /// ``True`` if the list is fully updated and ``False`` if it's partially updated
         public bool full { get; set; }
 
-        internal static new FB_Presence _parse(Session session, JToken data)
+        internal static  FB_Presence _parse(Session session, JToken data)
         {
             var statuses = data.get("list").ToDictionary(x => x?.get("u")?.Value<string>(), x => FB_ActiveStatus._from_orca_presence(x));
             return new FB_Presence()

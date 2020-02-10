@@ -18,7 +18,7 @@ namespace fbchat_sharp.API
         /// When the people were added
         public long at { get; set; }
 
-        internal static new FB_PeopleAdded _parse(Session session, JToken data)
+        internal static FB_PeopleAdded _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_PeopleAdded._parse_metadata(session, data);
             var added = data?.get("addedParticipants")?.Select(x => new FB_User(x.get("userFbId")?.Value<string>(), session));
@@ -46,7 +46,7 @@ namespace fbchat_sharp.API
         /// When the people were added
         public long at { get; set; }
 
-        internal static new FB_PersonRemoved _parse(Session session, JToken data)
+        internal static FB_PersonRemoved _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_PersonRemoved._parse_metadata(session, data);
             var removed = new FB_User(data?.get("leftParticipantFbId")?.Value<string>(), session);
@@ -74,7 +74,7 @@ namespace fbchat_sharp.API
         /// When the title was set
         public long at { get; set; }
 
-        internal static new FB_TitleSet _parse(Session session, JToken data)
+        internal static FB_TitleSet _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_TitleSet._parse_metadata(session, data);
 
@@ -102,7 +102,7 @@ namespace fbchat_sharp.API
         /// The message
         public FB_Message message { get; set; }
 
-        internal static new FB_UnfetchedThreadEvent _parse(Session session, JToken data)
+        internal static FB_UnfetchedThreadEvent _parse(Session session, JToken data)
         {
             var thread = FB_ThreadEvent._get_thread(session, data);
             var message = new FB_Message(session, thread_id: thread.uid, uid: data?.get("messageId")?.Value<string>());
@@ -124,7 +124,7 @@ namespace fbchat_sharp.API
         /// When the messages were delivered
         public long at { get; set; }
 
-        internal static new FB_MessagesDelivered _parse(Session session, JToken data)
+        internal static FB_MessagesDelivered _parse(Session session, JToken data)
         {
             var thread = FB_MessagesDelivered._get_thread(session, data);
             var author = thread;
@@ -167,7 +167,7 @@ namespace fbchat_sharp.API
             };
         }
 
-        internal static new FB_ThreadsRead _parse(Session session, JToken data)
+        internal static FB_ThreadsRead _parse(Session session, JToken data)
         {
             var author = new FB_User(session.user.uid, session);
             var threads = data?.get("threadKeys")?.Select(x => FB_ThreadEvent._get_thread(session, new JObject() { { "threadKey", x } }));
@@ -191,7 +191,7 @@ namespace fbchat_sharp.API
         /// When the message was sent
         public long at { get; set; }
 
-        internal static new FB_MessageEvent _parse(Session session, JToken data)
+        internal static FB_MessageEvent _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_MessageEvent._parse_metadata(session, data);
             var message = FB_Message._from_pull(data, thread: thread, author: author.uid, timestamp: at.ToString());
@@ -219,7 +219,7 @@ namespace fbchat_sharp.API
         /// The folder/location
         public string folder { get; set; }
 
-        internal static new FB_ThreadFolder _parse(Session session, JToken data)
+        internal static FB_ThreadFolder _parse(Session session, JToken data)
         {
             var thread = FB_ThreadEvent._get_thread(session, data);
             var folder = data?.get("folder")?.Value<string>();

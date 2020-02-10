@@ -16,7 +16,7 @@ namespace fbchat_sharp.API
         /// If `null`, the reaction was removed.
         public string reaction { get; set; }
 
-        internal static new FB_ReactionEvent _parse(Session session, JToken data)
+        internal static FB_ReactionEvent _parse(Session session, JToken data)
         {
             var thread = FB_ReactionEvent._get_thread(session, data);
             return new FB_ReactionEvent()
@@ -37,7 +37,7 @@ namespace fbchat_sharp.API
         /// Whether the user was blocked or unblocked
         public bool blocked { get; set; }
 
-        internal static new FB_UserStatusEvent _parse(Session session, JToken data)
+        internal static FB_UserStatusEvent _parse(Session session, JToken data)
         {
             return new FB_UserStatusEvent()
             {
@@ -55,7 +55,7 @@ namespace fbchat_sharp.API
     {
         /// TODO: This!
 
-        internal static new FB_LiveLocationEvent _parse(Session session, JToken data)
+        internal static FB_LiveLocationEvent _parse(Session session, JToken data)
         {
             var thread = FB_LiveLocationEvent._get_thread(session, data);
 
@@ -80,7 +80,7 @@ namespace fbchat_sharp.API
         /// When the message was unsent
         public long at { get; set; }
 
-        internal static new FB_UnsendEvent _parse(Session session, JToken data)
+        internal static FB_UnsendEvent _parse(Session session, JToken data)
         {
             var thread = FB_UnsendEvent._get_thread(session, data);
             long.TryParse(data?.get("deletionTimestamp")?.Value<string>(), out long at);
@@ -105,7 +105,7 @@ namespace fbchat_sharp.API
         /// he message that was replied to
         public FB_Message replied_to { get; set; }
 
-        internal static new FB_MessageReplyEvent _parse(Session session, JToken data)
+        internal static FB_MessageReplyEvent _parse(Session session, JToken data)
         {
             var thread = FB_MessageReplyEvent._get_thread(session, data);
             var metadata = data?.get("message")?.get("messageMetadata");

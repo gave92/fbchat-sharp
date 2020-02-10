@@ -14,7 +14,7 @@ namespace fbchat_sharp.API
         /// When the color was set
         public long at { get; set; }
 
-        internal static new FB_ColorSet _parse(Session session, JToken data)
+        internal static FB_ColorSet _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_ColorSet._parse_metadata(session, data);
             var color = ThreadColor._from_graphql(data?.get("untypedData")?.get("theme_color"));
@@ -38,7 +38,7 @@ namespace fbchat_sharp.API
         /// When the color was set
         public long at { get; set; }
 
-        internal static new FB_EmojiSet _parse(Session session, JToken data)
+        internal static FB_EmojiSet _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_EmojiSet._parse_metadata(session, data);
             var emoji = data?.get("untypedData")?.get("thread_icon")?.Value<string>();
@@ -64,7 +64,7 @@ namespace fbchat_sharp.API
         /// When the nickname was set
         public long at { get; set; }
 
-        internal static new FB_NicknameSet _parse(Session session, JToken data)
+        internal static FB_NicknameSet _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_NicknameSet._parse_metadata(session, data);
             var subject = new FB_User(data?.get("untypedData")?.get("participant_id")?.Value<string>(), session);
@@ -90,7 +90,7 @@ namespace fbchat_sharp.API
         /// When the admins were added
         public long at { get; set; }
 
-        internal static new FB_AdminsAdded _parse(Session session, JToken data)
+        internal static FB_AdminsAdded _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_AdminsAdded._parse_metadata(session, data);
             var target = new FB_User(data?.get("untypedData")?.get("TARGET_ID")?.Value<string>(), session);
@@ -114,7 +114,7 @@ namespace fbchat_sharp.API
         /// When the admins were removed
         public long at { get; set; }
 
-        internal static new FB_AdminsRemoved _parse(Session session, JToken data)
+        internal static FB_AdminsRemoved _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_AdminsRemoved._parse_metadata(session, data);
             var target = new FB_User(data?.get("untypedData")?.get("TARGET_ID")?.Value<string>(), session);
@@ -138,7 +138,7 @@ namespace fbchat_sharp.API
         /// When the approval mode was set
         public long at { get; set; }
 
-        internal static new FB_ApprovalModeSet _parse(Session session, JToken data)
+        internal static FB_ApprovalModeSet _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_ApprovalModeSet._parse_metadata(session, data);
             var approval_mode = long.Parse(data?.get("untypedData")?.get("APPROVAL_MODE")?.Value<string>()) != 0;
@@ -160,7 +160,7 @@ namespace fbchat_sharp.API
         /// When the call was started
         public long at { get; set; }
 
-        internal static new FB_CallStarted _parse(Session session, JToken data)
+        internal static FB_CallStarted _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_CallStarted._parse_metadata(session, data);
             return new FB_CallStarted()
@@ -182,7 +182,7 @@ namespace fbchat_sharp.API
         /// When the call ended
         public long at { get; set; }
 
-        internal static new FB_CallEnded _parse(Session session, JToken data)
+        internal static FB_CallEnded _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_CallEnded._parse_metadata(session, data);
             long call_duration = long.Parse(data?.get("untypedData")?.get("call_duration")?.Value<string>());
@@ -204,7 +204,7 @@ namespace fbchat_sharp.API
         /// When the call was joined
         public long at { get; set; }
 
-        internal static new FB_CallJoined _parse(Session session, JToken data)
+        internal static FB_CallJoined _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_CallJoined._parse_metadata(session, data);
             return new FB_CallJoined()
@@ -226,7 +226,7 @@ namespace fbchat_sharp.API
         /// When the pall was created
         public long at { get; set; }
 
-        internal static new FB_PollCreated _parse(Session session, JToken data)
+        internal static FB_PollCreated _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_PollCreated._parse_metadata(session, data);
             var poll_json = JToken.Parse(data?.get("untypedData")?.get("question_json")?.Value<string>());
@@ -255,7 +255,7 @@ namespace fbchat_sharp.API
         /// When the pall was voted in
         public long at { get; set; }
 
-        internal static new FB_PollVoted _parse(Session session, JToken data)
+        internal static FB_PollVoted _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_PollVoted._parse_metadata(session, data);
             var poll_json = JToken.Parse(data?.get("untypedData")?.get("question_json")?.Value<string>());
@@ -284,7 +284,7 @@ namespace fbchat_sharp.API
         /// When the plan was created
         public long at { get; set; }
 
-        internal static new FB_PlanCreated _parse(Session session, JToken data)
+        internal static FB_PlanCreated _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_PlanCreated._parse_metadata(session, data);
             var plan = FB_Plan._from_pull(data?.get("untypedData"), session);
@@ -308,7 +308,7 @@ namespace fbchat_sharp.API
         /// When the plan ended
         public long at { get; set; }
 
-        internal static new FB_PlanEnded _parse(Session session, JToken data)
+        internal static FB_PlanEnded _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_PlanEnded._parse_metadata(session, data);
             var plan = FB_Plan._from_pull(data?.get("untypedData"), session);
@@ -332,7 +332,7 @@ namespace fbchat_sharp.API
         /// When the plan was updated
         public long at { get; set; }
 
-        internal static new FB_PlanEdited _parse(Session session, JToken data)
+        internal static FB_PlanEdited _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_PlanEdited._parse_metadata(session, data);
             var plan = FB_Plan._from_pull(data?.get("untypedData"), session);
@@ -356,7 +356,7 @@ namespace fbchat_sharp.API
         /// When the plan was removed
         public long at { get; set; }
 
-        internal static new FB_PlanDeleted _parse(Session session, JToken data)
+        internal static FB_PlanDeleted _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_PlanDeleted._parse_metadata(session, data);
             var plan = FB_Plan._from_pull(data?.get("untypedData"), session);
@@ -382,7 +382,7 @@ namespace fbchat_sharp.API
         /// When the user responded
         public long at { get; set; }
 
-        internal static new FB_PlanResponded _parse(Session session, JToken data)
+        internal static FB_PlanResponded _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_PlanResponded._parse_metadata(session, data);
             var plan = FB_Plan._from_pull(data?.get("untypedData"), session);
