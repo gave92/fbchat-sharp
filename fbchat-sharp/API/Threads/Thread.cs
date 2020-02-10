@@ -479,7 +479,7 @@ namespace fbchat_sharp.API
             }
 
             var read_receipts = j?.get("message_thread")?.get("read_receipts")?.get("nodes");
-            var messages = j?.get("message_thread")?.get("messages")?.get("nodes")?.Select(message => 
+            var messages = j?.get("message_thread")?.get("messages")?.get("nodes")?.Select(message =>
                 FB_Message._from_graphql(message, this, read_receipts))?.Reverse()?.ToList();
 
             return messages;
@@ -496,42 +496,42 @@ namespace fbchat_sharp.API
              * :return: `ImageAttachment` or `VideoAttachment`.
              * :rtype: iterable
              * */
-            return new AsyncEnumerable<(string cursor,FB_Attachment attachment)>(async yield =>
-            {
-                var data = new Dictionary<string, object>() {
+            return new AsyncEnumerable<(string cursor, FB_Attachment attachment)>(async yield =>
+             {
+                 var data = new Dictionary<string, object>() {
                     { "id", this.uid },
                     { "limit", limit },
                     { "after", after }
-                };
+                 };
 
-                var j = await this.session.graphql_request(GraphQL.from_query_id("515216185516880", data));
-                if (j?.get(this.uid) == null)
-                    throw new FBchatException("Could not find images");
+                 var j = await this.session.graphql_request(GraphQL.from_query_id("515216185516880", data));
+                 if (j?.get(this.uid) == null)
+                     throw new FBchatException("Could not find images");
 
-                var result = j.get(this.uid).get("message_shared_media");
+                 var result = j.get(this.uid).get("message_shared_media");
 
-                foreach (var edge in result?.get("edges"))
-                {
-                    var node = edge?.get("node");
-                    var type_ = node?.get("__typename");
+                 foreach (var edge in result?.get("edges"))
+                 {
+                     var node = edge?.get("node");
+                     var type_ = node?.get("__typename");
 
-                    if (type_?.Value<string>() == "MessageImage")
-                    {
-                        await yield.ReturnAsync((result?.get("page_info")?.get("end_cursor")?.Value<string>(), 
-                            FB_ImageAttachment._from_list(node)));
-                    }                        
-                    else if (type_?.Value<string>() == "MessageVideo")
-                    {
-                        await yield.ReturnAsync((result?.get("page_info")?.get("end_cursor")?.Value<string>(), 
-                            FB_VideoAttachment._from_list(node)));
-                    }                        
-                    else
-                    {
-                        Debug.WriteLine($"Unknown image type {type_}, data: {edge.ToString()}");
-                        continue;
-                    }
-                }
-            });
+                     if (type_?.Value<string>() == "MessageImage")
+                     {
+                         await yield.ReturnAsync((result?.get("page_info")?.get("end_cursor")?.Value<string>(),
+                             FB_ImageAttachment._from_list(node)));
+                     }
+                     else if (type_?.Value<string>() == "MessageVideo")
+                     {
+                         await yield.ReturnAsync((result?.get("page_info")?.get("end_cursor")?.Value<string>(),
+                             FB_VideoAttachment._from_list(node)));
+                     }
+                     else
+                     {
+                         Debug.WriteLine($"Unknown image type {type_}, data: {edge.ToString()}");
+                         continue;
+                     }
+                 }
+             });
         }
 
         /// <summary>
@@ -738,36 +738,12 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Changes title of a thread.
-        /// If this is executed on a user thread, this will change the nickname of that user, effectively changing the title
-        /// </summary>
-        /// <param name="title">New group thread title</param>
-        /// <returns></returns>
-        public async Task changeTitle(string title)
-        {
-            /*
-             * Changes title of a thread.
-             * If this is executed on a user thread, this will change the nickname of that user, effectively changing the title
-             * :param title: New group thread title
-             * : raises: FBchatException if request failed
-             * */
-            if (this is FB_User)
-                // The thread is a user, so we change the user's nickname
-                await this.setNickname(title, this.uid);
-
-            var data = new Dictionary<string, object>() { { "thread_name", title }, { "thread_id", this.uid } };
-            var j = await this.session._payload_post("/messaging/set_thread_name/?dpr=1", data);
-        }
-
-        /// <summary>
         /// Changes the nickname of a user in a thread
         /// </summary>
-        /// <param name="nickname">New nickname</param>
+        /// <param name="nickname">New nickname. If ``None``, the nickname will be cleared</param>
         /// <param name="user_id">User that will have their nickname changed</param>
         /// <returns></returns>
-        public async Task setNickname(
-            string nickname, string user_id
-        )
+        public async Task<FB_NicknameSet> setNickname(string nickname, string user_id)
         {
             /*
              * Changes the nickname of a user in a thread
@@ -782,6 +758,14 @@ namespace fbchat_sharp.API
             };
             var j = await this.session._payload_post(
                 "/messaging/save_thread_nickname/?source=thread_settings&dpr=1", data);
+            return new FB_NicknameSet()
+            {
+                author = this.session.user,
+                thread = this._copy(),
+                subject = new FB_User(session: this.session, uid: user_id),
+                nickname = nickname,
+                at = Utils.now(),
+            };
         }
 
         /// <summary>
@@ -931,14 +915,14 @@ namespace fbchat_sharp.API
             };
         }
 
-        private FB_Thread _copy()
+        internal virtual FB_Thread _copy()
         {
             return new FB_Thread(session: this.session, uid: this.uid);
         }
 
         internal static async Task _delete_many(Session session, IEnumerable<string> thread_ids)
         {
-            var uthread_ids = Utils.require_list<string>(thread_ids);            
+            var uthread_ids = Utils.require_list<string>(thread_ids);
             var data = new Dictionary<string, object>();
             foreach (var obj in uthread_ids.Select((x, index) => new { thread_id = x, i = index }))
             {

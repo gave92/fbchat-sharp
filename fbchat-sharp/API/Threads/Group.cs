@@ -70,6 +70,11 @@ namespace fbchat_sharp.API
 
         }
 
+        internal override FB_Thread _copy()
+        {
+            return new FB_Group(session: this.session, uid: this.uid);
+        }
+
         internal static FB_Group _from_graphql(Session session, JToken data)
         {
             if (data.get("image") == null)
@@ -277,6 +282,30 @@ namespace fbchat_sharp.API
              * :raises: FBchatException if request failed
              * */
             await this._usersApproval(user_ids, false);
+        }
+
+        /// <summary>
+        /// Changes title of a thread.
+        /// </summary>
+        /// <param name="title">New group thread title</param>
+        /// <returns></returns>
+        public async Task<FB_TitleSet> changeTitle(string title)
+        {
+            /*
+             * Changes title of a thread.
+             * If this is executed on a user thread, this will change the nickname of that user, effectively changing the title
+             * :param title: New group thread title
+             * : raises: FBchatException if request failed
+             * */
+            var data = new Dictionary<string, object>() { { "thread_name", title }, { "thread_id", this.uid } };
+            var j = await this.session._payload_post("/messaging/set_thread_name/?dpr=1", data);
+            return new FB_TitleSet()
+            {
+                author = this.session.user,
+                thread = this._copy() as FB_Group,
+                title = title,
+                at = Utils.now()
+            };
         }
 
         /// <summary>

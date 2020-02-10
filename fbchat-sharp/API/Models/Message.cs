@@ -605,9 +605,13 @@ namespace fbchat_sharp.API
             var j = await session._payload_post("/ajax/mercury/delete_messages.php?dpr=1", data);
         }
 
+        /// <summary>
+        /// TODO: Implement this...
+        /// </summary>
+        /// <returns></returns>
         public async Task fetch()
         {
-            // TODO: This
+            await Task.Yield();
             throw new NotImplementedException();
         }
 

@@ -112,6 +112,11 @@ namespace fbchat_sharp.API
 
         }
 
+        internal override FB_Thread _copy()
+        {
+            return new FB_User(session: this.session, uid: this.uid);
+        }
+
         /// <returns>Pretty string representation of the thread</returns>
         public override string ToString()
         {

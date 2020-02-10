@@ -53,6 +53,11 @@ namespace fbchat_sharp.API
 
         }
 
+        internal override FB_Thread _copy()
+        {
+            return new FB_Page(session: this.session, uid: this.uid);
+        }
+
         internal static FB_Page _from_graphql(Session session, JToken data)
         {
             if (data.get("profile_picture") == null)

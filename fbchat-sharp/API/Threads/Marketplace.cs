@@ -68,6 +68,11 @@ namespace fbchat_sharp.API
 
         }
 
+        internal override FB_Thread _copy()
+        {
+            return new FB_Marketplace(session: this.session, uid: this.uid);
+        }
+
         internal static FB_Marketplace _from_graphql(Session session, JToken data)
         {
             if (data.get("image") == null)

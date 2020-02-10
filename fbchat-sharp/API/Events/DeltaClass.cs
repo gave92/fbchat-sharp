@@ -28,7 +28,8 @@ namespace fbchat_sharp.API
             {
                 author = author,
                 thread = thread as FB_Group,
-                added = added.ToList()
+                added = added.ToList(),
+                at = at
             };
         }
 
@@ -38,7 +39,8 @@ namespace fbchat_sharp.API
             {
                 author = thread.session.user,
                 thread = thread as FB_Group,
-                added = added_ids?.Select(x => new FB_User(x, thread.session)).ToList()
+                added = added_ids?.Select(x => new FB_User(x, thread.session)).ToList(),
+                at = Utils.now()
             };
         }
 
@@ -49,7 +51,8 @@ namespace fbchat_sharp.API
             {
                 author = thread.session.user,
                 thread = thread as FB_Group,
-                added = data?.get("participants_added")?.Select(x => new FB_User(x?.get("id")?.Value<string>(), thread.session)).ToList()
+                added = data?.get("participants_added")?.Select(x => new FB_User(x?.get("id")?.Value<string>(), thread.session)).ToList(),
+                at = at
             };
         }
     }
@@ -77,7 +80,8 @@ namespace fbchat_sharp.API
             {
                 author = author,
                 thread = thread as FB_Group,
-                removed = removed
+                removed = removed,
+                at = at
             };
         }
 
@@ -87,7 +91,8 @@ namespace fbchat_sharp.API
             {
                 author = thread.session.user,
                 thread = thread as FB_Group,
-                removed = new FB_User(removed_id, thread.session)
+                removed = new FB_User(removed_id, thread.session),
+                at = Utils.now()
             };
         }
 
@@ -99,7 +104,8 @@ namespace fbchat_sharp.API
             {
                 author = author,
                 thread = thread as FB_Group,
-                removed = removed
+                removed = removed,
+                at = at
             };
         }
     }
@@ -113,7 +119,7 @@ namespace fbchat_sharp.API
 
         /// Thread that the action was done in
         public new FB_Group thread { get; set; }
-        /// The new title
+        /// The new title. If ``None``, the title is cleared
         public string title { get; set; }
         /// When the title was set
         public long at { get; set; }
@@ -126,7 +132,21 @@ namespace fbchat_sharp.API
             {
                 author = author,
                 thread = thread as FB_Group,
-                title = data?.get("name")?.Value<string>()
+                title = data?.get("name")?.Value<string>(),
+                at = at
+            };
+        }
+
+        internal static FB_TitleSet _from_fetch(FB_Thread thread, JToken data)
+        {
+            (FB_User author, long at) = FB_TitleSet._parse_fetch(thread.session, data);
+
+            return new FB_TitleSet()
+            {
+                author = author,
+                thread = thread as FB_Group,
+                title = data?.get("thread_name")?.Value<string>(),
+                at = at
             };
         }
     }

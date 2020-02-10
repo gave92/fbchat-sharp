@@ -104,6 +104,22 @@ namespace fbchat_sharp.API
                 at = at
             };
         }
+
+        internal static FB_NicknameSet _from_fetch(FB_Thread thread, JToken data)
+        {
+            (FB_User author, long at) = FB_NicknameSet._parse_fetch(thread.session, data);
+            var extra = data?.get("extensible_message_admin_text");
+            var subject = new FB_User(extra?.get("participant_id")?.Value<string>(), thread.session);
+            var nickname = extra?.get("nickname")?.Value<string>();
+            return new FB_NicknameSet()
+            {
+                author = author,
+                thread = thread,
+                subject = subject,
+                nickname = nickname,
+                at = at
+            };
+        }
     }
 
     /// <summary>
