@@ -46,7 +46,7 @@ namespace fbchat_sharp.API
         public const string DARK_TANGERINE = "#ff9c19";
         public const string BRIGHT_TURQUOISE = "#0edcde";
 
-        public static string _from_graphql(JToken data)
+        internal static string _from_graphql(JToken data)
         {
             if (data == null)
                 return null;
@@ -105,7 +105,7 @@ namespace fbchat_sharp.API
             this.plan = plan;
         }
 
-        public static FB_Thread _from_metadata(JToken msg_metadata, Session session)
+        internal static FB_Thread _from_metadata(JToken msg_metadata, Session session)
         {
             /*Returns a tuple consisting of thread ID and thread type*/
             string id_thread = null;
@@ -122,7 +122,7 @@ namespace fbchat_sharp.API
             return new FB_User(id_thread, session);
         }
 
-        public static IEnumerable<FB_Thread> _parse_participants(JToken data, Session session)
+        internal static IEnumerable<FB_Thread> _parse_participants(JToken data, Session session)
         {
             foreach (var node in data?.get("nodes"))
             {
@@ -145,7 +145,7 @@ namespace fbchat_sharp.API
             }
         }
 
-        public static Dictionary<string, object> _parse_customization_info(JToken data)
+        internal static Dictionary<string, object> _parse_customization_info(JToken data)
         {
             var rtn = new Dictionary<string, object>();
             if (data == null || data.get("customization_info") == null)
@@ -186,13 +186,13 @@ namespace fbchat_sharp.API
             return rtn;
         }
 
-        public virtual Dictionary<string, object> _to_send_data()
+        internal virtual Dictionary<string, object> _to_send_data()
         {
             // TODO: Only implement this in subclasses
             return new Dictionary<string, object>() { { "other_user_fbid", this.uid } };
         }
 
-        public async Task<JToken> _forcedFetch(string mid)
+        internal async Task<JToken> _forcedFetch(string mid)
         {
             var param = new Dictionary<string, object>() { { "thread_and_message_id", new Dictionary<string, object>() { { "thread_id", this.uid }, { "message_id", mid } } } };
             return await this.session.graphql_request(GraphQL.from_doc_id("1768656253222505", param));
@@ -388,7 +388,7 @@ namespace fbchat_sharp.API
             return await this.session._do_send_request(data);
         }
 
-        public async Task<(int count, IEnumerable<FB_Message_Snippet> snippets)> _search_messages(string query, int offset = 0, int limit = 5)
+        private async Task<(int count, IEnumerable<FB_Message_Snippet> snippets)> _search_messages(string query, int offset = 0, int limit = 5)
         {
             var data = new Dictionary<string, object>() {
                 { "query", query },
@@ -902,8 +902,7 @@ namespace fbchat_sharp.API
         /// <summary>
         /// Mark a thread as spam and delete it
         /// </summary>
-        /// <returns>true</returns>
-        public async Task<bool> markAsSpam()
+        public async Task markAsSpam()
         {
             /*
              * Mark a thread as spam and delete it
@@ -911,7 +910,6 @@ namespace fbchat_sharp.API
              * :raises: FBchatException if request failed
              * */
             var j = await this.session._payload_post("/ajax/mercury/mark_spam.php?dpr=1", new Dictionary<string, object>() { { "id", this.uid } });
-            return true;
         }
 
         /// <summary>

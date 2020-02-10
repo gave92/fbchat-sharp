@@ -40,7 +40,7 @@ namespace fbchat_sharp.API
             this.address = address;
         }
 
-        public static FB_LocationAttachment _from_graphql(JToken data)
+        internal static FB_LocationAttachment _from_graphql(JToken data)
         {
             var url = data.get("url")?.Value<string>();
             var address = Utils.get_url_parameter(Utils.get_url_parameter(url, "u"), "where1");
@@ -105,7 +105,7 @@ namespace fbchat_sharp.API
             this.is_expired = is_expired;
         }
 
-        public static FB_LiveLocationAttachment _from_pull(JToken data)
+        internal static FB_LiveLocationAttachment _from_pull(JToken data)
         {
             return new FB_LiveLocationAttachment(
                 uid: data.get("id")?.Value<string>(),
@@ -116,7 +116,7 @@ namespace fbchat_sharp.API
                 is_expired: data.get("stopReason")?.Value<bool>() ?? false);
         }
 
-        public static new FB_LiveLocationAttachment _from_graphql(JToken data)
+        internal static new FB_LiveLocationAttachment _from_graphql(JToken data)
         {
             var target = data.get("target");
             var rtn = new FB_LiveLocationAttachment(

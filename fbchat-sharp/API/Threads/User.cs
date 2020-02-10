@@ -123,7 +123,7 @@ namespace fbchat_sharp.API
             return string.Format("<{0} {1} {2} ({3})>", this.GetType().Name, this.first_name, this.last_name, this.uid);
         }
 
-        public static FB_User _from_graphql(Session session, JToken data)
+        internal static FB_User _from_graphql(Session session, JToken data)
         {
             var c_info = FB_User._parse_customization_info(data);
 
@@ -167,7 +167,7 @@ namespace fbchat_sharp.API
                 plan: plan);
         }
 
-        public static FB_User _from_thread_fetch(Session session, JToken data)
+        internal static FB_User _from_thread_fetch(Session session, JToken data)
         {
             var c_info = FB_User._parse_customization_info(data);
             var participants = data.get("all_participants")?.get("nodes")?.Select(node => node.get("messaging_actor"));
@@ -215,7 +215,7 @@ namespace fbchat_sharp.API
                 plan: plan);
         }
 
-        public static FB_User _from_all_fetch(Session session, JToken data)
+        internal static FB_User _from_all_fetch(Session session, JToken data)
         {
             var gender = GENDER.graphql_GENDERS["UNKNOWN"];
             if (data.get("gender")?.Type == JTokenType.Integer)
@@ -257,8 +257,7 @@ namespace fbchat_sharp.API
         /// <summary>
         /// Removes a specifed friend from your friend list
         /// </summary>
-        /// <returns>true</returns>
-        public async Task<bool> removeFriend()
+        public async Task removeFriend()
         {
             /*
              * Removes a specifed friend from your friend list
@@ -268,14 +267,12 @@ namespace fbchat_sharp.API
              * */
             var data = new Dictionary<string, object> { { "uid", this.uid } };
             var j = await this.session._payload_post("/ajax/profile/removefriendconfirm.php", data);
-            return true;
         }
 
         /// <summary>
         /// Blocks messages from a specifed user
         /// </summary>
-        /// <returns>true</returns>
-        public async Task<bool> block()
+        public async Task block()
         {
             /*
              * Blocks messages from a specifed user
@@ -285,14 +282,13 @@ namespace fbchat_sharp.API
              * */
             var data = new Dictionary<string, object> { { "fbid", this.uid } };
             var j = await this.session._payload_post("/messaging/block_messages/?dpr=1", data);
-            return true;
         }
 
         /// <summary>
         /// The ID of the user that you want to block
         /// </summary>
         /// <returns>Whether the request was successful</returns>
-        public async Task<bool> unblock()
+        public async Task unblock()
         {
             /*
              * Unblocks messages from a blocked user
@@ -302,7 +298,6 @@ namespace fbchat_sharp.API
              * */
             var data = new Dictionary<string, object> { { "fbid", this.uid } };
             var j = await this.session._payload_post("/messaging/unblock_messages/?dpr=1", data);
-            return true;
         }
     }
 
@@ -324,14 +319,14 @@ namespace fbchat_sharp.API
         /// <param name="active"></param>
         /// <param name="last_active"></param>
         /// <param name="in_game"></param>
-        public FB_ActiveStatus(bool active = false, string last_active = null, bool in_game = false)
+        internal FB_ActiveStatus(bool active = false, string last_active = null, bool in_game = false)
         {
             this.active = active;
             this.last_active = last_active;
             this.in_game = in_game;
         }
 
-        public static FB_ActiveStatus _from_chatproxy_presence(string id_, JToken data)
+        internal static FB_ActiveStatus _from_chatproxy_presence(string id_, JToken data)
         {
             return new FB_ActiveStatus(
                 active: new int[] { 2, 3 }.Contains(data.get("p")?.Value<int>() ?? 0),
@@ -339,7 +334,7 @@ namespace fbchat_sharp.API
                 in_game: data.get("gamers")?.ToObject<List<string>>()?.Contains(id_) ?? false);
         }
 
-        public static FB_ActiveStatus _from_buddylist_overlay(JToken data, bool in_game = false)
+        internal static FB_ActiveStatus _from_buddylist_overlay(JToken data, bool in_game = false)
         {
             return new FB_ActiveStatus(
                 active: new int[] { 2, 3 }.Contains(data.get("a")?.Value<int>() ?? 0),
@@ -347,7 +342,7 @@ namespace fbchat_sharp.API
                 in_game: in_game);
         }
 
-        public static FB_ActiveStatus _from_buddylist_update(JToken data)
+        internal static FB_ActiveStatus _from_buddylist_update(JToken data)
         {
             return new FB_ActiveStatus(
                 active: new int[] { 0 }.Contains(data.get("status")?.Value<int>() ?? -1),
@@ -355,7 +350,7 @@ namespace fbchat_sharp.API
                 in_game: false);
         }
 
-        public static FB_ActiveStatus _from_orca_presence(JToken data, bool in_game = false)
+        internal static FB_ActiveStatus _from_orca_presence(JToken data, bool in_game = false)
         {
             return new FB_ActiveStatus(
                 active: new int[] { 2, 3 }.Contains(data.get("p")?.Value<int>() ?? 0),

@@ -23,7 +23,7 @@ namespace fbchat_sharp.API
         SMALL
     }
 
-    public class EmojiSizeMethods
+    internal class EmojiSizeMethods
     {
         public static EmojiSize? _from_tags(List<string> tags)
         {
@@ -43,7 +43,7 @@ namespace fbchat_sharp.API
     /// </summary>
     public class FB_Message_Constants
     {
-        public static readonly Dictionary<string, EmojiSize> LIKES = new Dictionary<string, EmojiSize>() {
+        internal static readonly Dictionary<string, EmojiSize> LIKES = new Dictionary<string, EmojiSize>() {
             { "large", EmojiSize.LARGE },
             { "medium", EmojiSize.MEDIUM },
             { "small", EmojiSize.SMALL },
@@ -52,6 +52,9 @@ namespace fbchat_sharp.API
             { "s", EmojiSize.SMALL }
         };
 
+        /// <summary>
+        /// Possible reactions to send. See FB_Message.react
+        /// </summary>
         public static readonly List<string> SENDABLE_REACTIONS = new List<string>() {
             "❤", "😍", "😆", "😮", "😢", "😠", "👍", "👎"
         };
@@ -93,7 +96,7 @@ namespace fbchat_sharp.API
             return string.Format("<Mention {0}: offset={1} length={2}>", this.thread_id, this.offset, this.length);
         }
 
-        public static FB_Mention _from_range(JToken data)
+        internal static FB_Mention _from_range(JToken data)
         {
             return new FB_Mention(
                 thread_id: data?.get("entity")?.get("id")?.Value<string>(),
@@ -102,7 +105,7 @@ namespace fbchat_sharp.API
             );
         }
 
-        public static FB_Mention _from_prng(JToken data)
+        internal static FB_Mention _from_prng(JToken data)
         {
             return new FB_Mention(
                 thread_id: data?.get("i")?.Value<string>(),
@@ -111,7 +114,7 @@ namespace fbchat_sharp.API
             );
         }
 
-        public Dictionary<string, object> _to_send_data(int i)
+        internal Dictionary<string, object> _to_send_data(int i)
         {
             var data = new Dictionary<string, object>();
             data[string.Format("profile_xmd[{0}][id]", i)] = this.thread_id;
@@ -232,14 +235,14 @@ namespace fbchat_sharp.API
             throw new NotImplementedException();
         }
 
-        public static bool _get_forwarded_from_tags(List<string> tags)
+        internal static bool _get_forwarded_from_tags(List<string> tags)
         {
             if (tags == null)
                 return false;
             return tags.Any((tag) => tag.Contains("forward") || tag.Contains("copy"));
         }
 
-        public Dictionary<string, object> _to_send_data()
+        internal Dictionary<string, object> _to_send_data()
         {
             var data = new Dictionary<string, object>();
 
@@ -319,7 +322,7 @@ namespace fbchat_sharp.API
             return FB_Message._from_graphql(message_info, thread);
         }
 
-        public static FB_Message _from_graphql(JToken data, FB_Thread thread, JToken read_receipts = null)
+        internal static FB_Message _from_graphql(JToken data, FB_Thread thread, JToken read_receipts = null)
         {
             if (data["message_sender"] == null)
                 data["message_sender"] = new JObject(new JProperty("id", 0));
@@ -397,7 +400,7 @@ namespace fbchat_sharp.API
             return rtn;
         }
 
-        public static FB_Message _from_reply(JToken data, FB_Thread thread)
+        internal static FB_Message _from_reply(JToken data, FB_Thread thread)
         {
             var tags = data.get("messageMetadata")?.get("tags")?.ToObject<List<string>>();
 
@@ -450,7 +453,7 @@ namespace fbchat_sharp.API
             return rtn;
         }
 
-        public static FB_Message _from_pull(JToken data, FB_Thread thread, string author = null, string timestamp = null)
+        internal static FB_Message _from_pull(JToken data, FB_Thread thread, string author = null, string timestamp = null)
         {
             var metadata = data?.get("messageMetadata");
             var tags = metadata?.get("tags")?.ToObject<List<string>>();
@@ -618,7 +621,7 @@ namespace fbchat_sharp.API
             this.matched_keywords = matched_keywords;
         }
 
-        public static FB_Message_Snippet _parse(JToken data, FB_Thread thread)
+        internal static FB_Message_Snippet _parse(JToken data, FB_Thread thread)
         {
             return new FB_Message_Snippet(
                 session: thread.session,

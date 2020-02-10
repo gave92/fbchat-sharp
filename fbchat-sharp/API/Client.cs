@@ -12,7 +12,7 @@ namespace fbchat_sharp.API
     /// <summary>
     /// 
     /// </summary>
-    public class Client_Constants
+    internal class Client_Constants
     {
         public static readonly Dictionary<string, object> ACONTEXT = new Dictionary<string, object>()
         {
@@ -785,8 +785,7 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="thread_id">User/Group ID to which the message belongs.See :ref:`intro_threads`</param>
         /// <param name="message_id">Message ID to set as delivered.See :ref:`intro_threads`</param>
-        /// <returns>true</returns>
-        public async Task<bool> markAsDelivered(string thread_id, string message_id)
+        public async Task markAsDelivered(string thread_id, string message_id)
         {
             /*
              * Mark a message as delivered
@@ -800,7 +799,6 @@ namespace fbchat_sharp.API
             {string.Format("thread_ids[{0}][0]",thread_id), message_id}};
 
             var j = await this._session._payload_post("/ajax/mercury/delivery_receipts.php", data);
-            return true;
         }
 
         private async Task _readStatus(bool read, List<string> thread_ids, long? timestamp = null)
@@ -868,8 +866,7 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="location">ThreadLocation: INBOX, PENDING, ARCHIVED or OTHER</param>
         /// <param name="thread_ids">Thread IDs to move.See :ref:`intro_threads`</param>
-        /// <returns>true</returns>
-        public async Task<bool> moveThreads(string location, List<string> thread_ids)
+        public async Task moveThreads(string location, List<string> thread_ids)
         {
             /*
              * Moves threads to specifed location
@@ -906,15 +903,13 @@ namespace fbchat_sharp.API
                     data[string.Format("{0}[{1}]", location.ToLower(), obj.i)] = obj.thread_id;
                 var j = await this._session._payload_post("/ajax/mercury/move_thread.php", data);
             }
-            return true;
         }
 
         /// <summary>
         /// Deletes threads
         /// </summary>
         /// <param name="thread_ids">Thread IDs to delete. See :ref:`intro_threads`</param>
-        /// <returns>true</returns>
-        public async Task<bool> deleteThreads(List<string> thread_ids)
+        public async Task deleteThreads(List<string> thread_ids)
         {
             /*
              * Deletes threads
@@ -937,15 +932,13 @@ namespace fbchat_sharp.API
             var j_delete = this._session._payload_post(
                 "/ajax/mercury/delete_thread.php?dpr=1", data_delete
             );
-            return true;
         }
 
         /// <summary>
         /// Deletes specifed messages
         /// </summary>
         /// <param name="message_ids">Message IDs to delete</param>
-        /// <returns>true</returns>
-        public async Task<bool> deleteMessages(List<string> message_ids)
+        public async Task deleteMessages(List<string> message_ids)
         {
             /*
              * Deletes specifed messages
@@ -958,7 +951,6 @@ namespace fbchat_sharp.API
             foreach (var obj in umessage_ids.Select((x, index) => new { message_id = x, i = index }))
                 data[string.Format("message_ids[{0}]", obj.i)] = obj.message_id;
             var j = await this._session._payload_post("/ajax/mercury/delete_messages.php?dpr=1", data);
-            return true;
         }
         #endregion
 

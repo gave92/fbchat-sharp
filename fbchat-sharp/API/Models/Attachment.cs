@@ -9,6 +9,9 @@ namespace fbchat_sharp.API
     /// </summary>
     public class FB_Attachment
     {
+        /// <summary>
+        /// Unique id of the attachmnt.
+        /// </summary>
         public string uid { get; set; }
 
         /// <summary>
@@ -20,7 +23,7 @@ namespace fbchat_sharp.API
             this.uid = uid;
         }
 
-        public static FB_Attachment graphql_to_attachment(JToken data)
+        internal static FB_Attachment graphql_to_attachment(JToken data)
         {
             var _type = data.get("__typename")?.Value<string>();
             if (new string[] { "MessageImage", "MessageAnimatedImage" }.Contains(_type))
@@ -45,7 +48,7 @@ namespace fbchat_sharp.API
             }
         }
 
-        public static FB_Attachment graphql_to_subattachment(JToken data)
+        internal static FB_Attachment graphql_to_subattachment(JToken data)
         {
             JToken target = data.get("target");
             string type = target != null ? target.get("__typename")?.Value<string>() : null;
@@ -54,7 +57,7 @@ namespace fbchat_sharp.API
             return null;
         }
 
-        public static FB_Attachment graphql_to_extensible_attachment(JToken data)
+        internal static FB_Attachment graphql_to_extensible_attachment(JToken data)
         {
             var story = data.get("story_attachment");
             if (story == null)
@@ -141,7 +144,7 @@ namespace fbchat_sharp.API
             this.attachments = attachments;
         }
 
-        public static FB_ShareAttachment _from_graphql(JToken data)
+        internal static FB_ShareAttachment _from_graphql(JToken data)
         {
             string url = data.get("url")?.Value<string>();
             FB_ShareAttachment rtn = new FB_ShareAttachment(

@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace fbchat_sharp.API
 {
-    public class GraphQL : Dictionary<string, object>
+    internal class GraphQL : Dictionary<string, object>
     {
         public static string queries_to_json(List<GraphQL> queries)
         {

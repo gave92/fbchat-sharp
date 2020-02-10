@@ -53,7 +53,7 @@ namespace fbchat_sharp.API
 
         }
 
-        public static FB_Page _from_graphql(Session session, JToken data)
+        internal static FB_Page _from_graphql(Session session, JToken data)
         {
             if (data.get("profile_picture") == null)
                 data["profile_picture"] = new JObject(new JProperty("uri", ""));

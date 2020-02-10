@@ -102,7 +102,7 @@ namespace fbchat_sharp.API
         /// Thread that the action was done in
         public FB_Thread thread { get; set; }
 
-        public static (FB_User author, FB_Thread thread, long at) _parse_metadata(Session session, JToken data)
+        internal static (FB_User author, FB_Thread thread, long at) _parse_metadata(Session session, JToken data)
         {
             var metadata = data?.get("messageMetadata");
             var author = new FB_User(session: session, uid: metadata?.get("actorFbId")?.Value<string>());
@@ -111,7 +111,7 @@ namespace fbchat_sharp.API
             return (author, thread, at);
         }
 
-        public static FB_Thread _get_thread(Session session, JToken data)
+        internal static FB_Thread _get_thread(Session session, JToken data)
         {
             // TODO: Handle pages? Is it even possible?
             var key = data?.get("threadKey");

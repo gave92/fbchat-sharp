@@ -70,7 +70,7 @@ namespace fbchat_sharp.API
 
         }
 
-        public static FB_Group _from_graphql(Session session, JToken data)
+        internal static FB_Group _from_graphql(Session session, JToken data)
         {
             if (data.get("image") == null)
                 data["image"] = new JObject(new JProperty("uri", ""));
@@ -96,7 +96,7 @@ namespace fbchat_sharp.API
                 plan: plan);
         }
 
-        public override Dictionary<string, object> _to_send_data()
+        internal override Dictionary<string, object> _to_send_data()
         {
             return new Dictionary<string, object>() { { "thread_fbid", this.uid } };
         }

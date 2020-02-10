@@ -38,7 +38,7 @@ namespace fbchat_sharp.API
             this.uid = uid;
         }
 
-        public static FB_Poll _from_graphql(JToken data, Session session)
+        internal static FB_Poll _from_graphql(JToken data, Session session)
         {
             return new FB_Poll(
                 session: session,
@@ -144,7 +144,7 @@ namespace fbchat_sharp.API
             this.uid = uid;
         }
 
-        public static FB_PollOption _from_graphql(JToken data)
+        internal static FB_PollOption _from_graphql(JToken data)
         {
             bool vote = false;
             if (data.get("viewer_has_voted") == null)

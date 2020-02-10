@@ -29,11 +29,15 @@ namespace fbchat_sharp.API
         /// The sticker's label/name
         public string label { get; set; }
 
+        /// <summary>
+        /// Represents a Facebook sticker that has been sent to a Facebook thread as an attachment
+        /// </summary>
+        /// <param name="uid"></param>
         public FB_Sticker(string uid = null) : base(uid)
         {
         }
 
-        public static FB_Sticker _from_graphql(JToken data)
+        internal static FB_Sticker _from_graphql(JToken data)
         {
             if (data == null)
             {

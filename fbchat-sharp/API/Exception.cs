@@ -34,6 +34,10 @@ namespace fbchat_sharp.API
             this.Data.Add("data", data);
         }
 
+        /// <summary>
+        /// Returns a string representation of the current exception.
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
             var msg = "{0}. Please report this, along with the data below!\n{1}";

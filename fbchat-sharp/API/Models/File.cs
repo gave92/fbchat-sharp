@@ -16,6 +16,12 @@ namespace fbchat_sharp.API
         /// Local or remote file type
         public string mimetype { get; set; }
 
+        /// <summary>
+        /// Facebook messenger file class
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="path"></param>
+        /// <param name="mimetype"></param>
         public FB_File(Stream data = null, string path = null, string mimetype = null)
         {
             this.data = data;
@@ -54,7 +60,7 @@ namespace fbchat_sharp.API
             this.is_malicious = is_malicious;
         }
 
-        public static FB_FileAttachment _from_graphql(JToken data)
+        internal static FB_FileAttachment _from_graphql(JToken data)
         {
             return new FB_FileAttachment(
                 url: data.get("url")?.Value<string>(),
@@ -96,7 +102,7 @@ namespace fbchat_sharp.API
             this.audio_type = audio_type;
         }
 
-        public static FB_AudioAttachment _from_graphql(JToken data)
+        internal static FB_AudioAttachment _from_graphql(JToken data)
         {
             return new FB_AudioAttachment(
                 filename: data.get("filename")?.Value<string>(),
@@ -156,7 +162,7 @@ namespace fbchat_sharp.API
             this.animated_preview = animated_preview;
         }
 
-        public static FB_ImageAttachment _from_graphql(JToken data)
+        internal static FB_ImageAttachment _from_graphql(JToken data)
         {
             return new FB_ImageAttachment(
                     original_extension: data.get("original_extension")?.Value<string>() ?? data.get("filename")?.Value<string>()?.Split('-')[0],
@@ -170,7 +176,7 @@ namespace fbchat_sharp.API
                     uid: data.get("legacy_attachment_id")?.Value<string>());
         }
 
-        public static FB_ImageAttachment _from_list(JToken data)
+        internal static FB_ImageAttachment _from_list(JToken data)
         {
             return new FB_ImageAttachment(
                 width: data?.get("original_dimensions")?.get("x")?.Value<int>() ?? 0,
@@ -230,7 +236,7 @@ namespace fbchat_sharp.API
             this.large_image = large_image;
         }
 
-        public static FB_VideoAttachment _from_graphql(JToken data)
+        internal static FB_VideoAttachment _from_graphql(JToken data)
         {
             return new FB_VideoAttachment(
                     width: data.get("original_dimensions")?.get("width")?.Value<int>() ?? 0,
@@ -243,7 +249,7 @@ namespace fbchat_sharp.API
                     uid: data.get("legacy_attachment_id")?.Value<string>());
         }
 
-        public static FB_VideoAttachment _from_list(JToken data)
+        internal static FB_VideoAttachment _from_list(JToken data)
         {
             return new FB_VideoAttachment(
                 width: data?.get("original_dimensions")?.get("x")?.Value<int>() ?? 0,
@@ -255,7 +261,7 @@ namespace fbchat_sharp.API
             );
         }
 
-        public static FB_VideoAttachment _from_subattachment(JToken data)
+        internal static FB_VideoAttachment _from_subattachment(JToken data)
         {
             JToken media = data.get("media");
             return new FB_VideoAttachment(

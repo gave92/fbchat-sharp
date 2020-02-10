@@ -269,6 +269,10 @@ namespace fbchat_sharp.API
             }
         }
 
+        /// <summary>
+        /// Get session coookies
+        /// </summary>
+        /// <returns></returns>
         public Dictionary<string, List<Cookie>> get_cookies()
         {
             return this._session.GetAllCookies();
@@ -345,6 +349,14 @@ namespace fbchat_sharp.API
             return payload;
         }
 
+        /// <summary>
+        /// Logins using username and password
+        /// </summary>
+        /// <param name="email"></param>
+        /// <param name="password"></param>
+        /// <param name="on_2fa_callback"></param>
+        /// <param name="user_agent"></param>
+        /// <returns></returns>
         public async static Task<Session> login(string email, string password, Func<Task<string>> on_2fa_callback, string user_agent = null)
         {
             var session = new Session(user_agent);
@@ -394,6 +406,10 @@ namespace fbchat_sharp.API
             }
         }
 
+        /// <summary>
+        /// Returns logged in status
+        /// </summary>
+        /// <returns></returns>
         public async Task<bool> is_logged_in()
         {
             // Send a request to the login url, to see if we're directed to the home page
@@ -402,6 +418,10 @@ namespace fbchat_sharp.API
                 || (r.Headers.Contains("Location") && is_home(r.Headers.Location.ToString()));
         }
 
+        /// <summary>
+        /// Logouts current user
+        /// </summary>
+        /// <returns></returns>
         public async Task<bool> logout()
         {
             var url = Utils.prefix_url("/bluebar/modern_settings_menu/");
@@ -423,6 +443,12 @@ namespace fbchat_sharp.API
             return r.IsSuccessStatusCode;
         }
 
+        /// <summary>
+        /// Build session from saved cookies
+        /// </summary>
+        /// <param name="session_cookies"></param>
+        /// <param name="user_agent"></param>
+        /// <returns></returns>
         public async static Task<Session> from_cookies(Dictionary<string, List<Cookie>> session_cookies, string user_agent)
         {
             var session = new Session(user_agent: user_agent);

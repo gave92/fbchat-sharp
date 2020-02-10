@@ -44,7 +44,7 @@ namespace fbchat_sharp.API
             this.is_response = is_response;
         }
 
-        public static FB_QuickReply graphql_to_quick_reply(JToken q, bool is_response= false)
+        internal static FB_QuickReply graphql_to_quick_reply(JToken q, bool is_response= false)
         {
             FB_QuickReply rtn = null;
             var data = new Dictionary<string, object>();

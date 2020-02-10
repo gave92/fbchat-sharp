@@ -12,10 +12,7 @@ namespace fbchat_sharp.API
         DECLINED = 3
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    public class FB_Plan_Constants
+    internal class FB_Plan_Constants
     {
         public static readonly Dictionary<string, GuestStatus> GUESTS = new Dictionary<string, GuestStatus>() {
             { "INVITED", GuestStatus.INVITED },
@@ -96,7 +93,7 @@ namespace fbchat_sharp.API
             }
         }
 
-        public static FB_Plan _from_pull(JToken data, Session session)
+        internal static FB_Plan _from_pull(JToken data, Session session)
         {
             FB_Plan rtn = new FB_Plan(
                 session: session,
@@ -113,7 +110,7 @@ namespace fbchat_sharp.API
             return rtn;
         }
 
-        public static FB_Plan _from_fetch(JToken data, Session session)
+        internal static FB_Plan _from_fetch(JToken data, Session session)
         {
             FB_Plan rtn = new FB_Plan(
                 session: session,
@@ -130,7 +127,7 @@ namespace fbchat_sharp.API
             return rtn;
         }
 
-        public static FB_Plan _from_graphql(JToken data, Session session)
+        internal static FB_Plan _from_graphql(JToken data, Session session)
         {
             FB_Plan rtn = new FB_Plan(
                 session: session,

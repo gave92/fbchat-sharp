@@ -2,6 +2,9 @@
 
 namespace fbchat_sharp.API
 {
+    /// <summary>
+    /// Represents a facebook image.
+    /// </summary>
     public class FB_Image
     {
         /// URL to the image
@@ -21,7 +24,7 @@ namespace fbchat_sharp.API
             this.image_height = image_height;
         }
 
-        public static FB_Image _from_uri(JToken data)
+        internal static FB_Image _from_uri(JToken data)
         {
             return new FB_Image(
                     image_width: data?.get("width")?.Value<int>() ?? 0,
@@ -29,7 +32,7 @@ namespace fbchat_sharp.API
                     url: data?.get("uri")?.Value<string>());
         }
 
-        public static FB_Image _from_url(JToken data)
+        internal static FB_Image _from_url(JToken data)
         {
             return new FB_Image(
                     image_width: data?.get("width")?.Value<int>() ?? 0,
@@ -37,12 +40,12 @@ namespace fbchat_sharp.API
                     url: data?.get("url")?.Value<string>());
         }
 
-        public static FB_Image _from_uri_or_none(JToken data)
+        internal static FB_Image _from_uri_or_none(JToken data)
         {
             return (data?.get("uri") != null) ? FB_Image._from_uri(data) : null;
         }
 
-        public static FB_Image _from_url_or_none(JToken data)
+        internal static FB_Image _from_url_or_none(JToken data)
         {
             return (data?.get("url") != null) ? FB_Image._from_url(data) : null;
         }
