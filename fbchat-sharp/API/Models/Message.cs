@@ -595,6 +595,33 @@ namespace fbchat_sharp.API
             var j = await this.session._payload_post("/webgraphql/mutation", payl);
             Utils.handle_graphql_errors(j);
         }
+
+        internal static async Task _delete_many(Session session, IEnumerable<string> message_ids)
+        {
+            var umessage_ids = Utils.require_list<string>(message_ids);
+            var data = new Dictionary<string, object>();
+            foreach (var obj in umessage_ids.Select((x, index) => new { message_id = x, i = index }))
+                data[string.Format("message_ids[{0}]", obj.i)] = obj.message_id;
+            var j = await session._payload_post("/ajax/mercury/delete_messages.php?dpr=1", data);
+        }
+
+        public async Task fetch()
+        {
+            // TODO: This
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Delete the message (removes it only for the user).
+        /// If you want to delete multiple messages, please use `Client.delete_messages`.
+        /// Example:
+        ///     >>> message.delete()
+        /// </summary>
+        /// <returns></returns>
+        public async Task delete()
+        {
+            await _delete_many(this.session, new string[] { this.uid });
+        }
     }
 
     /// <summary>

@@ -9,9 +9,6 @@ using System.Threading.Tasks;
 
 namespace fbchat_sharp.API
 {
-    /// <summary>
-    /// 
-    /// </summary>
     internal class Client_Constants
     {
         public static readonly Dictionary<string, object> ACONTEXT = new Dictionary<string, object>()
@@ -916,22 +913,8 @@ namespace fbchat_sharp.API
              * :param thread_ids: Thread IDs to delete. See :ref:`intro_threads`
              * :return: true
              * :raises: FBchatException if request failed
-             * */
-            var uthread_ids = Utils.require_list<string>(thread_ids);
-
-            var data_unpin = new Dictionary<string, object>();
-            var data_delete = new Dictionary<string, object>();
-            foreach (var obj in thread_ids.Select((x, index) => new { thread_id = x, i = index }))
-            {
-                data_unpin[string.Format("ids[{0}]", obj.thread_id)] = "false";
-                data_delete[string.Format("ids[{0}]", obj.i)] = obj.thread_id;
-            }
-            var j_unpin = await this._session._payload_post(
-                "/ajax/mercury/change_pinned_status.php?dpr=1", data_unpin
-            );
-            var j_delete = this._session._payload_post(
-                "/ajax/mercury/delete_thread.php?dpr=1", data_delete
-            );
+             * */            
+            await FB_Thread._delete_many(_session, thread_ids);
         }
 
         /// <summary>
@@ -945,12 +928,8 @@ namespace fbchat_sharp.API
              * :param message_ids: Message IDs to delete
              * :return: true
              * :raises: FBchatException if request failed
-             * */
-            var umessage_ids = Utils.require_list<string>(message_ids);
-            var data = new Dictionary<string, object>();
-            foreach (var obj in umessage_ids.Select((x, index) => new { message_id = x, i = index }))
-                data[string.Format("message_ids[{0}]", obj.i)] = obj.message_id;
-            var j = await this._session._payload_post("/ajax/mercury/delete_messages.php?dpr=1", data);
+             * */            
+            await FB_Message._delete_many(_session, message_ids);
         }
         #endregion
 

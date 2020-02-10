@@ -899,6 +899,34 @@ namespace fbchat_sharp.API
             var j = await this.session._payload_post("/ajax/messaging/typ.php", data);
         }
 
+        internal static async Task _delete_many(Session session, IEnumerable<string> thread_ids)
+        {
+            var uthread_ids = Utils.require_list<string>(thread_ids);            
+            var data = new Dictionary<string, object>();
+            foreach (var obj in uthread_ids.Select((x, index) => new { thread_id = x, i = index }))
+            {
+                data[string.Format("ids[{0}]", obj.i)] = obj.thread_id;
+            }
+            //var j_unpin = await session._payload_post(
+            //    "/ajax/mercury/change_pinned_status.php?dpr=1", data_unpin
+            //);
+            var j = await session._payload_post(
+                "/ajax/mercury/delete_thread.php?dpr=1", data
+            );
+        }
+
+        /// <summary>
+        /// Delete the thread.
+        /// If you want to delete multiple threads, please use `Client.delete_threads`.
+        /// Example:
+        ///     >>> message.delete()
+        /// </summary>
+        /// <returns></returns>
+        public async Task delete()
+        {
+            await _delete_many(this.session, new string[] { this.uid });
+        }
+
         /// <summary>
         /// Mark a thread as spam and delete it
         /// </summary>
