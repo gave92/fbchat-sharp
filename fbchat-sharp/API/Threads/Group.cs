@@ -102,18 +102,19 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Adds users to a group.
+        /// Add users to the group.
+        /// If the group's approval mode is set to require admin approval, and you're not an
+        /// admin, the participants won't actually be added, they will be set as pending.
+        /// In that case, the returned `ParticipantsAdded` event will not be correct.
+        /// Args:
+        ///     user_ids: One or more user IDs to add
+        /// Example:
+        ///     >>> group.add_participants(["1234", "2345"])
         /// </summary>
         /// <param name="user_ids">One or more user IDs to add</param>
         /// <returns></returns>
-        public async Task<dynamic> addParticipants(List<string> user_ids)
+        public async Task<FB_ParticipantsAdded> addParticipants(List<string> user_ids)
         {
-            /*
-             * Adds users to a group.
-             * :param user_ids: One or more user IDs to add
-             * :type user_ids: list
-             * :raises: FBchatException if request failed
-             * */
             var data = this._to_send_data();
 
             data["action_type"] = "ma-type:log-message";
@@ -132,15 +133,22 @@ namespace fbchat_sharp.API
                         string.Format("log_message_data[added_participants][{0}]", obj.i)
                     ] = string.Format("fbid:{0}", obj.user_id);
             }
-            return await this.session._do_send_request(data);
+            var req = await this.session._do_send_request(data);
+            return FB_ParticipantsAdded._from_send(thread: this, added_ids: user_ids);
         }
 
         /// <summary>
-        /// Removes users from a group.
+        /// Remove user from the group.
+        /// If the group's approval mode is set to require admin approval, and you're not an
+        /// admin, this will fail.
+        /// Args:
+        ///     user_id: User ID to remove
+        /// Example:
+        ///     >>> group.remove_participant("1234")
         /// </summary>
         /// <param name="user_id">User ID to remove</param>
         /// <returns></returns>
-        public async Task removeParticipants(string user_id)
+        public async Task<FB_ParticipantRemoved> removeParticipant(string user_id)
         {
             /*
              * Removes users from a group.
@@ -149,6 +157,19 @@ namespace fbchat_sharp.API
              * */
             var data = new Dictionary<string, object>() { { "uid", user_id }, { "tid", this.uid } };
             var j = await this.session._payload_post("/chat/remove_participants/", data);
+            return FB_ParticipantRemoved._from_send(thread: this, removed_id: user_id);
+        }
+
+        /// <summary>
+        /// Leave the group.
+        /// This will succeed regardless of approval mode and admin status.
+        /// Example:
+        ///     >>> group.leave()
+        /// </summary>
+        /// <returns></returns>
+        public async Task<FB_ParticipantRemoved> leave()
+        {
+            return await this.removeParticipant(this.session.user.uid);
         }
 
         private async Task _adminStatus(List<string> admin_ids, bool admin)

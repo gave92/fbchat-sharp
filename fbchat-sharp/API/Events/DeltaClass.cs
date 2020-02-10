@@ -5,11 +5,12 @@ using System.Linq;
 namespace fbchat_sharp.API
 {
     /// <summary>
-    /// Somebody added people to a group thread.
+    /// People were added to a group thread.
     /// </summary>
-    public class FB_PeopleAdded : FB_ThreadEvent
+    public class FB_ParticipantsAdded : FB_ThreadEvent
     {
         // TODO: Add message id
+        // TODO: Add snippet/admin text
 
         /// Thread that the action was done in
         public new FB_Group thread { get; set; }
@@ -18,16 +19,37 @@ namespace fbchat_sharp.API
         /// When the people were added
         public long at { get; set; }
 
-        internal static FB_PeopleAdded _parse(Session session, JToken data)
+        internal static FB_ParticipantsAdded _parse(Session session, JToken data)
         {
-            (FB_User author, FB_Thread thread, long at) = FB_PeopleAdded._parse_metadata(session, data);
+            (FB_User author, FB_Thread thread, long at) = FB_ParticipantsAdded._parse_metadata(session, data);
             var added = data?.get("addedParticipants")?.Select(x => new FB_User(x.get("userFbId")?.Value<string>(), session));
 
-            return new FB_PeopleAdded()
+            return new FB_ParticipantsAdded()
             {
                 author = author,
                 thread = thread as FB_Group,
                 added = added.ToList()
+            };
+        }
+
+        internal static FB_ParticipantsAdded _from_send(FB_Thread thread, IEnumerable<string> added_ids)
+        {
+            return new FB_ParticipantsAdded()
+            {
+                author = thread.session.user,
+                thread = thread as FB_Group,
+                added = added_ids?.Select(x => new FB_User(x, thread.session)).ToList()
+            };
+        }
+
+        internal static FB_ParticipantsAdded _from_fetch(FB_Thread thread, JToken data)
+        {
+            (FB_User author, long at) = FB_ParticipantsAdded._parse_fetch(thread.session, data);
+            return new FB_ParticipantsAdded()
+            {
+                author = thread.session.user,
+                thread = thread as FB_Group,
+                added = data?.get("participants_added")?.Select(x => new FB_User(x?.get("id")?.Value<string>(), thread.session)).ToList()
             };
         }
     }
@@ -35,7 +57,7 @@ namespace fbchat_sharp.API
     /// <summary>
     /// Somebody removed a person from a group thread.
     /// </summary>
-    public class FB_PersonRemoved : FB_ThreadEvent
+    public class FB_ParticipantRemoved : FB_ThreadEvent
     {
         // TODO: Add message id
 
@@ -46,12 +68,34 @@ namespace fbchat_sharp.API
         /// When the people were added
         public long at { get; set; }
 
-        internal static FB_PersonRemoved _parse(Session session, JToken data)
+        internal static FB_ParticipantRemoved _parse(Session session, JToken data)
         {
-            (FB_User author, FB_Thread thread, long at) = FB_PersonRemoved._parse_metadata(session, data);
+            (FB_User author, FB_Thread thread, long at) = FB_ParticipantRemoved._parse_metadata(session, data);
             var removed = new FB_User(data?.get("leftParticipantFbId")?.Value<string>(), session);
 
-            return new FB_PersonRemoved()
+            return new FB_ParticipantRemoved()
+            {
+                author = author,
+                thread = thread as FB_Group,
+                removed = removed
+            };
+        }
+
+        internal static FB_ParticipantRemoved _from_send(FB_Thread thread, string removed_id)
+        {
+            return new FB_ParticipantRemoved()
+            {
+                author = thread.session.user,
+                thread = thread as FB_Group,
+                removed = new FB_User(removed_id, thread.session)
+            };
+        }
+
+        internal static FB_ParticipantRemoved _from_fetch(FB_Thread thread, JToken data)
+        {
+            (FB_User author, long at) = FB_ParticipantRemoved._parse_fetch(thread.session, data);
+            var removed = new FB_User(data?.get("participants_removed")?.FirstOrDefault()?.get("id")?.Value<string>(), thread.session);
+            return new FB_ParticipantRemoved()
             {
                 author = author,
                 thread = thread as FB_Group,
@@ -237,9 +281,9 @@ namespace fbchat_sharp.API
         {
             var class_ = data?.get("class")?.Value<string>();
             if (class_ == "ParticipantsAddedToGroupThread")
-                return FB_PeopleAdded._parse(session, data);
+                return FB_ParticipantsAdded._parse(session, data);
             else if (class_ == "ParticipantLeftGroupThread")
-                return FB_PersonRemoved._parse(session, data);
+                return FB_ParticipantRemoved._parse(session, data);
             else if (class_ == "MarkFolderSeen")
             {
                 // TODO: Finish this
