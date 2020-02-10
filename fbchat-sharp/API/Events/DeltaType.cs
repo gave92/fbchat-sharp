@@ -26,6 +26,19 @@ namespace fbchat_sharp.API
                 at = at
             };
         }
+
+        internal static FB_ColorSet _from_fetch(FB_Thread thread, JToken data)
+        {
+            (FB_User author, long at) = FB_ColorSet._parse_fetch(thread.session, data);
+            var color = ThreadColor._from_graphql(data?.get("extensible_message_admin_text")?.get("theme_color"));
+            return new FB_ColorSet()
+            {
+                author = author,
+                thread = thread,
+                color = color,
+                at = at
+            };
+        }
     }
 
     /// <summary>

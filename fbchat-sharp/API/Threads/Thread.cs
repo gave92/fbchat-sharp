@@ -785,24 +785,37 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Changes thread color
+        /// Change thread color.
+        /// The new color must be one of the following::
+        ///   "#0084ff", "#44bec7", "#ffc300", "#fa3c4c", "#d696bb", "#6699cc",
+        ///   "#13cf13", "#ff7e29", "#e68585", "#7646ff", "#20cef5", "#67b868",
+        ///   "#d4a88c", "#ff5ca1", "#a695c7", "#ff7ca8", "#1adb5b", "#f01d6a",
+        ///   "#ff9c19" or "#0edcde".
+        /// This list is subject to change in the future!
+        /// The default when creating a new thread is ``"#0084ff"``.
+        /// Args:
+        ///     color: New thread color
+        /// Example:
+        ///     Set the thread color to "Coral Pink".
+        ///     >>> thread.set_color("#e68585")
         /// </summary>
         /// <param name="color">New thread color</param>
         /// <returns></returns>
-        public async Task setColor(string color)
+        public async Task<FB_ColorSet> setColor(string color)
         {
-            /*
-             * Changes thread color
-             * : param color: New thread color
-             * :type color: ThreadColor
-             * : raises: FBchatException if request failed
-             * */
             var data = new Dictionary<string, object>() {
                 { "color_choice", color != ThreadColor.MESSENGER_BLUE ? color : ""},
                 { "thread_or_other_fbid", this.uid}
             };
             var j = await this.session._payload_post(
                 "/messaging/save_thread_color/?source=thread_settings&dpr=1", data);
+            return new FB_ColorSet()
+            {
+                author = this.session.user,
+                thread = this._copy(),
+                color = color,
+                at = Utils.now()
+            };
         }
 
         /// <summary>
