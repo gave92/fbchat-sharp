@@ -56,9 +56,9 @@ namespace fbchat_sharp.API
                 }
             }
             else if (topic == "/thread_typing")
-                yield return FB_Typing._parse(session, data);
+                yield return FB_TypingStatus._from_thread_typing(session, data);
             else if (topic == "/orca_typing_notifications")
-                yield return FB_Typing._parse_orca(session, data);
+                yield return FB_TypingStatus._from_orca(session, data);
             else if (topic == "/legacy_web")
             {
                 if (data.get("type")?.Value<string>() == "jewel_requests_add")
@@ -135,16 +135,16 @@ namespace fbchat_sharp.API
     /// <summary>
     /// Somebody started/stopped typing in a thread.
     /// </summary>
-    public class FB_Typing : FB_ThreadEvent
+    public class FB_TypingStatus : FB_ThreadEvent
     {
         /// ``True`` if the user started typing, ``False`` if they stopped
         public bool status { get; set; }
 
-        internal static FB_Typing _parse_orca(Session session, JToken data)
+        internal static FB_TypingStatus _from_orca(Session session, JToken data)
         {
             var author = new FB_User(session: session, uid: data?.get("sender_fbid")?.Value<string>());
             var status = data?.get("state")?.Value<int>() == 1;
-            return new FB_Typing()
+            return new FB_TypingStatus()
             {
                 author = author,
                 thread = author,
@@ -152,12 +152,12 @@ namespace fbchat_sharp.API
             };
         }
 
-        internal static FB_Typing _parse(Session session, JToken data)
+        internal static FB_TypingStatus _from_thread_typing(Session session, JToken data)
         {
             var author = new FB_User(session: session, uid: data?.get("sender_fbid")?.Value<string>());
             var thread = new FB_Group(session: session, uid: data?.get("thread")?.Value<string>());
             var status = data?.get("state")?.Value<int>() == 1;
-            return new FB_Typing()
+            return new FB_TypingStatus()
             {
                 author = author,
                 thread = thread,

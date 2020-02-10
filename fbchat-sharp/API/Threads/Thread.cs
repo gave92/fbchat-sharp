@@ -806,21 +806,34 @@ namespace fbchat_sharp.API
         }
 
         /// <summary>
-        /// Changes thread color
+        /// Change thread emoji.
+        /// Args:
+        ///     emoji: New thread emoji.If ``None``, will be set to the default "LIKE" icon
+        /// Todo:
+        ///     Currently, setting the default "LIKE" icon does not work!
+        /// Example:
+        ///     Set the thread emoji to "😊".
+        ///     >>> thread.set_emoji("😊")
         /// </summary>
-        /// <param name="emoji">While changing the emoji, the Facebook web client actually sends multiple different requests, though only this one is required to make the change</param>
+        /// <param name="emoji"></param>
         /// <returns></returns>
-        public async Task setEmoji(string emoji)
+        public async Task<FB_EmojiSet> setEmoji(string emoji)
         {
-            /*
-             * Changes thread color
-             * Trivia: While changing the emoji, the Facebook web client actually sends multiple different requests, though only this one is required to make the change
-             * : param emoji: New thread emoji
-             * :raises: FBchatException if request failed
-             * */
-            var data = new Dictionary<string, object>() { { "emoji_choice", emoji }, { "thread_or_other_fbid", this.uid } };
+            var data = new Dictionary<string, object>() {
+                { "emoji_choice", emoji },
+                { "thread_or_other_fbid", this.uid }
+                // TODO: Do we need this?
+                // "request_user_id": self.session.user.id,
+            };
             var j = await this.session._payload_post(
                 "/messaging/save_thread_emoji/?source=thread_settings&dpr=1", data);
+            return new FB_EmojiSet()
+            {
+                author = this.session.user,
+                thread = this._copy(),
+                emoji = emoji,
+                at = Utils.now()
+            };
         }
 
         /// <summary>
@@ -882,7 +895,7 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="status">Specify the typing status</param>
         /// <returns></returns>
-        public async Task setTypingStatus(bool status)
+        public async Task<FB_TypingStatus> setTypingStatus(bool status)
         {
             /*
              * Sets users typing status in a thread
@@ -891,12 +904,23 @@ namespace fbchat_sharp.API
              * : raises: FBchatException if request failed
              * */
             var data = new Dictionary<string, object>() {
-                { "typ", status ? 1 : 0 },
+                { "typ", status ? "1" : "0" },
                 { "thread", this.uid },
-                { "to", this is FB_User ? this.uid : ""},
-                {"source", "mercury-chat"}
+                { "to", this is FB_User ? this.uid : "" },
+                { "source", "mercury-chat" }
             };
             var j = await this.session._payload_post("/ajax/messaging/typ.php", data);
+            return new FB_TypingStatus()
+            {
+                author = this.session.user,
+                thread = this._copy(),
+                status = status
+            };
+        }
+
+        private FB_Thread _copy()
+        {
+            return new FB_Thread(session: this.session, uid: this.uid);
         }
 
         internal static async Task _delete_many(Session session, IEnumerable<string> thread_ids)

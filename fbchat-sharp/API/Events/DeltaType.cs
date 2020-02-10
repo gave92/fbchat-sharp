@@ -33,15 +33,28 @@ namespace fbchat_sharp.API
     /// </summary>
     public class FB_EmojiSet : FB_ThreadEvent
     {
-        /// The new color. Not limited to the ones in `ThreadABC.set_color`
+        /// The new emoji. If ``None``, the emoji was reset to the default "LIKE" icon
         public string emoji { get; set; }
-        /// When the color was set
+        /// When the emoji was set
         public long at { get; set; }
 
         internal static FB_EmojiSet _parse(Session session, JToken data)
         {
             (FB_User author, FB_Thread thread, long at) = FB_EmojiSet._parse_metadata(session, data);
             var emoji = data?.get("untypedData")?.get("thread_icon")?.Value<string>();
+            return new FB_EmojiSet()
+            {
+                author = author,
+                thread = thread,
+                emoji = emoji,
+                at = at
+            };
+        }
+
+        internal static FB_EmojiSet _from_fetch(FB_Thread thread, JToken data)
+        {
+            (FB_User author, long at) = FB_EmojiSet._parse_fetch(thread.session, data);
+            var emoji = data?.get("extensible_message_admin_text")?.get("thread_icon")?.Value<string>();
             return new FB_EmojiSet()
             {
                 author = author,
