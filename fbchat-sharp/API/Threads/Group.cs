@@ -123,7 +123,7 @@ namespace fbchat_sharp.API
 
             foreach (var obj in user_ids.Select((x, index) => new { user_id = x, i = index }))
             {
-                if (obj.user_id == this.session.get_user_id())
+                if (obj.user_id == this.session.user.uid)
                     throw new FBchatUserError(
                             "Error when adding users: Cannot add self to group thread"
                     );
@@ -216,7 +216,7 @@ namespace fbchat_sharp.API
 
             var data = new Dictionary<string, object>(){
                 { "client_mutation_id", "0"},
-                { "actor_id", this.session.get_user_id() },
+                { "actor_id", this.session.user.uid },
                 { "thread_fbid", this.uid },
                 { "user_ids", user_ids },
                 { "response", approve ? "ACCEPT" : "DENY"},

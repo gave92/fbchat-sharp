@@ -726,7 +726,7 @@ namespace fbchat_sharp.API
             if (user_ids.Count < 2)
                 throw new FBchatUserError("Error when creating group: Not enough participants");
 
-            foreach (var obj in user_ids.Concat(new string[] { this.session.get_user_id() }).Select((x, index) => new { user_id = x, i = index }))
+            foreach (var obj in user_ids.Concat(new string[] { this.session.user.uid }).Select((x, index) => new { user_id = x, i = index }))
                 data[string.Format("specific_to_list[{0}]", obj.i)] = string.Format("fbid:{0}", obj.user_id);
 
             var req = await this.session._do_send_request(data, get_thread_id: true);

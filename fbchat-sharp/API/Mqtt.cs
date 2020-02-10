@@ -153,7 +153,7 @@ namespace fbchat_sharp.API
                         { "max_deltas_able_to_process", 1000 },
                         { "delta_batch_size", 500 },
                         { "encoding", "JSON" },
-                        { "entity_fbid", this._session.get_user_id() }
+                        { "entity_fbid", this._session.user.uid }
                 };
 
             if (this._sync_token == null)
@@ -189,7 +189,7 @@ namespace fbchat_sharp.API
 
             // The MQTT username. There's no password.
             var username = new Dictionary<string, object>() {
-                { "u", this._session.get_user_id() }, // USER_ID
+                { "u", this._session.user.uid }, // USER_ID
                 { "s", sid },
                 { "cp", 3 }, // CAPABILITIES
                 { "ecp", 10 }, // ENDPOINT_CAPABILITIES

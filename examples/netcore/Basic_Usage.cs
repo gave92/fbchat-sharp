@@ -59,7 +59,7 @@ namespace examples
                 messages.ForEach(v => Console.WriteLine(v));
 
                 // Send a message to myself
-                var user = new FB_Thread(session.get_user_id(), session);
+                var user = new FB_Thread(session.user.uid, session);
                 var msg_uid = await user.sendText("Message test");
                 if (msg_uid != null)
                 {

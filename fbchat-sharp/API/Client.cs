@@ -34,13 +34,6 @@ namespace fbchat_sharp.API
         private Session _session { get; set; }
 
         /// <summary>
-        /// The ID of the client.
-        /// Can be used as `thread_id`.
-        /// Note: Modifying this results in undefined behaviour
-        /// </summary>
-        protected string _uid { get; set; }
-
-        /// <summary>
         /// A client for the Facebook Chat (Messenger).
         /// This contains all the methods you use to interact with Facebook.You can extend this
         /// class, and overwrite the ``on`` methods, to provide custom event handling (mainly
@@ -102,7 +95,6 @@ namespace fbchat_sharp.API
             {
                 // Load cookies into current session
                 this._session = await Session.from_cookies(session_cookies, user_agent: user_agent);
-                this._uid = this._session.get_user_id();
             }
             catch (Exception)
             {
@@ -132,7 +124,6 @@ namespace fbchat_sharp.API
                     password,
                     on_2fa_callback: this.on2FACode,
                     user_agent: user_agent);
-                this._uid = this._session.get_user_id();
                 await this.onLoggedIn(email: email);
                 return this._session;
             }
@@ -151,7 +142,6 @@ namespace fbchat_sharp.API
             if (await this._session.logout())
             {
                 this._session = null;
-                this._uid = null;
                 return true;
             }
             return false;
@@ -283,7 +273,7 @@ namespace fbchat_sharp.API
              * */
 
             var data = new Dictionary<string, object>() {
-                { "viewer", this._uid },
+                { "viewer", this._session.user.uid },
             };
             var j = await this._session._payload_post("/chat/user_info_all", data: data);
 
@@ -539,7 +529,7 @@ namespace fbchat_sharp.API
         /// </summary>
         public async Task<FB_User> fetchProfile()
         {
-            return (await this.fetchThreadInfo(new List<string>() { this._uid })).Single().Value as FB_User;
+            return (await this.fetchThreadInfo(new List<string>() { this._session.user.uid })).Single().Value as FB_User;
         }
 
         /// <summary>

@@ -169,7 +169,7 @@ namespace fbchat_sharp.API
 
         internal static new FB_ThreadsRead _parse(Session session, JToken data)
         {
-            var author = new FB_User(session.get_user_id(), session);
+            var author = new FB_User(session.user.uid, session);
             var threads = data?.get("threadKeys")?.Select(x => FB_ThreadEvent._get_thread(session, new JObject() { { "threadKey", x } }));
             var at = long.Parse(data?.get("actionTimestamp")?.Value<string>());
             return new FB_ThreadsRead()

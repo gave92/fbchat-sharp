@@ -35,7 +35,7 @@ namespace fbchat_sharp.API
         private HttpClientHandler HttpClientHandler;
         private HttpClient _http_client;
 
-        public CookieContainer _session
+        private CookieContainer _session
         {
             get { return HttpClientHandler?.CookieContainer; }
             set
@@ -49,7 +49,7 @@ namespace fbchat_sharp.API
         /// Stores and manages state required for most Facebook requests.
         /// This is the main class, which is used to login to Facebook.
         /// </summary>
-        public Session(string user_agent = null)
+        internal Session(string user_agent = null)
         {
             this.HttpClientHandler = new HttpClientHandler() { UseCookies = true, CookieContainer = new CookieContainer(), AllowAutoRedirect = false };
             this._http_client = new HttpClient(this.HttpClientHandler);
@@ -84,7 +84,7 @@ namespace fbchat_sharp.API
             return Encoding.GetEncoding(facebookEncoding).GetString(content, 0, content.Length);
         }
 
-        public async static Task<string> check_request(HttpResponseMessage r)
+        private async static Task<string> check_request(HttpResponseMessage r)
         {
             if (!r.IsSuccessStatusCode)
                 throw new FBchatFacebookError(string.Format("Error when sending request: Got {0} response", r.StatusCode), request_status_code: (int)r.StatusCode);
@@ -154,7 +154,7 @@ namespace fbchat_sharp.API
             return r;
         }
 
-        public static async Task<Session> from_session(Session session)
+        private static async Task<Session> from_session(Session session)
         {
             // TODO: Automatically set user_id when the cookie changes in the session
             var r = await session._cleanGet<string>(Utils.prefix_url("/"));
@@ -181,7 +181,7 @@ namespace fbchat_sharp.API
             };
         }
 
-        public async Task _do_refresh()
+        private async Task _do_refresh()
         {
             // TODO: Raise the error instead, and make the user do the refresh manually
             // It may be a bad idea to do this in an exception handler, if you have a better method, please suggest it!
@@ -193,7 +193,7 @@ namespace fbchat_sharp.API
             this._logout_h = new_state._logout_h ?? this._logout_h;
         }
 
-        public async Task<HttpResponseMessage> _cleanGet<TValue>(string url, Dictionary<string, TValue> query = null, CancellationToken cancellationToken = default(CancellationToken))
+        private async Task<HttpResponseMessage> _cleanGet<TValue>(string url, Dictionary<string, TValue> query = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             HttpRequestMessage request = null;
 
@@ -217,7 +217,7 @@ namespace fbchat_sharp.API
                 return await _cleanGet(response.Headers.Location.ToString(), query, cancellationToken);
         }
 
-        public async Task<HttpResponseMessage> _cleanPost<TValue>(string url, Dictionary<string, TValue> query = null, Dictionary<string, FB_File> files = null, CancellationToken cancellationToken = default(CancellationToken))
+        private async Task<HttpResponseMessage> _cleanPost<TValue>(string url, Dictionary<string, TValue> query = null, Dictionary<string, FB_File> files = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (files != null)
             {
@@ -274,7 +274,7 @@ namespace fbchat_sharp.API
             return this._session.GetAllCookies();
         }
 
-        public List<FB_File> get_files_from_paths(Dictionary<string, Stream> file_paths)
+        internal List<FB_File> get_files_from_paths(Dictionary<string, Stream> file_paths)
         {
             var files = new List<FB_File>();
             foreach (var file_path in file_paths)
@@ -288,7 +288,7 @@ namespace fbchat_sharp.API
             return files;
         }
 
-        public async Task<List<FB_File>> get_files_from_urls(ISet<string> file_urls)
+        internal async Task<List<FB_File>> get_files_from_urls(ISet<string> file_urls)
         {
             var files = new List<FB_File>();
             foreach (var file_url in file_urls)
@@ -305,23 +305,36 @@ namespace fbchat_sharp.API
             return files;
         }
 
-        public string get_client_id()
+        /// <summary>
+        /// The logged in user.
+        /// </summary>
+        public FB_User user
         {
-            return this._client_id;
+            get
+            {
+                // TODO: Consider caching the result
+                return new FB_User(user_id, this);
+            }
         }
 
-        public string get_user_id()
+        /// <summary>
+        /// Facebook id of logged user 
+        /// </summary>
+        private string user_id
         {
-            var cookies = (this._session.GetAllCookies().Values.SelectMany(c => c).Cast<Cookie>()
-                .GroupBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(c => c.Key, c => c.First().Value, StringComparer.OrdinalIgnoreCase));
-            var rtn = cookies.GetValueOrDefault("c_user");
-            if (rtn == null)
-                throw new FBchatException("Could not find user id");
-            return rtn;
+            get
+            {
+                var cookies = (this._session.GetAllCookies().Values.SelectMany(c => c).Cast<Cookie>()
+                    .GroupBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(c => c.Key, c => c.First().Value, StringComparer.OrdinalIgnoreCase));
+                var rtn = cookies.GetValueOrDefault("c_user");
+                if (rtn == null)
+                    throw new FBchatException("Could not find user id");
+                return rtn;
+            }
         }
 
-        public Dictionary<string, string> get_params()
+        private Dictionary<string, string> get_params()
         {
             this._counter += 1;
             var payload = new Dictionary<string, string>();
@@ -455,7 +468,7 @@ namespace fbchat_sharp.API
             }
         }
 
-        public async Task<JToken> _get(string url, Dictionary<string, object> query = null, CancellationToken cancellationToken = default(CancellationToken))
+        internal async Task<JToken> _get(string url, Dictionary<string, object> query = null, CancellationToken cancellationToken = default(CancellationToken), bool retry = true)
         {
             query.update(get_params());
             var r = await this._cleanGet(Utils.prefix_url(url), query: query, cancellationToken: cancellationToken);
@@ -464,16 +477,20 @@ namespace fbchat_sharp.API
             try
             {
                 Utils.handle_payload_error(j);
+                return j;
             }
             catch (FBchatPleaseRefresh ex)
             {
-                //await this._do_refresh();
+                if (retry)
+                {
+                    await this._do_refresh();
+                    return await _get(url, query, cancellationToken, false);
+                }
                 throw ex;
             }
-            return j;
         }
 
-        public async Task<object> _post(string url, Dictionary<string, object> query = null, Dictionary<string, FB_File> files = null, bool as_graphql = false, CancellationToken cancellationToken = default(CancellationToken))
+        internal async Task<object> _post(string url, Dictionary<string, object> query = null, Dictionary<string, FB_File> files = null, bool as_graphql = false, CancellationToken cancellationToken = default(CancellationToken), bool retry = true)
         {
             query.update(get_params());
             var r = await this._cleanPost(Utils.prefix_url(url), query: query, files: files, cancellationToken: cancellationToken);
@@ -495,12 +512,16 @@ namespace fbchat_sharp.API
             }
             catch (FBchatPleaseRefresh ex)
             {
-                //await this._do_refresh();
+                if (retry)
+                {
+                    await this._do_refresh();
+                    return await _post(url, query, files, as_graphql, cancellationToken);
+                }
                 throw ex;
             }
         }
 
-        public async Task<JToken> _payload_post(string url, Dictionary<string, object> data = null, Dictionary<string, FB_File> files = null, CancellationToken cancellationToken = default(CancellationToken))
+        internal async Task<JToken> _payload_post(string url, Dictionary<string, object> data = null, Dictionary<string, FB_File> files = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             var j = await this._post(url, data, files: files, cancellationToken: cancellationToken);
             try
@@ -513,7 +534,7 @@ namespace fbchat_sharp.API
             }
         }
 
-        public async Task<List<JToken>> graphql_requests(List<GraphQL> queries)
+        internal async Task<List<JToken>> graphql_requests(List<GraphQL> queries)
         {
             /*
              * :param queries: Zero or more dictionaries
@@ -531,7 +552,7 @@ namespace fbchat_sharp.API
             return (List<JToken>)await this._post("/api/graphqlbatch/", data, as_graphql: true);
         }
 
-        public async Task<JToken> graphql_request(GraphQL query)
+        internal async Task<JToken> graphql_request(GraphQL query)
         {
             /*
              * Shorthand for `graphql_requests(query)[0]`
@@ -540,7 +561,7 @@ namespace fbchat_sharp.API
             return (await this.graphql_requests(new[] { query }.ToList()))[0];
         }
 
-        public async Task<List<(string mimeKey, string fileType)>> _upload(List<FB_File> files, bool voice_clip = false)
+        internal async Task<List<(string mimeKey, string fileType)>> _upload(List<FB_File> files, bool voice_clip = false)
         {
             /*
              * Uploads files to Facebook
@@ -566,7 +587,7 @@ namespace fbchat_sharp.API
                 (md[Utils.mimetype_to_key(md.get("filetype")?.Value<string>())]?.Value<string>(), md.get("filetype")?.Value<string>())).ToList();
         }
 
-        public async Task<dynamic> _do_send_request(Dictionary<string, object> data, bool get_thread_id = false)
+        internal async Task<dynamic> _do_send_request(Dictionary<string, object> data, bool get_thread_id = false)
         {
             /* Sends the data to `SendURL`, and returns the message ID or null on failure */
             string messageAndOTID = Utils.generateOfflineThreadingID();
@@ -574,7 +595,7 @@ namespace fbchat_sharp.API
             var date = DateTime.Now;
             data.update(new Dictionary<string, object> {
                 { "client", "mercury" },
-                { "author" , "fbid:" + this.get_user_id() },
+                { "author" , "fbid:" + this.user_id },
                 { "timestamp" , timestamp },
                 { "source" , "source:chat:web" },
                 { "offline_threading_id", messageAndOTID },
@@ -617,7 +638,7 @@ namespace fbchat_sharp.API
 
         private string __unicode__()
         {
-            return string.Format("<Session user_id={0}>", this.get_user_id());
+            return string.Format("<Session user_id={0}>", this.user_id);
         }
     }
 }

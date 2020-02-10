@@ -583,7 +583,7 @@ namespace fbchat_sharp.API
             var data = new Dictionary<string, object>() {
                 { "action", reaction != null ? "ADD_REACTION" : "REMOVE_REACTION"},
                 {"client_mutation_id", "1"},
-                {"actor_id", this.session.get_user_id()},
+                {"actor_id", this.session.user.uid},
                 {"message_id", this.uid},
                 {"reaction", reaction != null && FB_Message_Constants.SENDABLE_REACTIONS.Contains(reaction) ? reaction : null}
             };
