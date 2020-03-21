@@ -3167,8 +3167,14 @@ namespace fbchat_sharp.API
             // Client payload (that weird numbers)
             else if (delta_class == "ClientPayload")
             {
-                var json = string.Join("", delta.get("payload")?.Value<string>());
-                var payload = JToken.Parse(json);
+                var json = delta.Value<JArray>("payload").Values<int>();
+                string jsonString = "";
+                foreach (var val in json)
+                {
+                    char character = Convert.ToChar(val);
+                    jsonString = jsonString + character;
+                }
+                var payload = JToken.Parse(jsonString);
                 ts = m.get("ofd_ts")?.Value<long>() ?? 0;
                 foreach (var d in payload.get("deltas") ?? new JArray())
                 {
@@ -3179,9 +3185,7 @@ namespace fbchat_sharp.API
                         var thread = getThreadIdAndThreadType(i);
                         mid = i.get("messageId")?.Value<string>();
                         author_id = i.get("userId")?.Value<string>();
-                        var reaction = (
-                            i.get("reaction") != null ? (MessageReaction?)(i.get("reaction")?.Value<int>()) : null
-                        );
+                        var reaction = i.get("reaction");
                         var add_reaction = !(i.get("action")?.Value<bool>() ?? false);
                         if (add_reaction)
                             await this.onReactionAdded(
