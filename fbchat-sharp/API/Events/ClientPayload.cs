@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -124,7 +125,7 @@ namespace fbchat_sharp.API
     {
         public static IEnumerable<FB_Event> parse_client_payloads(Session session, JToken data)
         {
-            var payload = JToken.Parse(string.Join("", data.get("payload")?.Select(x => x?.Value<int?>()?.ToString())));
+            var payload = JToken.Parse(string.Join("", data.get("payload")?.Select(x => Convert.ToChar(x?.Value<int>()))));
 
             foreach (var d in payload?.get("deltas") ?? Enumerable.Empty<JToken>())
             {
