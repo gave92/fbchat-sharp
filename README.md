@@ -9,7 +9,7 @@ This is a porting from the excellent [fbchat](https://github.com/carpedm20/fbcha
 
 This is *not* an official API, Facebook has that [over here](https://developers.facebook.com/docs/messenger-platform) for chat bots. This library differs by using a normal Facebook account instead.
 
-**fbchat** currently support:
+**fbchat-sharp** currently support:
 
 - Sending many types of messages, with files, stickers, mentions, etc.
 - Fetching all messages, threads and images in threads.
