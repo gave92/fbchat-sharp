@@ -19,6 +19,9 @@ This is *not* an official API, Facebook has that [over here](https://developers.
 
 Essentially, everything you need to make an amazing Facebook bot!
 
+#### Version warning
+*v2* is currently being developed at the *master* branch and it's highly unstable. If you want to view the old *v1*, go [here](https://github.com/gave92/fbchat-sharp/tree/v1)`.
+
 ## Installation
 
 $ Install-Package Gave.Libs.Fbchat
