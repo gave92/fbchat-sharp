@@ -48,6 +48,8 @@ namespace fbchat_sharp.API
         /// <param name="user_agent"></param>
         public async Task<Session> fromSession(Dictionary<string, List<Cookie>> session_cookies = null, string user_agent = null)
         {
+            await this.onLoggingIn(email: null);
+
             // If session cookies aren't set, not properly loaded or gives us an invalid session, then do the login
             if (
                 session_cookies == null ||
@@ -58,6 +60,7 @@ namespace fbchat_sharp.API
                 throw new FBchatException(message: "Login from session failed.");
             }
 
+            await this.onLoggedIn(email: null);
             return _session;
         }
 
@@ -138,7 +141,8 @@ namespace fbchat_sharp.API
         {
             if (await this._session.logout())
             {
-                this._session = null;
+                await this.onLoggedOut();
+                this._session = null;                
                 return true;
             }
             return false;
@@ -935,44 +939,42 @@ namespace fbchat_sharp.API
 
         #region EVENTS
         /// <summary>
-        /// Called when the client is logging in
-        /// </summary>
-        /// <param name="email">The email of the client</param>
-        protected virtual async Task onLoggingIn(string email = null)
-        {
-            /*
-             * Called when the client is logging in
-             * :param email: The email of the client
-             * */
-            Debug.WriteLine(string.Format("Logging in {0}...", email));
-            await Task.Yield();
-        }
-
-        /// <summary>
         /// Called when a 2FA code is requested
         /// </summary>
         protected virtual async Task<string> on2FACode()
         {
-            /*
-             * Called when a 2FA code is requested
-             */
             await Task.Yield();
             throw new NotImplementedException("You should override this.");
         }
 
         /// <summary>
-        /// Called when the client is successfully logged in
+        /// Called when the client is logging in
         /// </summary>
-        /// <param name="email">The email of the client</param>
-        protected virtual async Task onLoggedIn(string email = null)
+        /// <param name="email">The email of the client. Null if logging in from cookies</param>
+        protected virtual async Task onLoggingIn(string email)
         {
-            /*
-             * Called when the client is successfully logged in
-             * :param email: The email of the client
-             * */
+            Debug.WriteLine(string.Format("Logging in {0}...", email));
+            await Task.Yield();
+        }
+
+        /// <summary>
+        /// Called when the client has successfully logged in
+        /// </summary>
+        /// <param name="email">The email of the client. Null if logging in from cookies</param>
+        protected virtual async Task onLoggedIn(string email)
+        {
             Debug.WriteLine(string.Format("Login of {0} successful.", email));
             await Task.Yield();
-        }        
+        }
+
+        /// <summary>
+        /// Called when the client has successfully logged out
+        /// </summary>
+        protected virtual async Task onLoggedOut()
+        {            
+            Debug.WriteLine(string.Format("Logout of {0} successful.", this._session?.user?.uid));
+            await Task.Yield();
+        }
         #endregion
 
         /// <returns>Pretty string representation of the client</returns>

@@ -24,12 +24,12 @@ namespace wpfapp
 
         private void LoginPage_Loaded(object sender, RoutedEventArgs e)
         {
-            Client.Set2FACallback(On2FACallback);
+            Client.On2FACodeCallback = On2FACallback;
         }
 
         private void LoginPage_Unloaded(object sender, RoutedEventArgs e)
         {
-            Client.Set2FACallback(null);
+            Client.On2FACodeCallback = null;
         }
 
         private async Task<string> On2FACallback()

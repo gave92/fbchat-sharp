@@ -16,7 +16,7 @@ namespace examples
 
         public FBClient_Cookies()
         {
-            this.Set2FACallback(get2FACode);
+            On2FACodeCallback = get2FACode;
         }
 
         private async Task<string> get2FACode()

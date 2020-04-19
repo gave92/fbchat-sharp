@@ -11,7 +11,7 @@ namespace fbchat_sharp.API
     /// <summary>
     /// Facebook Client wrapper class. Library users should use this class
     /// </summary>
-    public abstract class MessengerClient : Client
+    public class MessengerClient : Client
     {
         /*
          * METHODS
@@ -129,41 +129,52 @@ namespace fbchat_sharp.API
         /// <summary>
         /// Use this to set the callback for providing a 2FA code
         /// </summary>
-        public void Set2FACallback(Func<Task<string>> get2FACode)
-        {
-            this.get2FACode = get2FACode;
-        }
-
-        private Func<Task<string>> get2FACode;
-
-        /// <summary>
-        /// Called when a 2FA code is requested
-        /// </summary>
+        public Func<Task<string>> On2FACodeCallback { get; set; }
+        /// <inheritdoc />
         protected override async Task<string> on2FACode()
         {
-            if (get2FACode == null)
+            if (On2FACodeCallback == null)
             {
-                this.Log("2FA code callback is not set. Use Set2FACallback().");
+                this.Log("2FA code callback is not set. Set the On2FACodeCallback property.");
                 return null;
             }
-            return await get2FACode();
+            return await On2FACodeCallback?.Invoke();
         }
+
+        /// <inheritdoc />
+        protected override async Task onLoggingIn(string email) => await this.OnEvent(new FB_LoggingIn() { Email = email });
+        /// <inheritdoc />
+        protected override async Task onLoggedIn(string email) => await this.OnEvent(new FB_LoggedIn() { Email = email });
+        /// <inheritdoc />
+        protected override async Task onLoggedOut() => await this.OnEvent(new FB_LoggedOut());
 
         /// <summary>
         /// How to delete saved cookies from disk
         /// </summary>
-        protected abstract Task DeleteCookiesAsync();
+        protected virtual async Task DeleteCookiesAsync()
+        {
+            await Task.Yield();
+        }
 
         /// <summary>
         /// How to save a list of cookies to disk
         /// </summary>
         /// <param name="cookieJar">List of session cookies</param>
-        protected abstract Task WriteCookiesToDiskAsync(Dictionary<string, List<Cookie>> cookieJar);
+        protected virtual async Task WriteCookiesToDiskAsync(Dictionary<string, List<Cookie>> cookieJar)
+        {
+            this.Log("You should always implement ReadCookiesFromDiskAsync() and WriteCookiesToDiskAsync().");
+            await Task.Yield();
+        }
 
         /// <summary>
         /// How to load a list of saved cookies
         /// </summary>
-        protected abstract Task<Dictionary<string, List<Cookie>>> ReadCookiesFromDiskAsync();
+        protected virtual async Task<Dictionary<string, List<Cookie>>> ReadCookiesFromDiskAsync()
+        {
+            this.Log("You should always implement ReadCookiesFromDiskAsync() and WriteCookiesToDiskAsync().");
+            await Task.Yield();
+            return null;
+        }
 
         #region PRIVATE
         private CancellationTokenSource _cancellationTokenSource;

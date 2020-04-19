@@ -205,4 +205,49 @@ namespace fbchat_sharp.API
             };
         }
     }
+
+    /// <summary>
+    /// The client was connected to Facebook.
+    /// This is not guaranteed to be triggered the same amount of times `Disconnect`!
+    /// </summary>
+    public class FB_Connect : FB_Event
+    {
+
+    }
+
+    /// <summary>
+    /// The client lost the connection to Facebook.
+    /// This is not guaranteed to be triggered the same amount of times `Connect`!
+    /// </summary>
+    public class FB_Disconnect : FB_Event
+    {
+        /// The reason / error string for the disconnect
+        public string Reason { get; set; }
+    }
+
+    /// <summary>
+    /// Called when the client is logging in
+    /// </summary>
+    public class FB_LoggingIn : FB_Event
+    {
+        /// The email of the client
+        public string Email { get; set; }
+    }
+
+    /// <summary>
+    /// Called when the client has successfully logged in
+    /// </summary>
+    public class FB_LoggedIn : FB_Event
+    {
+        /// The email of the client
+        public string Email { get; set; }
+    }
+
+    /// <summary>
+    /// Called when the client has successfully logged out
+    /// </summary>
+    public class FB_LoggedOut : FB_Event
+    {
+
+    }
 }

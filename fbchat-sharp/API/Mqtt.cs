@@ -85,6 +85,7 @@ namespace fbchat_sharp.API
                 await listener._messenger_queue_publish();
 
                 Debug.WriteLine("MQTT: subscribed");
+                if (onEvent != null) await onEvent(new FB_Connect());
             });
 
             listener.mqttClient.UseApplicationMessageReceivedHandler(async e =>
@@ -110,6 +111,7 @@ namespace fbchat_sharp.API
             listener.mqttClient.UseDisconnectedHandler(async e =>
             {
                 Debug.WriteLine("MQTT: disconnected from server");
+                if (onEvent != null) await onEvent(new FB_Disconnect() { Reason = "Connection lost, retrying" });
                 try
                 {
                     await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
