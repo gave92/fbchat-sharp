@@ -82,12 +82,6 @@
     <Compile Include="Utils\KnownMimeTypes.cs" />
     <Compile Include="Utils\MimeUtility.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\AsyncEnumerable\AsyncEnumerable.csproj">
-      <Project>{c8728fcc-81d6-40c1-97a3-aca51e715f9a}</Project>
-      <Name>AsyncEnumerable</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

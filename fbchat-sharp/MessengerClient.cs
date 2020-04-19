@@ -153,6 +153,7 @@ namespace fbchat_sharp.API
         /// </summary>
         protected virtual async Task DeleteCookiesAsync()
         {
+            this.Log("You should always implement DeleteCookiesAsync().");
             await Task.Yield();
         }
 
@@ -162,7 +163,7 @@ namespace fbchat_sharp.API
         /// <param name="cookieJar">List of session cookies</param>
         protected virtual async Task WriteCookiesToDiskAsync(Dictionary<string, List<Cookie>> cookieJar)
         {
-            this.Log("You should always implement ReadCookiesFromDiskAsync() and WriteCookiesToDiskAsync().");
+            this.Log("You should always implement WriteCookiesToDiskAsync().");
             await Task.Yield();
         }
 
@@ -171,7 +172,7 @@ namespace fbchat_sharp.API
         /// </summary>
         protected virtual async Task<Dictionary<string, List<Cookie>>> ReadCookiesFromDiskAsync()
         {
-            this.Log("You should always implement ReadCookiesFromDiskAsync() and WriteCookiesToDiskAsync().");
+            this.Log("You should always implement ReadCookiesFromDiskAsync().");
             await Task.Yield();
             return null;
         }

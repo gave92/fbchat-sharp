@@ -1,5 +1,4 @@
-﻿using Dasync.Collections;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -413,7 +412,7 @@ namespace fbchat_sharp.API
         /// <param name="offset">Number of messages to skip</param>
         /// <param name="limit">Max.number of messages to retrieve</param>
         /// <returns>Found `FB_Message` objects</returns>
-        public IAsyncEnumerable<FB_Message_Snippet> searchMessages(string query, int offset = 0, int limit = 5)
+        public async Task<IEnumerable<FB_Message_Snippet>> searchMessages(string query, int offset = 0, int limit = 5)
         {
             /*
              * Find and get`FB_Message_Snippet` objects by query
@@ -432,14 +431,10 @@ namespace fbchat_sharp.API
              * */
 
             // TODO: fbchat simplifies iteration calculating the offset + yield return
-            return new AsyncEnumerable<FB_Message_Snippet>(async yield =>
-            {
-                var message_snippets = await this._search_messages(
+            var message_snippets = await this._search_messages(
                     query, offset: offset, limit: limit
                 );
-                foreach (var snippet in message_snippets.snippets)
-                    await yield.ReturnAsync(snippet);
-            });
+            return message_snippets.snippets;
         }
 
         /// <summary>
@@ -489,49 +484,50 @@ namespace fbchat_sharp.API
         /// Creates generator object for fetching images posted in thread.
         /// </summary>
         /// <returns>`ImageAttachment` or `VideoAttachment`.</returns>
-        public IAsyncEnumerable<(string cursor, FB_Attachment attachment)> fetchImages(int limit = 5, string after = null)
+        public async Task<List<(string cursor, FB_Attachment attachment)>> fetchImages(int limit = 5, string after = null)
         {
             /*
              * Creates generator object for fetching images posted in thread.
              * :return: `ImageAttachment` or `VideoAttachment`.
              * :rtype: iterable
              * */
-            return new AsyncEnumerable<(string cursor, FB_Attachment attachment)>(async yield =>
-             {
-                 var data = new Dictionary<string, object>() {
+            var rtn = new List<(string cursor, FB_Attachment attachment)>();
+            
+            var data = new Dictionary<string, object>() {
                     { "id", this.uid },
                     { "limit", limit },
                     { "after", after }
                  };
 
-                 var j = await this.session.graphql_request(GraphQL.from_query_id("515216185516880", data));
-                 if (j?.get(this.uid) == null)
-                     throw new FBchatException("Could not find images");
+            var j = await this.session.graphql_request(GraphQL.from_query_id("515216185516880", data));
+            if (j?.get(this.uid) == null)
+                throw new FBchatException("Could not find images");
 
-                 var result = j.get(this.uid).get("message_shared_media");
+            var result = j.get(this.uid).get("message_shared_media");
 
-                 foreach (var edge in result?.get("edges"))
-                 {
-                     var node = edge?.get("node");
-                     var type_ = node?.get("__typename");
+            foreach (var edge in result?.get("edges"))
+            {
+                var node = edge?.get("node");
+                var type_ = node?.get("__typename");
 
-                     if (type_?.Value<string>() == "MessageImage")
-                     {
-                         await yield.ReturnAsync((result?.get("page_info")?.get("end_cursor")?.Value<string>(),
-                             FB_ImageAttachment._from_list(node)));
-                     }
-                     else if (type_?.Value<string>() == "MessageVideo")
-                     {
-                         await yield.ReturnAsync((result?.get("page_info")?.get("end_cursor")?.Value<string>(),
-                             FB_VideoAttachment._from_list(node)));
-                     }
-                     else
-                     {
-                         Debug.WriteLine($"Unknown image type {type_}, data: {edge.ToString()}");
-                         continue;
-                     }
-                 }
-             });
+                if (type_?.Value<string>() == "MessageImage")
+                {
+                    rtn.Add((result?.get("page_info")?.get("end_cursor")?.Value<string>(),
+                        FB_ImageAttachment._from_list(node)));
+                }
+                else if (type_?.Value<string>() == "MessageVideo")
+                {
+                    rtn.Add((result?.get("page_info")?.get("end_cursor")?.Value<string>(),
+                        FB_VideoAttachment._from_list(node)));
+                }
+                else
+                {
+                    Debug.WriteLine($"Unknown image type {type_}, data: {edge.ToString()}");
+                    continue;
+                }
+            }
+
+            return rtn;
         }
 
         /// <summary>

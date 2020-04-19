@@ -4,45 +4,98 @@
 
 ![logo](https://img.shields.io/badge/license-BSD-blue.svg)&nbsp;[![donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/gave92)&nbsp;[![Build Status](https://ci.appveyor.com/api/projects/status/github/gave92/fbchat-sharp?branch=master&svg=true)](https://ci.appveyor.com/project/gave92/fbchat-sharp)
 
-Facebook ([Messenger](https://www.messenger.com/)) client library for C#. This is a porting from the excellent [fbchat](https://github.com/carpedm20/fbchat) library for Python.
+A powerful and efficient library to interact with Facebook's [Messenger](https://www.messenger.com/), using just your email and password.
+This is a porting from the excellent [fbchat](https://github.com/carpedm20/fbchat) library to C#.
 
-**No XMPP or API key is needed**. Just use your email and password.
+This is *not* an official API, Facebook has that [over here](https://developers.facebook.com/docs/messenger-platform) for chat bots. This library differs by using a normal Facebook account instead.
+
+**fbchat** currently support:
+
+- Sending many types of messages, with files, stickers, mentions, etc.
+- Fetching all messages, threads and images in threads.
+- Searching for messages and threads.
+- Creating groups, setting the group emoji, changing nicknames, creating polls, etc.
+- Listening for, an reacting to messages and other events in real-time.
+
+Essentially, everything you need to make an amazing Facebook bot!
 
 ## Installation
 
 $ Install-Package Gave.Libs.Fbchat
 
-## Key features
-* **Powerful** (not limited to the facebook chatbot api)
-* **Portable** (designed as a PCL - supporting .NET Standard 1.3)
-
-The key difference from other C# messenger libraries is that *fbchat-sharp* does not use the chatbot api. The library is able to read and send chat messages to any of the user contacts.
-
 ## Quick guide
 
 The simple example will login to messenger and get the last 20 messages from a user friend.
 
-#### 1. Implement the abstract MessengerClient class
+#### 1. Inherit the MessengerClient class
 
 ```cs
-// The 4 abstract methods allow to load and save an active session to avoid logging in every time and to provide the 2FA code if requested
-// In this example the mothods do nothing
+using System.Collections.Generic;
+using System.Net;
+using System.Threading.Tasks;
+using fbchat_sharp.API;
+...
+// The methods allow to load and save an active session to avoid logging in every time and to provide the 2FA code if requested
+// In this example the methods do nothing
 public class FBClient : MessengerClient
 {
-    protected override async Task DeleteCookiesAsync()
+    public FBClient()
     {
-        await Task.Yield();
-    }    
-        
-    protected override async Task<Dictionary<string, List<Cookie>>> ReadCookiesFromDiskAsync()
+        On2FACodeCallback = get2FACode;
+    }
+
+    private async Task<string> get2FACode()
     {
-        await Task.Yield();
+        // You need to implement this if your account uses two factor authentication.
+        // It should return a valid 2FA code as string.
         return null;
     }
 
+    // This method is called when the client receives an event from Facebook:
+    // A new message/reaction was received
+    // A picture was posted in a thread
+    // A friend connected
+    // A friend request was received
+    // ...
+    protected override async Task OnEvent(FB_Event ev)
+    {
+        switch (ev)
+        {
+            case FB_MessageEvent t1:
+                // You got a new message!
+                Console.WriteLine(string.Format("Got new message from {0}: {1}", t1.author, t1.message));
+                break;
+            default:
+                // Something else happened
+                Console.WriteLine(string.Format("Something happened: {0}", ev.ToString()));
+                break;
+        }
+        await Task.Yield();
+    }
+
+    /// <summary>
+    /// How to delete saved cookies from disk. Called when logging out.
+    /// </summary>
+    protected override async Task DeleteCookiesAsync()
+    {
+        // You should always implement this. Facebook complains if you login too often.
+    }
+    
+    /// <summary>
+    /// How to load a list of saved cookies
+    /// </summary>
+    protected override async Task<Dictionary<string, List<Cookie>>> ReadCookiesFromDiskAsync()
+    {
+        // You should always implement this. Facebook complains if you login too often.
+        return null;
+    }
+
+    /// <summary>
+    /// How to save a list of cookies to disk
+    /// </summary>
     protected override async Task WriteCookiesToDiskAsync(Dictionary<string, List<Cookie>> cookieJar)
     {
-        await Task.Yield();
+        // You should always implement this. Facebook complains if you login too often.
     }
 }
 ```
@@ -50,26 +103,30 @@ public class FBClient : MessengerClient
 #### 2. Instantiate FBClient class and login user
 
 ```cs
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using fbchat_sharp.API;
 ...
 // Instantiate FBClient
 FBClient client = new FBClient();
 // Login with username and password
-var logged_in = await client.DoLogin(email, password);
+var session = await client.DoLogin(email, password);
 
 // Check login was successful
-if (logged_in)
+if (session != null)
 {
     // Send a message to myself
-    var msg_uid = await client.sendMessage("Hi me!", thread_id: client.GetUserUid(), thread_type: ThreadType.USER);
-                
+    var user = new FB_Thread(session.user.uid, session);
+    var msg_uid = await user.sendText("Hi me!");                
     if (msg_uid != null)
     {
         Console.WriteLine("Message sent: {0}", msg_uid);
     }
 
-    // Do logout
-    await client.DoLogout();
+    // Logging out is not recommended. Facebook complains if you login too often.
+    // Instead always implement WriteCookiesToDiskAsync() and ReadCookiesFromDiskAsync() client methods.
+    // await client.DoLogout();
 }
 else
 {
@@ -83,12 +140,12 @@ else
 // Get user's last 10 threads
 List<FB_Thread> threads = await client.fetchThreadList(limit: 10);
 // Get user's last 20 messages in a thread
-List<FB_Message> messages = await client.fetchThreadMessages(threads.First().uid);
+List<FB_Message> messages = await threads.FirstOrDefault()?.fetchMessages(20);
 ```
 
 ## Supported platforms
 
-fbchat-sharp has been created as a PCL targeting .NET Standard 1.2 that supports a wide range of platforms. The list includes but is not limited to:
+fbchat-sharp has been created as a PCL targeting .NET Standard 1.3 that supports a wide range of platforms. The list includes but is not limited to:
 
 * .NetStandard 1.3
 * .NET Core 1.0
