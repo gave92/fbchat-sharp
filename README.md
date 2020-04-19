@@ -154,4 +154,4 @@ fbchat-sharp has been created as a PCL targeting .NET Standard 1.3 that supports
 * Xamarin.Android
 * Xamarin.iOS
 
-© Copyright 2017 - 2018 by Marco Gavelli
+© Copyright 2017 by Marco Gavelli
