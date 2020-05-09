@@ -216,9 +216,9 @@ namespace fbchat_sharp.API
             var cookies = this._session.get_cookies();
 
             var headers = new Dictionary<string, string>() {
-                { "Referer", "https://www.facebook.com" },
+                { "Referer", "https://www.messenger.com" },
                 { "User-Agent", Utils.USER_AGENTS[0] },
-                { "Cookie", string.Join(";", cookies[".facebook.com"].Select(c => $"{c.Name}={c.Value}"))},
+                { "Cookie", string.Join(";", cookies[".messenger.com"].Select(c => $"{c.Name}={c.Value}"))},
                 { "Accept", "*/*"},
                 { "Origin", "https://www.messenger.com" }
             };
@@ -226,7 +226,7 @@ namespace fbchat_sharp.API
             // Use WebSocket connection.
             var options = new MqttClientOptionsBuilder()
                         .WithClientId("mqttwsclient")
-                        .WithWebSocketServer($"wss://edge-chat.facebook.com/chat?region=lla&sid={sid}",
+                        .WithWebSocketServer($"wss://edge-chat.messenger.com/chat?region=lla&sid={sid}",
                             new MqttClientOptionsBuilderWebSocketParameters() { RequestHeaders = headers })
                         .WithProtocolVersion(MQTTnet.Formatter.MqttProtocolVersion.V310)
                         .WithCredentials(JsonConvert.SerializeObject(username), "")

@@ -29,7 +29,7 @@ namespace fbchat_sharp.API
         /// </summary>
         /// <param name="message"></param>
         /// <param name="data"></param>
-        public FBchatParseError(string message, JToken data = null) : base(message)
+        public FBchatParseError(string message, object data = null) : base(message)
         {
             this.Data.Add("data", data);
         }

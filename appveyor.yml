@@ -1,5 +1,5 @@
 test: off
-version: '0.3.3.{build}'
+version: '0.3.4.{build}'
 image: Visual Studio 2017
 
 environment:

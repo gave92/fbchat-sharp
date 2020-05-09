@@ -139,6 +139,16 @@ namespace fbchat_sharp.API
             return null;
         }
 
+        public static JToken get_jsmods_define(JArray j)
+        {
+            var rtn = new JObject();
+            foreach (var obj in j)
+            {
+                rtn[obj[0]?.Value<string>()] = obj[2];
+            }
+            return rtn;
+        }
+
         public static List<string> get_url_parameters(string url, params string[] args)
         {
             List<string> rtn = new List<string>();
@@ -218,7 +228,7 @@ namespace fbchat_sharp.API
         public static string prefix_url(string url)
         {
             if (url.StartsWith("/"))
-                return "https://www.facebook.com" + url;
+                return "https://www.messenger.com" + url;
             return url;
         }
     }
