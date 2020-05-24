@@ -22,7 +22,7 @@ namespace fbchat_sharp.API
     /// </summary>
     public class Session
     {
-        private const string FB_DTSG_REGEX = "name=\"fb_dtsg\" value=\"(.*?)\"";
+        private const string FB_DTSG_REGEX = "\"name\":\"fb_dtsg\",\"value\":\"(.*?)\"";
         private const string facebookEncoding = "UTF-8";
         private HtmlParser _parser = null;
         private string _fb_dtsg = null;
@@ -541,7 +541,7 @@ namespace fbchat_sharp.API
                 if (retry)
                 {
                     await this._do_refresh();
-                    return await _post(url, query, files, as_graphql, cancellationToken);
+                    return await _post(url, query, files, as_graphql, cancellationToken, false);
                 }
                 throw ex;
             }
