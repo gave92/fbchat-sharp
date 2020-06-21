@@ -131,13 +131,13 @@ namespace fbchat_sharp.API
         {
             FB_Plan rtn = new FB_Plan(
                 session: session,
-                time: data.get("time")?.Value<string>(),
-                title: data.get("event_title")?.Value<string>(),
-                location: data.get("location_name")?.Value<string>()
+                time: data?.get("time")?.Value<string>(),
+                title: data?.get("event_title")?.Value<string>(),
+                location: data?.get("location_name")?.Value<string>()
             );
-            rtn.uid = data.get("id")?.Value<string>();
-            rtn.author_id = data.get("lightweight_event_creator")?.get("id")?.Value<string>();
-            rtn.guests = data.get("event_reminder_members")?.get("edges")?.Select((x) => {
+            rtn.uid = data?.get("id")?.Value<string>();
+            rtn.author_id = data?.get("lightweight_event_creator")?.get("id")?.Value<string>();
+            rtn.guests = data?.get("event_reminder_members")?.get("edges")?.Select((x) => {
                 return new { Key = x.get("node")?.get("id") ?.Value<string>(), Value = FB_Plan_Constants.GUESTS[x.get("guest_list_state")?.Value<string>()] };
             }).ToDictionary(t => t.Key, t => t.Value);
             return rtn;

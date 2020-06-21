@@ -593,7 +593,7 @@ namespace fbchat_sharp.API
                     var _id = entry.get("thread_key")?.get("thread_fbid").Value<string>();
                     rtn[_id] = FB_Group._from_graphql(_session, entry);
                 }
-                if (entry.get("thread_type")?.Value<string>()?.Equals("MARKETPLACE") ?? false)
+                else if (entry.get("thread_type")?.Value<string>()?.Equals("MARKETPLACE") ?? false)
                 {
                     var _id = entry.get("thread_key")?.get("thread_fbid").Value<string>();
                     rtn[_id] = FB_Marketplace._from_graphql(_session, entry);
