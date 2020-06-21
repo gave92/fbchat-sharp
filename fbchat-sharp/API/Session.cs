@@ -22,7 +22,7 @@ namespace fbchat_sharp.API
     /// </summary>
     public class Session
     {
-        private const string SERVER_JS_DEFINE_REGEX = "require\\(\"ServerJSDefine\"\\)\\)?\\.handleDefines\\(";
+        private const string SERVER_JS_DEFINE_REGEX = @"(?:""ServerJS"".{,100}\.handle\({.*""define"":)|(?:require\(""ServerJSDefine""\)\)?\.handleDefines\()";
         private const string facebookEncoding = "UTF-8";
         private HtmlParser _parser = null;
         private string _fb_dtsg = null;
@@ -594,7 +594,7 @@ namespace fbchat_sharp.API
                 if (retry)
                 {
                     await this._do_refresh();
-                    return await _post(url, query, files, as_graphql, cancellationToken);
+                    return await _post(url, query, files, as_graphql, cancellationToken, false);
                 }
                 throw ex;
             }
