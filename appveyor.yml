@@ -34,6 +34,7 @@ init:
       
 install:
   # Install repo specific stuff here
+  - ps: install_sdk.ps1
   - ps: try { Import-PfxCertificate -FilePath .\examples\uwpapp\uwpapp_TemporaryKey.pfx -CertStoreLocation cert:\CurrentUser\My -Password (ConvertTo-SecureString $env:my_pfx -AsPlainText -Force) } catch {}
 
 before_build:
