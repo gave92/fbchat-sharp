@@ -18,7 +18,7 @@ namespace examples
 
             // Try logging in from saved session
             var session = await client.TryLogin();
-            if (session != null)
+            if (session == null)
             {
                 // Read email and pw from console
                 Console.WriteLine("Insert Facebook email:");
