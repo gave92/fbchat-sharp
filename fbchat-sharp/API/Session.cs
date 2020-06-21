@@ -22,7 +22,7 @@ namespace fbchat_sharp.API
     /// </summary>
     public class Session
     {
-        private const string SERVER_JS_DEFINE_REGEX = @"(?:""ServerJS"".{,100}\.handle\({.*""define"":)|(?:require\(""ServerJSDefine""\)\)?\.handleDefines\()";
+        private const string SERVER_JS_DEFINE_REGEX = @"(?:""ServerJS"".*\.handle\({.*""define"":)|(?:require\(""ServerJSDefine""\)\)?\.handleDefines\()";
         private const string facebookEncoding = "UTF-8";
         private HtmlParser _parser = null;
         private string _fb_dtsg = null;
@@ -83,17 +83,24 @@ namespace fbchat_sharp.API
                 throw new FBchatParseError("Could not find any ServerJSDefine", data: html);
             // Parse entries (should be two)
             foreach (var entry in define_splits)
-            {
-                var tmp = entry.Substring(0, entry.IndexOf(");"));
+            {                
                 JToken parsed = null;
                 try
                 {
-                    parsed = JToken.Parse(tmp);
+                    parsed = JToken.Parse(entry);
                 }
-                catch
+                catch (Newtonsoft.Json.JsonReaderException ex)
                 {
-                    throw new FBchatParseError("Invalid ServerJSDefine", data: entry);
-                }
+                    try
+                    {
+                        var tmp = entry.Substring(0, ex.LinePosition);
+                        parsed = JToken.Parse(tmp);
+                    }
+                    catch
+                    {
+                        throw new FBchatParseError("Invalid ServerJSDefine", data: entry);
+                    }                    
+                }                
                 if (!(parsed.Type == JTokenType.Array))
                     throw new FBchatParseError("Invalid ServerJSDefine", data: parsed);
                 rtn.Merge(parsed);
