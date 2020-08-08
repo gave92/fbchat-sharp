@@ -112,9 +112,8 @@ using System.Threading.Tasks;
 using fbchat_sharp.API;
 ...
 // Instantiate FBClient
-FBClient client = new FBClient();
-// Login with username and password
-var session = await client.DoLogin(email, password);
+Client FbClient = new Client();
+var FacebookSession = await FbClient.login(email, password);
 
 // Check login was successful
 if (session != null)
