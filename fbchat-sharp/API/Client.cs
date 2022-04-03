@@ -188,7 +188,7 @@ namespace fbchat_sharp.API
                 else  // End of threads
                     break;
 
-                last_thread_timestamp = threads.LastOrDefault()?.last_message_timestamp;
+                last_thread_timestamp = threads.LastOrDefault(t => t.last_message_timestamp != null)?.last_message_timestamp;
 
                 // FB returns a sorted list of threads
                 if ((before != null && long.Parse(last_thread_timestamp) > before) ||
